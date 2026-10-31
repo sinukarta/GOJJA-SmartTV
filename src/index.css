@@ -1,0 +1,141 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --brand-cobalt: #0050f5;
+  --brand-indigo: #4f3fe5;
+  --brand-violet: #7c35e0;
+  --brand-magenta: #ca3596;
+  --brand-coral: #ff5e70;
+  --cms-bg: #f5f6fa;
+  --cms-sidebar: #ffffff;
+  --cms-header: #ffffff;
+  --cms-surface: #ffffff;
+  --cms-input: #ffffff;
+  --cms-text: #10172f;
+  --cms-text-secondary: #586174;
+  --cms-divider: #e3e7ef;
+  --cms-control-border: #7a8496;
+  --cms-link: #1d4ed8;
+  --action-bg: #0050f5;
+  --action-fg: #ffffff;
+  --focus-ring: #0050f5;
+  --chart-primary: #4f3fe5;
+  --nav-selected-bg: #eef0ff;
+  --nav-selected-fg: #0050f5;
+  --status-success-bg: #dcfce7;
+  --status-success-fg: #166534;
+  --status-warning-bg: #fef3c7;
+  --status-warning-fg: #92400e;
+  --status-danger-bg: #fee2e2;
+  --status-danger-fg: #b91c1c;
+  --status-info-bg: #dbeafe;
+  --status-info-fg: #1d4ed8;
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-fg: #475569;
+  --font-heading: "Plus Jakarta Sans", "Noto Sans SC", "Noto Sans JP", sans-serif;
+  --font-ui: "DM Sans", "Plus Jakarta Sans", "Noto Sans SC", "Noto Sans JP", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+:root.dark,
+:root[data-theme="dark"] {
+  --cms-bg: #4b4a47;
+  --cms-sidebar: #4b4a47;
+  --cms-header: #504f4b;
+  --cms-surface: #5b5955;
+  --cms-input: #504f4b;
+  --cms-text: #f8f5ee;
+  --cms-text-secondary: #e2dfd8;
+  --cms-divider: #77746e;
+  --cms-control-border: #c3bfb6;
+  --cms-link: #e4dcff;
+  --chart-primary: #c7b9ff;
+  --focus-ring: #c7b9ff;
+  --nav-selected-bg: #65615e;
+  --nav-selected-fg: #f8f5ee;
+}
+
+body {
+  font-family: var(--font-ui);
+  background-color: var(--cms-bg);
+  color: var(--cms-text);
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-heading);
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Circular View Transition Theme Reveal (620ms) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* SVG Chart Line Reveal Animation */
+@keyframes svgLineReveal {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-chart-line {
+  stroke-dasharray: 1000;
+  animation: svgLineReveal 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* TV 10-foot scene & D-pad focus contract */
+.tv-scene {
+  --tv-bg: #10151c;
+  --tv-text: #f8f5ee;
+  --tv-text-secondary: #cdd3dd;
+  --tv-accent: #dcc6a1;
+  --tv-focus-inner: #ffffff;
+  --tv-focus-outer: #10151c;
+  color: var(--tv-text);
+  background-color: var(--tv-bg);
+}
+
+.tv-focusable[data-focused="true"] {
+  outline: 4px solid #ffffff;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px rgba(16, 21, 28, 0.92), 0 12px 30px -6px rgba(220, 198, 161, 0.45);
+  transform: scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .tv-focusable[data-focused="true"] {
+    transform: none;
+  }
+}

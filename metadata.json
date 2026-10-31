@@ -1,0 +1,6 @@
+{
+  "name": "GOJJA SmartTV — Hospitality Entertainment & Fleet SaaS",
+  "description": "Enterprise Hospitality SmartTV SaaS platform, multi-role CMS for GOJJA administrators, ISP partners, and property teams, real Local Connector ADB discovery & deployment, and interactive 4-locale TV Guest App.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
