@@ -131,20 +131,37 @@ h1, h2, h3, h4, .font-display {
   animation: svgLineReveal 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Custom Scrollbar for sidebar and data tables */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Ultra-thin luxury scrollbar for independent sidebar & main viewport scrolling */
+.luxury-scrollbar,
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(122, 132, 150, 0.22) transparent;
 }
+.luxury-scrollbar::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.luxury-scrollbar::-webkit-scrollbar-track,
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+.luxury-scrollbar::-webkit-scrollbar-thumb,
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(122, 132, 150, 0.3);
+  background: rgba(122, 132, 150, 0.22);
   border-radius: 9999px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(122, 132, 150, 0.5);
+.luxury-scrollbar:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(122, 132, 150, 0.42);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* TV 10-foot scene & D-pad focus contract */

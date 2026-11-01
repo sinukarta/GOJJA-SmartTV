@@ -494,9 +494,9 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col font-sans">
+    <div className="h-[100dvh] overflow-hidden bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col font-sans">
       {/* Top Shell Header Bar (Exact V-12 Layout & Mobile Non-Overlapping Layout) */}
-      <header className="sticky top-0 z-30 h-[72px] px-3 sm:px-4 md:px-6 bg-[var(--cms-header)] border-b border-[var(--cms-divider)] flex items-center justify-between gap-2 sm:gap-4">
+      <header className="shrink-0 z-30 h-[72px] px-3 sm:px-4 md:px-6 bg-[var(--cms-header)] border-b border-[var(--cms-divider)] flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Hamburger (Mobile) + Property Selector + Search (Tablet/Desktop) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
           {/* Hamburger button (Mobile only, shrink-0 ensures it NEVER gets overlapped) */}
@@ -670,27 +670,28 @@ export default function App() {
             aria-hidden="true"
           />
 
-          {/* Slide-out Drawer Panel */}
-          <aside className="relative z-10 w-72 max-w-[85vw] h-full bg-[var(--cms-sidebar)] border-r border-[var(--cms-divider)] p-4 flex flex-col justify-between overflow-y-auto shadow-2xl">
-            <div className="space-y-6">
-              {/* Header with Logo + Close button */}
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--cms-divider)]">
-                <div>
-                  <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
-                  <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--cms-text-secondary)] mt-0.5">
-                    PROPERTY WORKSPACE
-                  </div>
+          {/* Slide-out Drawer Panel (Pinned Header + Scrollable Nav + Pinned Footer Image) */}
+          <aside className="relative z-10 w-72 max-w-[85vw] h-full bg-[var(--cms-sidebar)] border-r border-[var(--cms-divider)] p-4 flex flex-col justify-between overflow-hidden shadow-2xl">
+            {/* Fixed Top Header with Logo + Close button */}
+            <div className="shrink-0 flex items-center justify-between pb-3 border-b border-[var(--cms-divider)]">
+              <div>
+                <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+                <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--cms-text-secondary)] mt-0.5">
+                  PROPERTY WORKSPACE
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-xl bg-[var(--cms-bg)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] border border-[var(--cms-divider)]"
-                  title="Close Navigation"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-xl bg-[var(--cms-bg)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] border border-[var(--cms-divider)]"
+                title="Close Navigation"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            {/* Scrollable Middle Navigation Menu */}
+            <div className="flex-1 overflow-y-auto luxury-scrollbar pr-1 py-3 space-y-5 min-h-0">
               {/* Group 1: WORKSPACE */}
               <div className="space-y-1">
                 <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
@@ -699,17 +700,12 @@ export default function App() {
                 <nav className="space-y-0.5 pt-1">
                   {workspaceNav.map((item) => {
                     const Icon = item.icon;
-                    const isActive =
-                      activeTab === item.id ||
-                      (item.id === 'devices' && activeTab === 'rooms') ||
-                      (item.id === 'channels' && activeTab === 'tv-services');
+                    const isActive = activeTab === item.id;
                     return (
                       <button
                         key={item.id}
                         onClick={() => {
-                          if (item.id === 'devices') setActiveTab('rooms');
-                          else if (item.id === 'channels') setActiveTab('tv-services');
-                          else setActiveTab(item.id);
+                          setActiveTab(item.id);
                           setMobileMenuOpen(false);
                         }}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
@@ -734,17 +730,12 @@ export default function App() {
                 <nav className="space-y-0.5 pt-1">
                   {adminNav.map((item) => {
                     const Icon = item.icon;
-                    const isActive =
-                      activeTab === item.id ||
-                      (item.id === 'users' && activeTab === 'support-qa') ||
-                      (item.id === 'settings' && activeTab === 'branding');
+                    const isActive = activeTab === item.id;
                     return (
                       <button
                         key={item.id}
                         onClick={() => {
-                          if (item.id === 'users') setActiveTab('support-qa');
-                          else if (item.id === 'settings') setActiveTab('branding');
-                          else setActiveTab(item.id);
+                          setActiveTab(item.id);
                           setMobileMenuOpen(false);
                         }}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
@@ -779,9 +770,9 @@ export default function App() {
               </div>
             </div>
 
-            {/* Bottom Card in Drawer */}
-            <div className="mt-6 pt-4 border-t border-[var(--cms-divider)] space-y-3">
-              <div className="relative rounded-2xl overflow-hidden h-28 border border-white/20 shadow-md">
+            {/* Pinned Bottom Resort Card Footer in Drawer */}
+            <div className="shrink-0 pt-3 border-t border-[var(--cms-divider)] space-y-2.5 bg-[var(--cms-sidebar)]">
+              <div className="relative rounded-2xl overflow-hidden h-24 border border-white/20 shadow-md">
                 <img
                   src="/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png"
                   alt="Hospitality Sanctuary"
@@ -813,25 +804,26 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Workspace Body: Sidebar + Viewport */}
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Left Sidebar (Desktop Only: hidden on mobile, visible on md and up) */}
-        <aside className="hidden md:flex md:w-[250px] shrink-0 bg-[var(--cms-sidebar)] border-b md:border-b-0 md:border-r border-[var(--cms-divider)] p-4 flex-col justify-between">
-          <div className="space-y-6">
-            {/* Sidebar Logo Header (Exact V-12) */}
-            <div className="px-2 pt-1 pb-2 space-y-1">
-              <button
-                onClick={() => setViewMode('landing')}
-                className="text-left block"
-                title="Return to Login"
-              >
-                <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
-              </button>
-              <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--cms-text-secondary)]">
-                PROPERTY WORKSPACE
-              </div>
+      {/* Main Workspace Body: Independently Scrollable Sidebar + Independently Scrollable Viewport */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+        {/* Left Sidebar (Desktop Only: Fixed Logo Top, Scrollable Menu Middle, Pinned Resort Footer Bottom) */}
+        <aside className="hidden md:flex md:w-[250px] shrink-0 h-full bg-[var(--cms-sidebar)] border-r border-[var(--cms-divider)] p-4 flex-col justify-between overflow-hidden">
+          {/* 1. Pinned Sidebar Logo Header */}
+          <div className="shrink-0 px-2 pt-0.5 pb-3 border-b border-[var(--cms-divider)] space-y-1">
+            <button
+              onClick={() => setViewMode('landing')}
+              className="text-left block"
+              title="Return to Login"
+            >
+              <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+            </button>
+            <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--cms-text-secondary)]">
+              PROPERTY WORKSPACE
             </div>
+          </div>
 
+          {/* 2. Independently Scrollable Navigation Menu (Ultra-thin luxury scrollbar) */}
+          <div className="flex-1 overflow-y-auto luxury-scrollbar pr-1 py-3 space-y-5 min-h-0">
             {/* Group 1: WORKSPACE */}
             <div className="space-y-1">
               <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
@@ -840,19 +832,12 @@ export default function App() {
               <nav className="space-y-0.5 pt-1">
                 {workspaceNav.map((item) => {
                   const Icon = item.icon;
-                  const isActive =
-                    activeTab === item.id ||
-                    (item.id === 'devices' && activeTab === 'rooms') ||
-                    (item.id === 'channels' && activeTab === 'tv-services');
+                  const isActive = activeTab === item.id;
                   return (
                     <button
                       key={item.id}
-                      onClick={() => {
-                        if (item.id === 'devices') setActiveTab('rooms');
-                        else if (item.id === 'channels') setActiveTab('tv-services');
-                        else setActiveTab(item.id);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                         isActive
                           ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
                           : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
@@ -874,19 +859,12 @@ export default function App() {
               <nav className="space-y-0.5 pt-1">
                 {adminNav.map((item) => {
                   const Icon = item.icon;
-                  const isActive =
-                    activeTab === item.id ||
-                    (item.id === 'users' && activeTab === 'support-qa') ||
-                    (item.id === 'settings' && activeTab === 'branding');
+                  const isActive = activeTab === item.id;
                   return (
                     <button
                       key={item.id}
-                      onClick={() => {
-                        if (item.id === 'users') setActiveTab('support-qa');
-                        else if (item.id === 'settings') setActiveTab('branding');
-                        else setActiveTab(item.id);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                         isActive
                           ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
                           : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
@@ -901,7 +879,7 @@ export default function App() {
             </div>
 
             {/* Need help? link */}
-            <div className="px-3 pt-2">
+            <div className="px-3 pt-1">
               <a
                 href="#help"
                 onClick={(e) => {
@@ -917,20 +895,20 @@ export default function App() {
             </div>
           </div>
 
-          {/* Bottom Resort Photo Card (Exact V-12) */}
-          <div className="mt-8 pt-4 border-t border-[var(--cms-divider)] space-y-3">
-            <div className="relative rounded-2xl overflow-hidden h-32 border border-white/20 shadow-md group">
+          {/* 3. Pinned Bottom Resort Photo Card Footer (Always stays anchored at bottom of sidebar) */}
+          <div className="shrink-0 pt-3 border-t border-[var(--cms-divider)] space-y-2.5 bg-[var(--cms-sidebar)]">
+            <div className="relative rounded-2xl overflow-hidden h-28 border border-white/20 shadow-md group">
               <img
                 src="/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png"
                 alt="Hospitality Sanctuary"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3.5 flex flex-col justify-end text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 flex flex-col justify-end text-white">
                 <div className="text-xs font-bold leading-tight">Open.</div>
                 <div className="text-xs font-bold leading-tight">Connected.</div>
                 <div className="text-xs font-bold leading-tight">Forward.</div>
-                <div className="text-[10px] text-slate-300 font-mono-tabular mt-1">
+                <div className="text-[10px] text-slate-300 font-mono-tabular mt-0.5">
                   GOJJA SmartTV · v1.0
                 </div>
               </div>
@@ -938,7 +916,7 @@ export default function App() {
 
             {/* Live Environment & Quick Actions */}
             <div className="flex items-center justify-between text-[11px] text-[var(--cms-text-secondary)]">
-              <span className="font-semibold text-[var(--cms-text)]">
+              <span className="font-semibold text-[var(--cms-text)] truncate max-w-[140px]">
                 {currentRole.id} · {currentRole.name}
               </span>
               <button
@@ -947,7 +925,7 @@ export default function App() {
                   await fetchBootstrap();
                   showNotice('success', 'Reset DEMO workspace to pristine seed.');
                 }}
-                className="text-[10px] font-medium text-[var(--cms-link)] hover:underline"
+                className="text-[10px] font-medium text-[var(--cms-link)] hover:underline cursor-pointer shrink-0"
               >
                 Reset DEMO
               </button>
@@ -955,8 +933,9 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main Viewport Content */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-[1440px] w-full mx-auto space-y-6 overflow-x-hidden">
+        {/* Main Viewport Content (Independently Scrollable with Ultra-Thin Luxury Scrollbar) */}
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden luxury-scrollbar p-4 sm:p-6 md:p-8">
+          <div className="max-w-[1440px] w-full mx-auto space-y-6 pb-8">
           {/* Global Status Toast */}
           {statusBanner && activeTab !== 'discovery' && (
             <div
@@ -2886,6 +2865,367 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* ===================================================================== */}
+          {/* DEDICATED TAB: DEVICES (Hardware Fleet & ADB Endpoints)               */}
+          {/* ===================================================================== */}
+          {activeTab === 'devices' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">TV Devices & Fleet Inventory — {activeProperty.name}</h1>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Real-time endpoint connectivity, Android TV hardware models, ADB pairing status, and remote TV preview.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('discovery')}
+                    className="px-3.5 py-2 rounded-xl bg-[var(--brand-indigo)] hover:bg-[#3B27EB] text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Radar className="w-3.5 h-3.5" />
+                    <span>Scan LAN / Pair Device</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Total Registered Endpoints</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular mt-1">{propEndpoints.length}</div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    Licensed pool: {propSubscription?.seats ?? 12} TVs
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Online Endpoints</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular text-emerald-600 dark:text-emerald-400 mt-1">
+                    {propOnlineCount}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">Active heartbeat &lt; 60s</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Offline / Attention</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular text-rose-600 dark:text-rose-400 mt-1">
+                    {propOfflineCount}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">Cached fallback active</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Active Bundle Version</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular text-[var(--brand-indigo)] dark:text-[#C7B9FF] mt-1">
+                    v{activeProperty.resourceVersion}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">Signed OTA manifest</div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)] font-semibold">
+                      <th className="py-2.5 pr-4">Endpoint ID</th>
+                      <th className="py-2.5 px-4">Hardware Model & OS</th>
+                      <th className="py-2.5 px-4">Assigned Room</th>
+                      <th className="py-2.5 px-4">IP / Serial Ref</th>
+                      <th className="py-2.5 px-4">Connection</th>
+                      <th className="py-2.5 px-4">Config Sync</th>
+                      <th className="py-2.5 pl-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--cms-divider)]">
+                    {propEndpoints.map((ep) => {
+                      const assignedRoom = propRooms.find((r) => r.id === ep.roomId);
+                      return (
+                        <tr key={ep.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                          <td className="py-3 pr-4 font-mono-tabular font-bold">{ep.id}</td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold">{ep.manufacturer} · {ep.modelName}</div>
+                            <div className="text-[11px] text-[var(--cms-text-secondary)]">
+                              Android TV {ep.androidVersion} · App {ep.appVersion}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-mono-tabular">
+                            {assignedRoom ? `Room ${assignedRoom.code} (${assignedRoom.roomClass})` : 'Unassigned'}
+                          </td>
+                          <td className="py-3 px-4 font-mono-tabular text-[11px]">
+                            <div>{ep.ipHint}:{ep.portHint}</div>
+                            <div className="text-[var(--cms-text-secondary)]">{ep.serialRef}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`inline-flex items-center gap-1.5 font-semibold ${
+                                ep.connection === 'Online'
+                                  ? 'text-emerald-700 dark:text-emerald-300'
+                                  : 'text-rose-700 dark:text-rose-300'
+                              }`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  ep.connection === 'Online' ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
+                              />
+                              {ep.connection}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono-tabular">
+                            v{ep.appliedConfigVersion} · {ep.verificationLevel}
+                          </td>
+                          <td className="py-3 pl-4 text-right space-x-2 whitespace-nowrap">
+                            <button
+                              onClick={() => setTvModalEndpointId(ep.id)}
+                              className="px-2.5 py-1.5 rounded-lg bg-[var(--brand-indigo)] text-white font-semibold text-[11px] hover:opacity-90 cursor-pointer"
+                            >
+                              Open TV Preview
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* DEDICATED TAB: CHANNELS & PACKAGES (IPTV Lineup & Room Entitlements)  */}
+          {/* ===================================================================== */}
+          {activeTab === 'channels' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">Channels & IPTV Packages — {activeProperty.name}</h1>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Manage licensed HLS/DASH live TV channels, provider feed contracts, and room-tier package entitlements.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                  className="px-3.5 py-2 rounded-xl bg-[var(--brand-indigo)] hover:bg-[#3B27EB] text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm cursor-pointer self-start sm:self-auto"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Test Live EPG on TV</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1">
+                  <div className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Package Tier 1 · PKG-BASIC</div>
+                  <div className="text-lg font-extrabold">Standard Rooms</div>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Includes National News, Nusantara Culture, and Hotel Concierge channels.
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1">
+                  <div className="text-xs font-bold text-blue-700 dark:text-blue-300">Package Tier 2 · PKG-INTL</div>
+                  <div className="text-lg font-extrabold">Deluxe Rooms</div>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Adds Global Financial News, NHK World Japan, and international entertainment.
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1">
+                  <div className="text-xs font-bold text-purple-700 dark:text-purple-300">Package Tier 3 · PKG-SPORTS</div>
+                  <div className="text-lg font-extrabold">Executive Suites</div>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Unlocks Premier Sports HD 1 &amp; 2 and full 4K hospitality showcase feeds.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)] font-semibold">
+                      <th className="py-2.5 pr-4">CH #</th>
+                      <th className="py-2.5 px-4">Channel Name</th>
+                      <th className="py-2.5 px-4">Category & Language</th>
+                      <th className="py-2.5 px-4">Package ID</th>
+                      <th className="py-2.5 px-4">Now Playing EPG</th>
+                      <th className="py-2.5 pl-4">Stream Feed</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--cms-divider)]">
+                    {data.channels.map((ch) => (
+                      <tr key={ch.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                        <td className="py-3 pr-4 font-mono-tabular font-bold text-sm">CH {ch.number}</td>
+                        <td className="py-3 px-4 font-bold">{ch.name}</td>
+                        <td className="py-3 px-4 text-[var(--cms-text-secondary)]">
+                          {ch.category} · {ch.language}
+                        </td>
+                        <td className="py-3 px-4 font-mono-tabular font-semibold">{ch.packageId}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium">{ch.currentProgram.en}</div>
+                          <div className="text-[11px] text-[var(--cms-text-secondary)]">{ch.programTime}</div>
+                        </td>
+                        <td className="py-3 pl-4 font-mono-tabular text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold">
+                          {ch.providerId} · Ready
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* DEDICATED TAB: USERS & ACCESS (16-Role RBAC Matrix & Active Persona)  */}
+          {/* ===================================================================== */}
+          {activeTab === 'users' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Users & Role-Based Access Control (RBAC)</h1>
+                <p className="text-xs text-[var(--cms-text-secondary)]">
+                  Switch active session role across all 16 hospitality & platform personas to verify server-side authorization gates.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-bold">
+                      Active Session Persona: {currentUser.name} ({currentRole.id} · {currentRole.name})
+                    </h2>
+                    <p className="text-xs text-[var(--cms-text-secondary)]">{currentRole.description}</p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-mono-tabular font-bold text-xs self-start">
+                    Category: {currentRole.category}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                  {bootstrap.userAccounts.map((acc) => {
+                    const roleDef = bootstrap.rolesCatalog.find((r) => r.id === acc.roleId);
+                    const isSelected = acc.alias === personaAlias;
+                    return (
+                      <button
+                        key={acc.id}
+                        onClick={async () => {
+                          setPersonaAlias(acc.alias);
+                          await fetchBootstrap(acc.alias, environmentId);
+                          showNotice('info', `Switched active RBAC persona to ${acc.name} (${acc.roleId}).`);
+                        }}
+                        className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-[var(--brand-indigo)] bg-[var(--nav-selected-bg)] shadow-xs'
+                            : 'border-[var(--cms-divider)] bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs font-bold">
+                          <span className="font-mono-tabular text-[var(--brand-indigo)] dark:text-[#C7B9FF]">{acc.roleId}</span>
+                          <span className="text-[10px] text-[var(--cms-text-secondary)]">{acc.badgeLabel}</span>
+                        </div>
+                        <div className="font-bold text-xs mt-1">{acc.name}</div>
+                        <div className="text-[11px] text-[var(--cms-text-secondary)] line-clamp-2 mt-1">
+                          {roleDef?.description || acc.email}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* DEDICATED TAB: SETTINGS (Property Configuration & Environment Mode)   */}
+          {/* ===================================================================== */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Property & Workspace Settings — {activeProperty.name}</h1>
+                <p className="text-xs text-[var(--cms-text-secondary)]">
+                  Configure property network parameters, guest Wi-Fi onboarding, default locale, and runtime environment mode.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                  <h2 className="text-base font-bold">Hospitality Property Profile</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                      <div className="text-[var(--cms-text-secondary)]">Property Name</div>
+                      <div className="font-bold text-sm mt-0.5">{activeProperty.name}</div>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                      <div className="text-[var(--cms-text-secondary)]">Location & Timezone</div>
+                      <div className="font-bold text-sm mt-0.5">{activeProperty.city} ({activeProperty.timezone})</div>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                      <div className="text-[var(--cms-text-secondary)]">Guest Wi-Fi SSID</div>
+                      <div className="font-mono-tabular font-bold text-sm mt-0.5">{activeProperty.wifiSsid}</div>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                      <div className="text-[var(--cms-text-secondary)]">Front Desk Dial Extension</div>
+                      <div className="font-mono-tabular font-bold text-sm mt-0.5">Ext. {activeProperty.frontDeskExt}</div>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setActiveTab('branding')}
+                      className="px-4 py-2 rounded-xl bg-[var(--brand-indigo)] text-white font-semibold text-xs hover:opacity-90 cursor-pointer"
+                    >
+                      Open Brand Studio Theme Editor
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                  <h2 className="text-base font-bold">Workspace Runtime Environment</h2>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Switch between self-contained DEMO_SEED_ENV data or connect to a real local Android TV ADB connector in LIVE_LAB mode.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        setEnvironmentId('DEMO');
+                        await fetchBootstrap(personaAlias, 'DEMO');
+                        showNotice('info', 'Switched workspace runtime to DEMO_SEED_ENV.');
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border cursor-pointer ${
+                        environmentId === 'DEMO'
+                          ? 'bg-[var(--brand-indigo)] text-white border-[var(--brand-indigo)]'
+                          : 'bg-[var(--cms-bg)] text-[var(--cms-text)] border-[var(--cms-divider)]'
+                      }`}
+                    >
+                      DEMO_SEED_ENV (Simulated Fleet)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setEnvironmentId('LIVE_LAB');
+                        await fetchBootstrap(personaAlias, 'LIVE_LAB');
+                        showNotice('info', 'Switched workspace runtime to LIVE_LAB.');
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border cursor-pointer ${
+                        environmentId === 'LIVE_LAB'
+                          ? 'bg-[var(--brand-indigo)] text-white border-[var(--brand-indigo)]'
+                          : 'bg-[var(--cms-bg)] text-[var(--cms-text)] border-[var(--cms-divider)]'
+                      }`}
+                    >
+                      LIVE_LAB (Real Local Connector)
+                    </button>
+                  </div>
+                  <div className="pt-2 border-t border-[var(--cms-divider)] flex items-center justify-between">
+                    <span className="text-xs text-[var(--cms-text-secondary)]">
+                      Restore all demo rooms, stays, and campaigns to factory seed:
+                    </span>
+                    <button
+                      onClick={async () => {
+                        await apiCall('/api/demo/reset', { method: 'POST' });
+                        await fetchBootstrap();
+                        showNotice('success', 'Reset DEMO workspace to pristine seed.');
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 font-semibold text-xs hover:bg-rose-500/20 cursor-pointer"
+                    >
+                      Reset DEMO Data
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          </div>
         </main>
       </div>
 

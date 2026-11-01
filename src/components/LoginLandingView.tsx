@@ -100,125 +100,125 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
   ];
 
   return (
-    <div className="relative min-h-screen w-full bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col justify-between overflow-x-hidden font-sans">
-      {/* Background Resort Photography Layer (Exact V-11 Reference) */}
+    <div className="relative h-[100dvh] w-full bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col justify-between overflow-hidden font-sans select-none">
+      {/* Clean Background Resort Photography Layer (Zero baked-in text) */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
-          src="/assets/aistudio/file_000000007f6882118a6641812590e14f_11e44e63.png"
+          src="/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png"
           alt="Luxury Resort Cliffside Infinity Pool"
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center"
         />
-        {/* Scrim Overlay tuned for crisp text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent dark:from-black/75 dark:via-black/45 dark:to-black/30" />
+        {/* Measured Scrim Overlay tuned for crisp text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/15 dark:from-black/80 dark:via-black/55 dark:to-black/35" />
       </div>
 
-      {/* Main Split-Panel Presentation (Desktop 60:40 / Mobile Compact Header + Priority Card) */}
-      <div className="relative z-10 w-full min-h-screen flex flex-col lg:flex-row items-stretch justify-between">
-        {/* Mobile Compact Resort Header (Exact User Preference: Compact header, prioritized auth form) */}
-        <div className="lg:hidden p-5 text-white flex flex-col gap-3 relative z-10">
+      {/* Main Split-Panel Presentation (Locked to 100dvh without scrolling on both Mobile & Desktop) */}
+      <div className="relative z-10 w-full h-full flex flex-col lg:flex-row items-stretch justify-between overflow-hidden">
+        {/* Mobile Compact Resort Header (Fits cleanly above auth card in 100dvh, feature cards hidden per user preference) */}
+        <div className="lg:hidden px-4 pt-3 pb-2.5 text-white flex flex-col gap-1.5 shrink-0 relative z-10">
           <div className="flex items-center justify-between">
-            <GojjaWordmark size="sm" showDescriptor={true} variant="color" />
-            <div className="flex items-center gap-2">
+            <GojjaWordmark size="sm" showDescriptor={true} variant="reverse" />
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={onOpenTvShowcase}
-                className="px-3 py-1.5 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white text-[11px] font-semibold inline-flex items-center gap-1.5 shadow-xs"
+                className="px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 text-white text-[11px] font-semibold inline-flex items-center gap-1 shadow-xs"
               >
-                <Tv className="w-3.5 h-3.5 text-amber-300" />
+                <Tv className="w-3 h-3 text-amber-300" />
                 <span>TV Preview</span>
               </button>
               <button
                 type="button"
                 onClick={() => setShowPersonaDrawer(true)}
-                className="px-2.5 py-1.5 rounded-xl bg-black/35 backdrop-blur-md border border-white/20 text-white text-[11px] font-semibold inline-flex items-center gap-1 shadow-xs"
+                className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/25 text-white text-[11px] font-semibold inline-flex items-center gap-1 shadow-xs"
                 title="Test 16 Role Personas"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
                 <span>16 Roles</span>
               </button>
             </div>
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-sm">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-base sm:text-lg font-extrabold tracking-tight text-white drop-shadow-sm">
               A more connected stay.
             </div>
-            <div className="text-xs text-slate-200">
+            <div className="text-[11px] text-slate-200 truncate">
               One platform. Every guest experience.
             </div>
           </div>
         </div>
 
         {/* Desktop Left Side: Brand Identity, Headlines, 4 Highlight Cards & Heritage Footer */}
-        <div className="hidden lg:flex lg:w-[58%] xl:w-[60%] p-8 lg:p-14 xl:p-16 flex-col justify-between text-white">
+        <div className="hidden lg:flex lg:w-[58%] xl:w-[60%] h-full py-6 xl:py-10 px-10 xl:px-14 flex-col justify-between text-white overflow-hidden">
           {/* Top Logo */}
-          <div className="space-y-2">
-            <GojjaWordmark size="xl" showDescriptor={true} variant="color" />
+          <div className="shrink-0">
+            <GojjaWordmark size="lg" showDescriptor={true} variant="reverse" />
           </div>
 
           {/* Center Brand Statements & 4 Feature Highlights */}
-          <div className="my-10 lg:my-auto space-y-8 max-w-2xl">
-            <div className="space-y-3">
-              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight leading-[1.08] text-white drop-shadow-md">
+          <div className="my-auto space-y-5 xl:space-y-6 max-w-2xl">
+            <div className="space-y-2">
+              <h1 className="text-4xl xl:text-[48px] font-extrabold tracking-tight leading-[1.08] text-white drop-shadow-md">
                 A more connected stay.
               </h1>
-              <p className="text-xl sm:text-2xl font-medium text-slate-100/95 tracking-tight">
+              <p className="text-lg xl:text-2xl font-medium text-slate-100/95 tracking-tight">
                 One platform. Every guest experience.
               </p>
-              <p className="text-sm sm:text-base text-slate-200/90 leading-relaxed max-w-xl pt-1">
+              <p className="text-xs xl:text-sm text-slate-200/90 leading-relaxed max-w-xl">
                 Manage your properties, screens and hospitality experiences from one secure workspace.
               </p>
             </div>
 
-            {/* 4 Feature Highlight Cards in a Row (Exact V-11) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-2">
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
-                <div className="w-9 h-9 rounded-xl bg-[#0050F5]/25 border border-[#0050F5]/40 flex items-center justify-center text-blue-200">
-                  <Tv className="w-5 h-5" />
+            {/* 4 Feature Highlight Cards in a Row (Desktop Only) */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="p-3 xl:p-3.5 rounded-2xl bg-black/35 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2 shadow-lg">
+                <div className="w-8 h-8 rounded-xl bg-[#0050F5]/30 border border-[#0050F5]/50 flex items-center justify-center text-blue-200">
+                  <Tv className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">SmartTV & Rooms</div>
-                  <div className="text-[10px] text-slate-300">Living room & suite screens</div>
+                  <div className="text-xs font-bold text-white leading-tight">SmartTV & Rooms</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">Living room & suite screens</div>
                 </div>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
-                <div className="w-9 h-9 rounded-xl bg-[#7C35E0]/25 border border-[#7C35E0]/40 flex items-center justify-center text-purple-200">
-                  <Palette className="w-5 h-5" />
+              <div className="p-3 xl:p-3.5 rounded-2xl bg-black/35 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2 shadow-lg">
+                <div className="w-8 h-8 rounded-xl bg-[#7C35E0]/30 border border-[#7C35E0]/50 flex items-center justify-center text-purple-200">
+                  <Palette className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">Brand & Content</div>
-                  <div className="text-[10px] text-slate-300">Identity & media library</div>
+                  <div className="text-xs font-bold text-white leading-tight">Brand & Content</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">Identity & media library</div>
                 </div>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
-                <div className="w-9 h-9 rounded-xl bg-[#CA3596]/25 border border-[#CA3596]/40 flex items-center justify-center text-pink-200">
-                  <Megaphone className="w-5 h-5" />
+              <div className="p-3 xl:p-3.5 rounded-2xl bg-black/35 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2 shadow-lg">
+                <div className="w-8 h-8 rounded-xl bg-[#CA3596]/30 border border-[#CA3596]/50 flex items-center justify-center text-pink-200">
+                  <Megaphone className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">Channels & Campaigns</div>
-                  <div className="text-[10px] text-slate-300">IPTV line-up & offers</div>
+                  <div className="text-xs font-bold text-white leading-tight">Channels & Campaigns</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">IPTV line-up & offers</div>
                 </div>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
-                <div className="w-9 h-9 rounded-xl bg-[#FF5E70]/25 border border-[#FF5E70]/40 flex items-center justify-center text-rose-200">
-                  <BarChart3 className="w-5 h-5" />
+              <div className="p-3 xl:p-3.5 rounded-2xl bg-black/35 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2 shadow-lg">
+                <div className="w-8 h-8 rounded-xl bg-[#FF5E70]/30 border border-[#FF5E70]/50 flex items-center justify-center text-rose-200">
+                  <BarChart3 className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">Fleet & Insights</div>
-                  <div className="text-[10px] text-slate-300">ADB health & playback</div>
+                  <div className="text-xs font-bold text-white leading-tight">Fleet & Insights</div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">ADB health & playback</div>
                 </div>
               </div>
             </div>
 
-            {/* Quick TV Preview Trigger */}
-            <div className="pt-2 flex flex-wrap items-center gap-4">
+            {/* Quick TV Preview & Role Persona Triggers */}
+            <div className="pt-1 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={onOpenTvShowcase}
-                className="px-5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white text-xs font-semibold inline-flex items-center gap-2 transition-all shadow-md group"
+                className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white text-xs font-semibold inline-flex items-center gap-2 transition-all shadow-md group"
               >
                 <Tv className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
                 <span>Launch Interactive TV Guest Experience</span>
@@ -227,7 +227,7 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPersonaDrawer(!showPersonaDrawer)}
-                className="px-4 py-2.5 rounded-xl bg-black/25 hover:bg-black/40 backdrop-blur-md border border-white/20 text-white text-xs font-semibold inline-flex items-center gap-2 transition-all"
+                className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white text-xs font-semibold inline-flex items-center gap-2 transition-all"
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>Test 16 Role Personas & RBAC</span>
@@ -236,29 +236,29 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
           </div>
 
           {/* Bottom Left Heritage Tagline (Exact V-11) */}
-          <div className="pt-6 border-t border-white/15 text-xs tracking-wider space-y-0.5">
-            <div className="font-extrabold uppercase text-white/95 tracking-[0.2em]">
+          <div className="pt-3 border-t border-white/15 text-xs tracking-wider space-y-0.5 shrink-0">
+            <div className="font-extrabold uppercase text-white/95 tracking-[0.2em] text-[11px]">
               OPEN. CONNECTED. FORWARD.
             </div>
-            <div className="text-[11px] uppercase text-white/70 tracking-[0.16em]">
+            <div className="text-[10px] uppercase text-white/70 tracking-[0.16em]">
               INDONESIA · HOSPITALITY TECHNOLOGY
             </div>
           </div>
         </div>
 
-        {/* Right Side: Organic Curved White/Pearl Auth Panel (Exact V-11) */}
-        <div className="w-full lg:w-[42%] xl:w-[40%] bg-[var(--cms-surface)] rounded-t-[36px] lg:rounded-t-none lg:rounded-l-[48px] p-6 sm:p-10 lg:p-12 flex flex-col justify-between shadow-2xl relative z-20">
+        {/* Right Side: Organic Curved White/Pearl Auth Panel (Fits 100dvh with zero scroll) */}
+        <div className="flex-1 lg:flex-none w-full lg:w-[42%] xl:w-[40%] lg:h-full bg-[var(--cms-surface)] rounded-t-[28px] lg:rounded-t-none lg:rounded-l-[44px] px-5 py-3.5 sm:px-8 sm:py-5 lg:px-10 lg:py-6 flex flex-col justify-between shadow-2xl relative z-20 overflow-hidden">
           {/* Top Utility Bar: Locale Selector, Sun/Moon Pill, Help */}
-          <div className="flex items-center justify-end gap-3 pb-6">
+          <div className="flex items-center justify-end gap-2 shrink-0">
             {/* Locale Dropdown */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowLocaleMenu(!showLocaleMenu)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:border-[var(--brand-indigo)] transition-colors"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[11px] font-medium hover:border-[var(--brand-indigo)] transition-colors"
                 aria-label="Select language"
               >
-                <Globe className="w-3.5 h-3.5 text-[var(--cms-text-secondary)]" />
+                <Globe className="w-3 h-3 text-[var(--cms-text-secondary)]" />
                 <span>{locales.find((l) => l.id === activeLocale)?.code || 'EN'}</span>
                 <ChevronDown className="w-3 h-3 text-[var(--cms-text-secondary)]" />
               </button>
@@ -287,21 +287,21 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
               )}
             </div>
 
-            {/* Circular Sun/Moon Toggle (Matches 620ms Circular Reveal Pill) */}
+            {/* Circular Sun/Moon Toggle */}
             <button
               type="button"
               onClick={onToggleTheme}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:opacity-90 transition-all"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[11px] font-medium hover:opacity-90 transition-all"
               title="Toggle Light / Warm Graphite Dark Mode"
             >
               <Sun
-                className={`w-4 h-4 ${
+                className={`w-3.5 h-3.5 ${
                   theme === 'light' ? 'text-amber-500 fill-amber-400' : 'text-[var(--cms-text-secondary)]'
                 }`}
               />
               <span className="text-[var(--cms-divider)]">|</span>
               <Moon
-                className={`w-4 h-4 ${
+                className={`w-3.5 h-3.5 ${
                   theme === 'dark' ? 'text-[#C7B9FF] fill-[#C7B9FF]' : 'text-[var(--cms-text-secondary)]'
                 }`}
               />
@@ -311,30 +311,30 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
             <button
               type="button"
               onClick={() => setShowHelpModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:border-[var(--brand-indigo)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[11px] font-medium hover:border-[var(--brand-indigo)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] transition-colors"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
+              <HelpCircle className="w-3 h-3" />
               <span>Help</span>
             </button>
           </div>
 
-          {/* Form Container (Exact V-11 Layout) */}
-          <div className="w-full max-w-sm mx-auto my-auto space-y-6">
+          {/* Form Container (Compact & Centered to fit 100dvh without scroll) */}
+          <div className="w-full max-w-sm mx-auto my-auto space-y-3 sm:space-y-3.5">
             {/* Centered Logo & Greeting */}
-            <div className="text-center space-y-2">
-              <div className="flex justify-center pb-1">
-                <GojjaWordmark size="lg" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+            <div className="text-center space-y-1">
+              <div className="flex justify-center">
+                <GojjaWordmark size="md" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-[var(--cms-text)]">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--cms-text)]">
                 Welcome back
               </h2>
-              <p className="text-xs text-[var(--cms-text-secondary)]">
+              <p className="text-[11px] text-[var(--cms-text-secondary)]">
                 Sign in to your GOJJA workspace.
               </p>
             </div>
 
             {/* DEMO / LIVE_LAB Environment Selector */}
-            <div className="p-1 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] grid grid-cols-2 gap-1 text-xs font-semibold">
+            <div className="p-1 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] grid grid-cols-2 gap-1 text-[11px] font-semibold">
               <button
                 type="button"
                 onClick={() => setSelectedEnv('DEMO')}
@@ -361,74 +361,72 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
 
             {/* Error Banner */}
             {loginError && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-200 text-[11px] flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>{loginError}</span>
               </div>
             )}
 
             {/* Login Form */}
-            <form onSubmit={handleFormSubmit} className="space-y-4">
+            <form onSubmit={handleFormSubmit} className="space-y-2.5 sm:space-y-3">
               {/* Work email */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--cms-text)]">
+              <div className="space-y-1">
+                <label className="block text-[11px] font-semibold text-[var(--cms-text)]">
                   Work email
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Mail className="w-3.5 h-3.5 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="email"
                     required
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="hello@hotel.com"
-                    className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
                   />
                 </div>
               </div>
 
               {/* Password */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--cms-text)]">
+              <div className="space-y-1">
+                <label className="block text-[11px] font-semibold text-[var(--cms-text)]">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Lock className="w-3.5 h-3.5 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
+                    className="w-full pl-9 pr-9 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
 
               {/* Remember me & Forgot password */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-[var(--cms-text)] font-medium">
+              <div className="flex items-center justify-between text-[11px] pt-0.5">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-[var(--cms-text)] font-medium">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-[var(--brand-indigo)] border-[var(--cms-divider)] focus:ring-0"
+                    className="w-3.5 h-3.5 rounded text-[var(--brand-indigo)] border-[var(--cms-divider)] focus:ring-0"
                   />
                   <span>Remember me</span>
                 </label>
                 <button
                   type="button"
-                  onClick={() =>
-                    alert('Password reset link sent to registered administrator contact in DEMO workspace.')
-                  }
+                  onClick={() => setShowHelpModal(true)}
                   className="font-medium text-[var(--cms-link)] hover:underline"
                 >
                   Forgot password?
@@ -438,7 +436,7 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
               {/* Primary Action Button (Vivid Indigo Gradient .btn-luxury-indigo) */}
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl btn-luxury-indigo text-white text-xs font-bold inline-flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
+                className="w-full py-2.5 px-4 rounded-xl btn-luxury-indigo text-white text-xs font-bold inline-flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
               >
                 <span>Sign in</span>
                 <ArrowRight className="w-4 h-4" />
@@ -446,9 +444,9 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
             </form>
 
             {/* Divider 'or' */}
-            <div className="relative flex items-center justify-center my-4">
+            <div className="relative flex items-center justify-center my-2">
               <div className="border-t border-[var(--cms-divider)] w-full" />
-              <span className="bg-[var(--cms-surface)] px-3 text-[11px] text-[var(--cms-text-secondary)] uppercase tracking-wider">
+              <span className="bg-[var(--cms-surface)] px-2.5 text-[10px] text-[var(--cms-text-secondary)] uppercase tracking-wider">
                 or
               </span>
             </div>
@@ -457,10 +455,10 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              className="w-full py-2.5 px-4 rounded-xl bg-[var(--cms-bg)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-2.5 transition-colors"
+              className="w-full py-2 px-4 rounded-xl bg-[var(--cms-bg)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-2 transition-colors"
             >
               {/* Google 4-color SVG mark */}
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -481,8 +479,8 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
               <span>Continue with Google</span>
             </button>
 
-            {/* Security Note & Support Link (Exact V-11) */}
-            <div className="pt-2 text-center space-y-2">
+            {/* Security Note & Support Link */}
+            <div className="pt-1 text-center space-y-1">
               <div className="inline-flex items-center gap-1.5 text-[11px] text-[var(--cms-text-secondary)]">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Secure access for your organization.</span>
@@ -497,30 +495,18 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
                   Contact your administrator.
                 </button>
               </div>
-              <div className="text-[10px] text-[var(--cms-text-secondary)] pt-1">
-                By continuing, you agree to our{' '}
-                <a href="#terms" className="underline hover:text-[var(--cms-text)]">
-                  Terms
-                </a>{' '}
-                and{' '}
-                <a href="#privacy" className="underline hover:text-[var(--cms-text)]">
-                  Privacy Policy
-                </a>
-                .
-              </div>
             </div>
           </div>
 
-          {/* Footer inside Right Panel (Exact V-11) */}
-          <div className="pt-6 border-t border-[var(--cms-divider)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[var(--cms-text-secondary)]">
+          {/* Footer inside Right Panel */}
+          <div className="pt-2.5 border-t border-[var(--cms-divider)] flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-[var(--cms-text-secondary)] shrink-0">
             <span>© 2026 GOJJA SmartTV</span>
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                 All systems operational
               </span>
               <span>·</span>
-              <span className="font-mono-tabular">31 October 2026</span>
+              <span className="font-mono-tabular">31 Oct 2026</span>
             </div>
           </div>
         </div>

@@ -386,12 +386,31 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
     { id: 'TV-09-MAINTENANCE', label: '07 Maintenance' },
   ];
 
+  const cleanBackdropUrl =
+    !property.heroImageUrl ||
+    property.heroImageUrl.includes('Hotel_Tentrem') ||
+    property.heroImageUrl.includes('GOJJA_SmartTV')
+      ? '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png'
+      : property.heroImageUrl;
+
   return (
-    <div className={embedded ? 'w-full' : 'fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-start md:justify-center p-2.5 sm:p-4 md:p-6 overflow-y-auto'}>
-      <div className="w-full max-w-6xl my-auto">
-        {/* Top Reviewer / Remote Control Bar (Responsive 2-row layout on mobile, 1-row on desktop) */}
-        <div className="flex flex-col gap-2 mb-2.5 sm:mb-3 px-3 py-2 sm:py-2.5 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-200">
-          {/* Top Line: App title, room info, status, and CLOSE button */}
+    <div
+      className={
+        embedded
+          ? 'w-full'
+          : 'fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 h-[100dvh] overflow-hidden'
+      }
+    >
+      <div
+        className={
+          embedded
+            ? 'w-full flex flex-col gap-2'
+            : 'w-full max-w-5xl h-full max-h-[calc(100dvh-16px)] sm:max-h-[calc(100dvh-24px)] flex flex-col justify-between gap-2 overflow-hidden'
+        }
+      >
+        {/* Top Reviewer / Remote Control Bar (Pinned at top, shrink-0 so Close button is NEVER clipped) */}
+        <div className="shrink-0 flex flex-col gap-1.5 px-3 py-2 rounded-xl bg-[#181C24] border border-white/15 text-xs text-slate-200 shadow-lg">
+          {/* Top Line: App title, room info, status, and prominent CLOSE button */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 truncate">
               <span className="font-bold text-white shrink-0">TV Guest App</span>
@@ -408,10 +427,11 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 transition-colors shrink-0"
+                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors shrink-0 shadow-md cursor-pointer"
                 title="Close TV Preview"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 stroke-[2.5]" />
+                <span>Close</span>
               </button>
             )}
           </div>
@@ -426,7 +446,7 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                   setFocusIndex(0);
                   if (tab.id === 'TV-04-GUIDE') handleSelectChannel(channels[0]);
                 }}
-                className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   activeScreen === tab.id ? 'bg-[#0050F5] text-white shadow-xs' : 'bg-white/5 text-slate-300 hover:bg-white/15'
                 }`}
               >
@@ -436,11 +456,17 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
           </div>
         </div>
 
-        {/* 16:9 10-Foot TV Scene Canvas (Adapts to min-h on mobile, aspect-video on md+) */}
-        <div className="tv-scene relative w-full min-h-[460px] sm:min-h-[500px] md:min-h-0 md:aspect-video rounded-2xl overflow-hidden border-2 border-[#2D3545] shadow-2xl select-none flex flex-col justify-between">
+        {/* 16:9 10-Foot TV Scene Canvas (Fits flexibly inside remaining viewport height so top & bottom bars stay visible) */}
+        <div
+          className={`tv-scene relative w-full ${
+            embedded
+              ? 'min-h-[460px] md:aspect-video'
+              : 'flex-1 min-h-0 max-h-[calc(100dvh-150px)]'
+          } rounded-2xl overflow-hidden border-2 border-[#2D3545] shadow-2xl select-none flex flex-col justify-between`}
+        >
           {/* Background Hospitality Photography + Measured Contrast Scrim */}
           <img
-            src={property.heroImageUrl}
+            src={cleanBackdropUrl}
             alt={property.name}
             referrerPolicy="no-referrer"
             className="absolute inset-0 w-full h-full object-cover opacity-50 transition-opacity duration-500"
@@ -871,7 +897,7 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
         </div>
 
         {/* Interactive D-Pad Remote Control Strip for Mouse/Touch Reviewers */}
-        <div className="mt-2.5 sm:mt-3 flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-300">
+        <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 sm:px-4 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-300">
           <div className="flex items-center gap-2 self-start sm:self-center">
             <Gamepad2 className="w-4 h-4 text-[#0050F5] shrink-0" />
             <span className="text-[11px] sm:text-xs">D-Pad Remote Simulator:</span>
