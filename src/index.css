@@ -7,7 +7,7 @@
   --brand-violet: #7c35e0;
   --brand-magenta: #ca3596;
   --brand-coral: #ff5e70;
-  --cms-bg: #f5f6fa;
+  --cms-bg: #f6f4ef;
   --cms-sidebar: #ffffff;
   --cms-header: #ffffff;
   --cms-surface: #ffffff;
@@ -16,13 +16,14 @@
   --cms-text-secondary: #586174;
   --cms-divider: #e3e7ef;
   --cms-control-border: #7a8496;
-  --cms-link: #1d4ed8;
-  --action-bg: #0050f5;
+  --cms-link: #4f3fe5;
+  --action-bg: #4f3fe5;
   --action-fg: #ffffff;
   --focus-ring: #0050f5;
   --chart-primary: #4f3fe5;
+  --chart-secondary: #ff5e70;
   --nav-selected-bg: #eef0ff;
-  --nav-selected-fg: #0050f5;
+  --nav-selected-fg: #4f3fe5;
   --status-success-bg: #dcfce7;
   --status-success-fg: #166534;
   --status-warning-bg: #fef3c7;
@@ -50,7 +51,10 @@
   --cms-divider: #77746e;
   --cms-control-border: #c3bfb6;
   --cms-link: #e4dcff;
+  --action-bg: #4f3fe5;
+  --action-fg: #ffffff;
   --chart-primary: #c7b9ff;
+  --chart-secondary: #ff7e8e;
   --focus-ring: #c7b9ff;
   --nav-selected-bg: #65615e;
   --nav-selected-fg: #f8f5ee;
@@ -75,6 +79,26 @@ h1, h2, h3, h4, .font-display {
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Custom organic curved shape for V-11 luxury login surface */
+@media (min-width: 1024px) {
+  .auth-panel-curve {
+    border-top-left-radius: 48px;
+    border-bottom-left-radius: 48px;
+    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Vivid Indigo Luxury CTA Gradient */
+.btn-luxury-indigo {
+  background: linear-gradient(135deg, #4f3fe5 0%, #6340f0 100%);
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-luxury-indigo:hover {
+  background: linear-gradient(135deg, #4434db 0%, #5633e6 100%);
+  box-shadow: 0 4px 14px -2px rgba(79, 63, 229, 0.45);
 }
 
 /* Circular View Transition Theme Reveal (620ms) */
@@ -105,6 +129,22 @@ h1, h2, h3, h4, .font-display {
 .animate-chart-line {
   stroke-dasharray: 1000;
   animation: svgLineReveal 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Custom Scrollbar for sidebar and data tables */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(122, 132, 150, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(122, 132, 150, 0.5);
 }
 
 /* TV 10-foot scene & D-pad focus contract */

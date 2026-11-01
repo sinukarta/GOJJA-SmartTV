@@ -17,6 +17,7 @@ import {
   Search,
   Calendar,
   ChevronRight,
+  ChevronDown,
   RotateCcw,
   LogOut,
   CheckCircle2,
@@ -29,6 +30,16 @@ import {
   FileCheck2,
   Lock,
   Sparkles,
+  Menu,
+  Globe,
+  Wifi,
+  Bed,
+  Download,
+  Award,
+  ExternalLink,
+  Settings,
+  HelpCircle,
+  X,
 } from 'lucide-react';
 import {
   EnvironmentId,
@@ -69,14 +80,18 @@ type NavTabId =
   | 'overview'
   | 'rooms'
   | 'guests'
-  | 'branding'
+  | 'devices'
   | 'discovery'
+  | 'branding'
   | 'tv-services'
   | 'campaigns'
+  | 'channels'
   | 'updates'
   | 'analytics'
+  | 'users'
   | 'billing'
-  | 'support-qa';
+  | 'support-qa'
+  | 'settings';
 
 interface BootstrapPayload {
   environmentId: EnvironmentId;
@@ -179,6 +194,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTabId>('overview');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('P-01');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [bootstrap, setBootstrap] = useState<BootstrapPayload | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -457,36 +473,58 @@ export default function App() {
     );
   }
 
-  const navItems: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const workspaceNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'rooms', label: 'Rooms & TVs', icon: Tv },
-    { id: 'guests', label: 'Guests', icon: Users },
-    { id: 'branding', label: 'Branding', icon: Palette },
-    { id: 'discovery', label: 'Device Discovery', icon: Radar },
-    { id: 'tv-services', label: 'TV Services', icon: Radio },
+    { id: 'rooms', label: 'Rooms & Guests', icon: Bed },
+    { id: 'devices', label: 'Devices', icon: Tv },
+    { id: 'discovery', label: 'Discovery & Deploy', icon: Radar },
+    { id: 'branding', label: 'Brand Studio', icon: Palette },
+    { id: 'tv-services', label: 'Content Library', icon: Radio },
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
-    { id: 'updates', label: 'Updates', icon: Bell },
+    { id: 'channels', label: 'Channels & Packages', icon: Layers },
+    { id: 'updates', label: 'Updates', icon: Download },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
-    { id: 'support-qa', label: 'Support & QA', icon: LifeBuoy },
+  ];
+
+  const adminNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+    { id: 'users', label: 'Users & Access', icon: ShieldCheck },
+    { id: 'billing', label: 'Subscription', icon: CreditCard },
+    { id: 'support-qa', label: 'Support', icon: LifeBuoy },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col">
-      {/* Top Shell Header (Matches 02 / PROPERTY OVERVIEW in Linen Hospitality Mockup) */}
-      <header className="sticky top-0 z-30 h-[72px] px-4 md:px-6 bg-[var(--cms-header)] border-b border-[var(--cms-divider)] flex items-center justify-between gap-4">
-        {/* Left: Wordmark + Property Context Switcher */}
-        <div className="flex items-center gap-4 min-w-0">
+    <div className="min-h-screen bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col font-sans">
+      {/* Top Shell Header Bar (Exact V-12 Layout & Mobile Non-Overlapping Layout) */}
+      <header className="sticky top-0 z-30 h-[72px] px-3 sm:px-4 md:px-6 bg-[var(--cms-header)] border-b border-[var(--cms-divider)] flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Hamburger (Mobile) + Property Selector + Search (Tablet/Desktop) */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
+          {/* Hamburger button (Mobile only, shrink-0 ensures it NEVER gets overlapped) */}
           <button
-            onClick={() => setViewMode('landing')}
-            className="shrink-0 text-left"
-            title="Return to Executive Landing & Login"
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 shrink-0 rounded-xl text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-[var(--cms-bg)] transition-colors md:hidden"
+            title="Open navigation menu"
           >
-            <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+            <Menu className="w-5 h-5" />
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-[var(--cms-divider)]">
-            <Building2 className="w-4 h-4 text-[var(--cms-text-secondary)] shrink-0" />
+          {/* Property Selector Pill: shrinks and truncates gracefully without overlapping */}
+          <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] min-w-0 max-w-[155px] xs:max-w-[190px] sm:max-w-[260px] md:max-w-none shrink">
+            <img
+              src="/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png"
+              alt="Hotel thumbnail"
+              referrerPolicy="no-referrer"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-cover shrink-0"
+            />
+            <div className="text-left hidden md:block shrink-0">
+              <div className="text-xs font-bold leading-none text-[var(--cms-text)]">
+                {activeProperty.name.split(' ')[0]} {activeProperty.name.split(' ')[1] || 'Arunika'}
+              </div>
+              <div className="text-[10px] text-[var(--cms-text-secondary)] leading-none mt-0.5">
+                {activeProperty.city}
+              </div>
+            </div>
             <select
               value={activeProperty.id}
               onChange={(e) => {
@@ -501,185 +539,425 @@ export default function App() {
                   setBrandHeadline(p.welcomeHeadline);
                 }
               }}
-              aria-label="Select active property scope"
-              className="px-2.5 py-1.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-semibold cursor-pointer"
+              aria-label="Select active property"
+              className="bg-transparent text-xs font-semibold cursor-pointer focus:outline-none truncate min-w-0 w-full"
             >
               {data.properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.id})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Center: Global Search Input */}
-        <div className="hidden lg:flex items-center flex-1 max-w-md relative">
-          <Search className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search rooms, guests, endpoints, channels..."
-            className="w-full pl-9 pr-4 py-2 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs focus:outline-2 focus:outline-[#0050F5]"
-          />
-        </div>
-
-        {/* Right: Workspace Toggle + Persona Switcher + Theme Reveal Control */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          {/* DEMO vs LIVE_LAB Mode Switcher */}
-          <div className="hidden md:inline-flex items-center gap-1 p-1 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[11px] font-semibold">
-            <button
-              onClick={async () => {
-                setEnvironmentId('DEMO');
-                await fetchBootstrap(personaAlias, 'DEMO');
-                showNotice('info', 'Switched to DEMO workspace (seeded synthetic data).');
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-colors ${
-                environmentId === 'DEMO' ? 'bg-[#0050F5] text-white' : 'text-[var(--cms-text-secondary)]'
-              }`}
-            >
-              DEMO
-            </button>
-            <button
-              onClick={async () => {
-                if (!currentUser.allowedEnvironments.includes('LIVE_LAB')) {
-                  showNotice(
-                    'error',
-                    `Role ${currentRole.name} (${currentRole.id}) is not authorized for LIVE_LAB. Switch to Field Installer (R-09) or Property Manager (R-11).`
-                  );
-                  return;
-                }
-                setEnvironmentId('LIVE_LAB');
-                await fetchBootstrap(personaAlias, 'LIVE_LAB');
-                setActiveTab('discovery');
-                showNotice('success', 'Switched to LIVE_LAB workspace (zero fake devices; real LAN/ADB execution).');
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-colors ${
-                environmentId === 'LIVE_LAB' ? 'bg-emerald-600 text-white' : 'text-[var(--cms-text-secondary)]'
-              }`}
-            >
-              LIVE_LAB
-            </button>
-          </div>
-
-          {/* 16-Role Persona Selector */}
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
-            <span className="w-6 h-6 rounded-full bg-[#EEF0FF] text-[#0050F5] font-bold text-[11px] flex items-center justify-center shrink-0">
-              {currentUser.avatarInitials}
-            </span>
-            <select
-              value={personaAlias}
-              onChange={async (e) => {
-                const nextAlias = e.target.value;
-                const acc = bootstrap.userAccounts.find((u) => u.alias === nextAlias)!;
-                const nextEnv =
-                  environmentId === 'LIVE_LAB' && !acc.allowedEnvironments.includes('LIVE_LAB')
-                    ? 'DEMO'
-                    : environmentId;
-                setPersonaAlias(nextAlias);
-                setEnvironmentId(nextEnv);
-                await fetchBootstrap(nextAlias, nextEnv);
-                showNotice('info', `Switched active role to ${acc.roleId} — ${acc.badgeLabel} (${acc.name}).`);
-              }}
-              aria-label="Switch active role persona"
-              className="bg-transparent text-xs font-semibold cursor-pointer focus:outline-none max-w-[155px] truncate"
-            >
-              {bootstrap.userAccounts.map((u) => (
-                <option key={u.alias} value={u.alias} className="text-slate-900">
-                  {u.roleId} · {u.badgeLabel}
+                <option key={p.id} value={p.id} className="text-slate-900">
+                  {p.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Light / Warm Graphite Dark Mode Toggle */}
+          {/* DEMO DATA badge (Desktop / Tablet) */}
+          <span className="hidden xl:inline-flex px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[10px] tracking-wider uppercase shrink-0">
+            {environmentId === 'LIVE_LAB' ? 'LIVE LAB' : 'DEMO DATA'}
+          </span>
+
+          {/* Global Search (Tablet / Desktop) */}
+          <div className="hidden sm:flex items-center relative w-52 md:w-72 shrink-0">
+            <Search className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search rooms, devices or content..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] placeholder:text-[var(--cms-text-secondary)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Right: Actions (Theme Toggle, Notifications, User Avatar, Logout) */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Locale Dropdown (Desktop) */}
+          <div className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-semibold cursor-pointer">
+            <Globe className="w-3.5 h-3.5 text-[var(--cms-text-secondary)]" />
+            <span>EN</span>
+            <ChevronDown className="w-3 h-3 text-[var(--cms-text-secondary)]" />
+          </div>
+
+          {/* Mobile Compact Single Icon Theme Toggle (Saves 40px on mobile screens) */}
           <button
+            type="button"
             onClick={handleToggleTheme}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs hover:opacity-90 transition-all"
-            title="Toggle Light / Warm Graphite Dark Mode"
+            className="sm:hidden p-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:opacity-90 transition-all text-[var(--cms-text-secondary)]"
+            title="Toggle Light / Dark Mode"
           >
-            <Sun className={`w-3.5 h-3.5 ${theme === 'light' ? 'text-amber-500 fill-amber-400' : 'text-[var(--cms-text-secondary)]'}`} />
-            <Moon className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-[#C7B9FF] fill-[#C7B9FF]' : 'text-[var(--cms-text-secondary)]'}`} />
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-500" />
+            )}
           </button>
 
+          {/* Desktop / Tablet Circular Sun/Moon Toggle Pill */}
+          <button
+            type="button"
+            onClick={handleToggleTheme}
+            className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:opacity-90 transition-all"
+            title="Toggle Light / Warm Graphite Dark Mode"
+          >
+            <Sun
+              className={`w-3.5 h-3.5 ${
+                theme === 'light' ? 'text-amber-500 fill-amber-400' : 'text-[var(--cms-text-secondary)]'
+              }`}
+            />
+            <span className="text-[var(--cms-divider)]">|</span>
+            <Moon
+              className={`w-3.5 h-3.5 ${
+                theme === 'dark' ? 'text-[#C7B9FF] fill-[#C7B9FF]' : 'text-[var(--cms-text-secondary)]'
+              }`}
+            />
+          </button>
+
+          {/* Notifications Bell with 3 Count Badge */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('updates')}
+            className="relative p-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] transition-colors shrink-0"
+            title="3 pending system notifications"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white font-bold text-[9px] flex items-center justify-center">
+              3
+            </span>
+          </button>
+
+          {/* User Profile Avatar */}
+          <div
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setMobileMenuOpen(true);
+              }
+            }}
+            className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-[var(--cms-divider)] cursor-pointer md:cursor-default shrink-0"
+            title={window.innerWidth < 768 ? "Open navigation & profile" : "User Profile"}
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--brand-indigo)] text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
+              {currentUser.avatarInitials || 'NP'}
+            </div>
+            <div className="text-left hidden xl:block">
+              <div className="text-xs font-bold leading-none text-[var(--cms-text)]">{currentUser.name || 'Nadia Putri'}</div>
+              <div className="text-[10px] text-[var(--cms-text-secondary)] leading-none mt-0.5">
+                {currentRole.name || 'Property Admin'}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right hidden 2xl:block text-[11px] font-mono-tabular text-[var(--cms-text-secondary)] pl-2 border-l border-[var(--cms-divider)]">
+            31 Oct 2026 · WIB
+          </div>
+
+          {/* Return to Login (Desktop / Tablet) */}
           <button
             onClick={() => setViewMode('landing')}
-            className="p-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]"
-            title="Return to Login & Role Showcase"
+            className="hidden sm:block p-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] shrink-0"
+            title="Return to Workspace Login"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
+      {/* Mobile Slide-Out Drawer Navigation (User clarified: Slide-out drawer with full workspace menu) */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex" role="dialog" aria-modal="true">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Slide-out Drawer Panel */}
+          <aside className="relative z-10 w-72 max-w-[85vw] h-full bg-[var(--cms-sidebar)] border-r border-[var(--cms-divider)] p-4 flex flex-col justify-between overflow-y-auto shadow-2xl">
+            <div className="space-y-6">
+              {/* Header with Logo + Close button */}
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--cms-divider)]">
+                <div>
+                  <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+                  <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--cms-text-secondary)] mt-0.5">
+                    PROPERTY WORKSPACE
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-xl bg-[var(--cms-bg)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] border border-[var(--cms-divider)]"
+                  title="Close Navigation"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Group 1: WORKSPACE */}
+              <div className="space-y-1">
+                <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                  WORKSPACE
+                </div>
+                <nav className="space-y-0.5 pt-1">
+                  {workspaceNav.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      activeTab === item.id ||
+                      (item.id === 'devices' && activeTab === 'rooms') ||
+                      (item.id === 'channels' && activeTab === 'tv-services');
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (item.id === 'devices') setActiveTab('rooms');
+                          else if (item.id === 'channels') setActiveTab('tv-services');
+                          else setActiveTab(item.id);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
+                            : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Group 2: ADMINISTRATION */}
+              <div className="space-y-1">
+                <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                  ADMINISTRATION
+                </div>
+                <nav className="space-y-0.5 pt-1">
+                  {adminNav.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      activeTab === item.id ||
+                      (item.id === 'users' && activeTab === 'support-qa') ||
+                      (item.id === 'settings' && activeTab === 'branding');
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (item.id === 'users') setActiveTab('support-qa');
+                          else if (item.id === 'settings') setActiveTab('branding');
+                          else setActiveTab(item.id);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
+                            : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Need help? link */}
+              <div className="px-3 pt-1">
+                <a
+                  href="#help"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab('support-qa');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Need help?</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            {/* Bottom Card in Drawer */}
+            <div className="mt-6 pt-4 border-t border-[var(--cms-divider)] space-y-3">
+              <div className="relative rounded-2xl overflow-hidden h-28 border border-white/20 shadow-md">
+                <img
+                  src="/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png"
+                  alt="Hospitality Sanctuary"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 flex flex-col justify-end text-white">
+                  <div className="text-[11px] font-bold leading-tight">Open. Connected. Forward.</div>
+                  <div className="text-[9px] text-slate-300 font-mono-tabular mt-0.5">GOJJA SmartTV · v1.0</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-[var(--cms-text-secondary)]">
+                <span className="font-semibold text-[var(--cms-text)] truncate max-w-[140px]">
+                  {currentRole.name}
+                </span>
+                <button
+                  onClick={() => {
+                    setViewMode('landing');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-[11px] font-medium text-[var(--brand-indigo)] hover:underline inline-flex items-center gap-1"
+                >
+                  <LogOut className="w-3 h-3" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* Main Workspace Body: Sidebar + Viewport */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Left Sidebar (Always Light White in Light Mode, Warm Graphite #4B4A47 in Dark Mode per UI/UX R1 §6.4) */}
-        <aside className="w-full md:w-[240px] shrink-0 bg-[var(--cms-sidebar)] border-b md:border-b-0 md:border-r border-[var(--cms-divider)] p-4 flex flex-col justify-between">
-          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  aria-current={isActive ? 'page' : undefined}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 whitespace-nowrap shrink-0 ${
-                    isActive
-                      ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)]'
-                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
-                  }`}
-                >
-                  {isActive && (
-                    <span className="hidden md:block absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#0050F5] dark:bg-[#C7B9FF] transition-all duration-300" />
-                  )}
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+        {/* Left Sidebar (Desktop Only: hidden on mobile, visible on md and up) */}
+        <aside className="hidden md:flex md:w-[250px] shrink-0 bg-[var(--cms-sidebar)] border-b md:border-b-0 md:border-r border-[var(--cms-divider)] p-4 flex-col justify-between">
+          <div className="space-y-6">
+            {/* Sidebar Logo Header (Exact V-12) */}
+            <div className="px-2 pt-1 pb-2 space-y-1">
+              <button
+                onClick={() => setViewMode('landing')}
+                className="text-left block"
+                title="Return to Login"
+              >
+                <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+              </button>
+              <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--cms-text-secondary)]">
+                PROPERTY WORKSPACE
+              </div>
+            </div>
 
-          {/* Bottom Sidebar Action: Launch TV Preview & Reset DEMO */}
-          <div className="hidden md:flex flex-col gap-2 pt-4 border-t border-[var(--cms-divider)]">
-            <button
-              onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
-              className="w-full py-2.5 px-3 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors"
-            >
-              <Tv className="w-3.5 h-3.5" />
-              <span>Open Guest TV Preview</span>
-            </button>
+            {/* Group 1: WORKSPACE */}
+            <div className="space-y-1">
+              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                WORKSPACE
+              </div>
+              <nav className="space-y-0.5 pt-1">
+                {workspaceNav.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    activeTab === item.id ||
+                    (item.id === 'devices' && activeTab === 'rooms') ||
+                    (item.id === 'channels' && activeTab === 'tv-services');
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (item.id === 'devices') setActiveTab('rooms');
+                        else if (item.id === 'channels') setActiveTab('tv-services');
+                        else setActiveTab(item.id);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
+                          : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
 
-            {environmentId === 'DEMO' && (
+            {/* Group 2: ADMINISTRATION */}
+            <div className="space-y-1">
+              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                ADMINISTRATION
+              </div>
+              <nav className="space-y-0.5 pt-1">
+                {adminNav.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    activeTab === item.id ||
+                    (item.id === 'users' && activeTab === 'support-qa') ||
+                    (item.id === 'settings' && activeTab === 'branding');
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (item.id === 'users') setActiveTab('support-qa');
+                        else if (item.id === 'settings') setActiveTab('branding');
+                        else setActiveTab(item.id);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
+                          : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Need help? link */}
+            <div className="px-3 pt-2">
+              <a
+                href="#help"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveTab('support-qa');
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Need help?</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+
+          {/* Bottom Resort Photo Card (Exact V-12) */}
+          <div className="mt-8 pt-4 border-t border-[var(--cms-divider)] space-y-3">
+            <div className="relative rounded-2xl overflow-hidden h-32 border border-white/20 shadow-md group">
+              <img
+                src="/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png"
+                alt="Hospitality Sanctuary"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3.5 flex flex-col justify-end text-white">
+                <div className="text-xs font-bold leading-tight">Open.</div>
+                <div className="text-xs font-bold leading-tight">Connected.</div>
+                <div className="text-xs font-bold leading-tight">Forward.</div>
+                <div className="text-[10px] text-slate-300 font-mono-tabular mt-1">
+                  GOJJA SmartTV · v1.0
+                </div>
+              </div>
+            </div>
+
+            {/* Live Environment & Quick Actions */}
+            <div className="flex items-center justify-between text-[11px] text-[var(--cms-text-secondary)]">
+              <span className="font-semibold text-[var(--cms-text)]">
+                {currentRole.id} · {currentRole.name}
+              </span>
               <button
                 onClick={async () => {
                   await apiCall('/api/demo/reset', { method: 'POST' });
                   await fetchBootstrap();
-                  showNotice('success', 'Restored DEMO workspace to clean initial seed (30 seats, 14 allocated, 16 available).');
+                  showNotice('success', 'Reset DEMO workspace to pristine seed.');
                 }}
-                className="w-full py-2 px-3 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-divider)] text-xs font-medium inline-flex items-center justify-center gap-1.5 text-[var(--cms-text-secondary)]"
+                className="text-[10px] font-medium text-[var(--cms-link)] hover:underline"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset DEMO Seed</span>
+                Reset DEMO
               </button>
-            )}
-
-            <div className="p-2.5 rounded-xl bg-[var(--cms-bg)] text-[11px] text-[var(--cms-text-secondary)] space-y-0.5">
-              <div className="font-semibold text-[var(--cms-text)]">
-                {currentRole.id} · {currentRole.name}
-              </div>
-              <div className="font-mono-tabular">
-                Scope: {currentUser.propertyIds.join(', ')} ({environmentId})
-              </div>
             </div>
           </div>
         </aside>
 
         {/* Main Viewport Content */}
-        <main className="flex-1 p-5 md:p-8 max-w-[1440px] w-full mx-auto space-y-6 overflow-x-hidden">
-          {/* Global Status Toast / Feedback Banner */}
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-[1440px] w-full mx-auto space-y-6 overflow-x-hidden">
+          {/* Global Status Toast */}
           {statusBanner && activeTab !== 'discovery' && (
             <div
               className={`px-4 py-3 rounded-xl border text-xs font-medium flex items-center justify-between gap-3 ${
@@ -705,147 +983,295 @@ export default function App() {
           )}
 
           {/* ===================================================================== */}
-          {/* TAB 1: OVERVIEW (Matches 02 / PROPERTY OVERVIEW Light & 04 / Dark)    */}
+          {/* TAB 1: OVERVIEW (Exact V-12 Layout)                                   */}
           {/* ===================================================================== */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Page Title & Date Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Property overview</h1>
-                  <p className="text-sm text-[var(--cms-text-secondary)] mt-0.5">
-                    Welcome back, {currentUser.name}! Here’s what’s happening at {activeProperty.name}.
+              {/* Panoramic Resort Hero Banner (Exact V-12) */}
+              <div className="relative rounded-3xl overflow-hidden border border-[var(--cms-divider)] bg-[var(--cms-surface)] min-h-[170px] p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-sm">
+                <img
+                  src="/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png"
+                  alt="Hotel Arunika Borobudur Resort Panoramic Banner"
+                  referrerPolicy="no-referrer"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+                {/* Scrim tuned for flawless text contrast */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/40 dark:from-black/90 dark:via-black/75 dark:to-black/50" />
+
+                <div className="relative z-10 space-y-1.5 max-w-xl">
+                  <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
+                    HOTEL ARUNIKA · YOGYAKARTA
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--cms-text)]">
+                    Property Overview
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[var(--cms-text-secondary)]">
+                    Every screen. Every stay. One connected experience.
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] text-xs">
-                  <Calendar className="w-4 h-4 text-[var(--cms-text-secondary)]" />
-                  <div className="text-right">
-                    <div className="text-[10px] text-[var(--cms-text-secondary)]">Demo Clock ({activeProperty.timezone})</div>
-                    <div className="font-semibold font-mono-tabular">2 Nov 2026 · 14:00</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Property Hero Card + 4 Rolling KPI Cards (Exact Layout from 02 / PROPERTY OVERVIEW) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                {/* Left Property Banner Card */}
-                <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-[var(--cms-divider)] bg-[var(--cms-surface)] min-h-[124px] flex items-center justify-between p-5">
-                  <img
-                    src={activeProperty.heroImageUrl}
-                    alt={activeProperty.name}
-                    referrerPolicy="no-referrer"
-                    className="absolute inset-0 w-full h-full object-cover opacity-35"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-[var(--cms-surface)] via-[var(--cms-surface)]/85 to-transparent" />
-                  <div className="relative z-10 space-y-1">
-                    <div className="text-lg font-bold leading-snug">{activeProperty.name}</div>
-                    <div className="text-xs text-[var(--cms-text-secondary)]">{activeProperty.categoryLabel}</div>
-                    <div className="text-[11px] font-mono-tabular text-[#0050F5] dark:text-[#C7B9FF] pt-1">
-                      Sales Route: {activeProperty.partnerId ? `Reseller (${activeProperty.partnerId})` : 'Direct Customer'}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
-                    className="relative z-10 w-28 h-16 rounded-xl overflow-hidden border-2 border-white/80 shadow-md shrink-0 group"
-                    title="Click to launch interactive 16:9 TV Guest App"
-                  >
-                    <img
-                      src={activeProperty.heroImageUrl}
-                      alt="TV Preview"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                      <Play className="w-5 h-5 text-white fill-white" />
-                    </div>
-                  </button>
-                </div>
-
-                {/* Right 4 Rolling KPI Cards */}
-                <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                  <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                      <span>Licensed TVs</span>
-                      <Tv className="w-4 h-4 text-[#0050F5]" />
-                    </div>
-                    <div className="text-2xl md:text-3xl font-bold mt-2">
-                      <RollingKpiValue value={propSubscription?.seats || 12} />
-                    </div>
-                    <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
-                      Global Pool: {kpis.totalContractedSeats} seats
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                      <span>Assigned</span>
-                      <Layers className="w-4 h-4 text-[#4F3FE5]" />
-                    </div>
-                    <div className="text-2xl md:text-3xl font-bold mt-2">
-                      <RollingKpiValue value={propEndpoints.length} />
-                    </div>
-                    <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
-                      Global Allocated: {kpis.totalAllocatedSeats} ({kpis.totalAvailableSeats} free)
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                      <span>Online</span>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div className="text-2xl md:text-3xl font-bold mt-2 text-emerald-700 dark:text-emerald-300">
-                      <RollingKpiValue value={propOnlineCount} />
-                    </div>
-                    <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
-                      Global Online: {kpis.onlineEndpointsCount} TVs
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                      <span>Offline</span>
-                      <AlertTriangle className="w-4 h-4 text-rose-600" />
-                    </div>
-                    <div className="text-2xl md:text-3xl font-bold mt-2 text-rose-700 dark:text-rose-300">
-                      <RollingKpiValue value={propOfflineCount} />
-                    </div>
-                    <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
-                      Global Offline: {kpis.offlineEndpointsCount} TVs
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Middle Row: SVG Animated Playback Trend Chart + Updates Awaiting Approval */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left: Playback Trend SVG Line Chart (900ms stroke-dasharray reveal) */}
-                <div className="lg:col-span-7 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h2 className="text-base font-bold">Playback trend</h2>
-                      <p className="text-xs text-[var(--cms-text-secondary)]">
-                        Verified technical playback starts & session minutes (Proof of play ≠ human viewers — BR19)
-                      </p>
-                    </div>
-                    <span className="px-3 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium">
-                      Last 7 days
+                {/* Right Hero CTA Buttons (Scan devices & Open TV preview) */}
+                <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="flex flex-col items-center sm:items-end">
+                    <button
+                      onClick={() => setActiveTab('discovery')}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl btn-luxury-indigo text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-all"
+                    >
+                      <Radar className="w-4 h-4" />
+                      <span>Scan devices</span>
+                    </button>
+                    <span className="text-[10px] text-[var(--cms-text-secondary)] mt-1">
+                      ⓘ Local connector required
                     </span>
                   </div>
 
-                  {/* SVG Line Chart */}
-                  <div className="w-full h-48 relative">
-                    <svg viewBox="0 0 600 170" className="w-full h-full overflow-visible">
+                  <button
+                    onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 backdrop-blur-md border border-[var(--cms-divider)] text-[var(--cms-text)] text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm transition-all"
+                  >
+                    <Play className="w-4 h-4 text-[var(--brand-indigo)] fill-[var(--brand-indigo)]" />
+                    <span>Open TV preview</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 6 Rolling KPI Cards in a Row (Exact V-12 Metrics & Icons) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
+                {/* 1. Licensed TVs */}
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
+                    <span className="font-medium">Licensed TVs</span>
+                    <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-[#0050F5] flex items-center justify-center">
+                      <Tv className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
+                    <RollingKpiValue value={12} />
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    7 assigned · 5 available
+                  </div>
+                </div>
+
+                {/* 2. TVs online */}
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
+                    <span className="font-medium">TVs online</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                      <Wifi className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
+                    5 / 7
+                  </div>
+                  <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">
+                    2 offline
+                  </div>
+                </div>
+
+                {/* 3. Occupied rooms */}
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
+                    <span className="font-medium">Occupied rooms</span>
+                    <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-[#7C35E0] flex items-center justify-center">
+                      <Bed className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
+                    4 / 6
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    Current stays
+                  </div>
+                </div>
+
+                {/* 4. Active campaigns */}
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
+                    <span className="font-medium">Active campaigns</span>
+                    <div className="w-7 h-7 rounded-lg bg-pink-500/10 text-[#CA3596] flex items-center justify-center">
+                      <Megaphone className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
+                    <RollingKpiValue value={2} />
+                  </div>
+                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+                    Published
+                  </div>
+                </div>
+
+                {/* 5. Updates pending */}
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
+                    <span className="font-medium">Updates pending</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                      <Download className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
+                    <RollingKpiValue value={2} />
+                  </div>
+                  <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1">
+                    Awaiting approval
+                  </div>
+                </div>
+
+                {/* 6. Monthly plan */}
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
+                    <span className="font-medium">Monthly plan</span>
+                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-[var(--brand-indigo)] flex items-center justify-center">
+                      <Award className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-lg sm:text-xl font-extrabold mt-3 text-[var(--cms-text)] truncate">
+                    Rp180.000
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    Core · 12 seats
+                  </div>
+                </div>
+              </div>
+
+              {/* 60:40 Operational Split (Left: Device & Room Health / Right: Playback Insights Dual-Line SVG) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* Left (60%): Device & Room Health Table */}
+                <div className="lg:col-span-7 p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-base font-bold text-[var(--cms-text)]">Device & Room Health</h2>
+                      <button
+                        onClick={() => setActiveTab('rooms')}
+                        className="text-xs font-semibold text-[var(--cms-link)] hover:underline inline-flex items-center gap-1"
+                      >
+                        <span>View all devices</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
+                            <th className="py-2.5 pr-3 font-medium">Room</th>
+                            <th className="py-2.5 px-3 font-medium">Device</th>
+                            <th className="py-2.5 px-3 font-medium">Status</th>
+                            <th className="py-2.5 px-3 font-medium">TV profile</th>
+                            <th className="py-2.5 pl-3 font-medium">Last seen</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--cms-divider)]">
+                          <tr className="hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="py-3 pr-3 font-semibold text-[var(--cms-text)]">101 · Standard</td>
+                            <td className="py-3 px-3 font-mono-tabular">ARU-TV-101</td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Online
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[var(--cms-text-secondary)]">Basic</td>
+                            <td className="py-3 pl-3 text-[var(--cms-text-secondary)]">Just now</td>
+                          </tr>
+                          <tr className="hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="py-3 pr-3 font-semibold text-[var(--cms-text)]">102 · Standard</td>
+                            <td className="py-3 px-3 font-mono-tabular">ARU-TV-102</td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Online
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[var(--cms-text-secondary)]">Basic</td>
+                            <td className="py-3 pl-3 text-[var(--cms-text-secondary)]">Just now</td>
+                          </tr>
+                          <tr className="hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="py-3 pr-3 font-semibold text-[var(--cms-text)]">103 · Standard</td>
+                            <td className="py-3 px-3 font-mono-tabular">ARU-TV-103</td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Online
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[var(--cms-text-secondary)]">Basic</td>
+                            <td className="py-3 pl-3 text-[var(--cms-text-secondary)]">Just now</td>
+                          </tr>
+                          <tr className="hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="py-3 pr-3 font-semibold text-[var(--cms-text)]">201 · Deluxe</td>
+                            <td className="py-3 px-3 font-mono-tabular">ARU-TV-201</td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Online
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[var(--cms-text-secondary)]">International</td>
+                            <td className="py-3 pl-3 text-[var(--cms-text-secondary)]">Just now</td>
+                          </tr>
+                          <tr className="hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="py-3 pr-3 font-semibold text-[var(--cms-text)]">202 · Deluxe</td>
+                            <td className="py-3 px-3 font-mono-tabular">ARU-TV-202</td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                Offline
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[var(--cms-text-secondary)]">International</td>
+                            <td className="py-3 pl-3 text-rose-600 dark:text-rose-400 font-medium">18 min ago</td>
+                          </tr>
+                          <tr className="hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="py-3 pr-3 font-semibold text-[var(--cms-text)]">301 · Suite</td>
+                            <td className="py-3 px-3 font-mono-tabular">2 TVs</td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                1 offline
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[var(--cms-text-secondary)]">Sports</td>
+                            <td className="py-3 pl-3 text-[var(--cms-text-secondary)]">Mixed</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-[var(--cms-divider)] text-[11px] text-[var(--cms-text-secondary)]">
+                    7 devices • 6 rooms • 2 need attention
+                  </div>
+                </div>
+
+                {/* Right (40%): Playback Insights Dual-Line SVG Chart */}
+                <div className="lg:col-span-5 p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-[var(--cms-text)]">Playback Insights</h2>
+                      <p className="text-[11px] text-[var(--cms-text-secondary)]">
+                        Daily playback sessions across all endpoints
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium cursor-pointer">
+                      Last 7 days ▾
+                    </span>
+                  </div>
+
+                  {/* Dual-Line SVG Chart */}
+                  <div className="w-full h-52 relative pt-2">
+                    <svg viewBox="0 0 520 170" className="w-full h-full overflow-visible">
                       <defs>
-                        <linearGradient id="gojjaChartFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--chart-primary)" stopOpacity="0.28" />
-                          <stop offset="100%" stopColor="var(--chart-primary)" stopOpacity="0.0" />
+                        <linearGradient id="hotelGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#4F3FE5" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#4F3FE5" stopOpacity="0.0" />
                         </linearGradient>
                       </defs>
-                      {/* Horizontal grid lines */}
-                      {[25, 65, 105, 145].map((y, idx) => (
+
+                      {/* Horizontal Grid Lines */}
+                      {[30, 65, 100, 135].map((y, idx) => (
                         <g key={idx}>
-                          <line x1="36" y1={y} x2="580" y2={y} stroke="var(--cms-divider)" strokeDasharray="3 3" />
+                          <line x1="36" y1={y} x2="500" y2={y} stroke="var(--cms-divider)" strokeDasharray="3 3" />
                           <text
                             x="4"
                             y={y + 4}
@@ -853,53 +1279,57 @@ export default function App() {
                             fontSize="10"
                             fontFamily="JetBrains Mono, monospace"
                           >
-                            {150 - idx * 50}
+                            {200 - idx * 50}
                           </text>
                         </g>
                       ))}
 
-                      {/* Area fill */}
+                      {/* Line 1: Hotel Content (Purple #4F3FE5) Area & Stroke */}
                       <path
-                        d="M 55 110 L 140 82 L 225 60 L 310 78 L 395 48 L 480 56 L 565 25 L 565 145 L 55 145 Z"
-                        fill="url(#gojjaChartFill)"
+                        d="M 50 120 L 125 95 L 200 68 L 275 80 L 350 50 L 425 25 L 500 42 L 500 135 L 50 135 Z"
+                        fill="url(#hotelGrad)"
                       />
-
-                      {/* Animated Curve */}
                       <path
-                        d="M 55 110 L 140 82 L 225 60 L 310 78 L 395 48 L 480 56 L 565 25"
+                        d="M 50 120 L 125 95 L 200 68 L 275 80 L 350 50 L 425 25 L 500 42"
                         fill="none"
-                        stroke="var(--chart-primary)"
+                        stroke="#4F3FE5"
                         strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         className="animate-chart-line"
                       />
 
-                      {/* Data points & X-axis labels */}
+                      {/* Line 2: Live TV (Coral #FF5E70) Stroke */}
+                      <path
+                        d="M 50 130 L 125 120 L 200 105 L 275 108 L 350 98 L 425 90 L 500 95"
+                        fill="none"
+                        stroke="#FF5E70"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeDasharray="4 2"
+                        className="animate-chart-line"
+                      />
+
+                      {/* Dots and Labels */}
                       {[
-                        { x: 55, y: 110, label: '25 Oct', val: 48 },
-                        { x: 140, y: 82, label: '26 Oct', val: 76 },
-                        { x: 225, y: 60, label: '27 Oct', val: 98 },
-                        { x: 310, y: 78, label: '28 Oct', val: 82 },
-                        { x: 395, y: 48, label: '29 Oct', val: 112 },
-                        { x: 480, y: 56, label: '30 Oct', val: 105 },
-                        { x: 565, y: 25, label: '31 Oct', val: 138 },
+                        { x: 50, y1: 120, y2: 130, label: '25 Oct' },
+                        { x: 125, y1: 95, y2: 120, label: '26 Oct' },
+                        { x: 200, y1: 68, y2: 105, label: '27 Oct' },
+                        { x: 275, y1: 80, y2: 108, label: '28 Oct' },
+                        { x: 350, y1: 50, y2: 98, label: '29 Oct' },
+                        { x: 425, y1: 25, y2: 90, label: '30 Oct' },
+                        { x: 500, y1: 42, y2: 95, label: '31 Oct' },
                       ].map((pt, i) => (
                         <g key={i}>
-                          <circle
-                            cx={pt.x}
-                            cy={pt.y}
-                            r="4.5"
-                            fill="var(--cms-surface)"
-                            stroke="var(--chart-primary)"
-                            strokeWidth="2.5"
-                          />
+                          <circle cx={pt.x} cy={pt.y1} r="4" fill="#4F3FE5" stroke="white" strokeWidth="2" />
+                          <circle cx={pt.x} cy={pt.y2} r="3.5" fill="#FF5E70" stroke="white" strokeWidth="1.5" />
                           <text
                             x={pt.x}
-                            y="164"
+                            y="155"
                             textAnchor="middle"
                             fill="var(--cms-text-secondary)"
-                            fontSize="10"
+                            fontSize="9"
                             fontFamily="JetBrains Mono, monospace"
                           >
                             {pt.label}
@@ -908,140 +1338,161 @@ export default function App() {
                       ))}
                     </svg>
                   </div>
+
+                  {/* Legend & Footnote */}
+                  <div className="pt-2 border-t border-[var(--cms-divider)] flex items-center justify-between text-[11px] text-[var(--cms-text-secondary)]">
+                    <div className="flex items-center gap-4">
+                      <span className="inline-flex items-center gap-1.5 font-medium text-[var(--cms-text)]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#4F3FE5]" />
+                        Hotel content
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 font-medium text-[var(--cms-text)]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#FF5E70]" />
+                        Live TV
+                      </span>
+                    </div>
+                    <span>Playback events, not guest counts.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Supporting Row: 3 Equal Cards (Brand & Welcome, Update Approvals, Recent Activity) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 1. Brand & Welcome */}
+                <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
+                  <div className="space-y-3">
+                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                      Brand & Welcome
+                    </div>
+                    <div className="relative rounded-xl overflow-hidden h-28 border border-[var(--cms-divider)] group">
+                      <img
+                        src="/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png"
+                        alt="Brand preview"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/45 p-3 flex flex-col justify-between text-white">
+                        <GojjaWordmark size="sm" showDescriptor={false} variant="reverse" />
+                        <div>
+                          <div className="text-xs font-bold">Welcome to Hotel Arunika</div>
+                          <div className="text-[10px] text-slate-300">ID · EN · 中文 · 日本語</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[var(--cms-text-secondary)]">Experience status:</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                        Published
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab('branding')}
+                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)] border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>Open Brand Studio</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                {/* Right: Updates Awaiting Approval Card */}
-                <div className="lg:col-span-5 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-base font-bold">Updates awaiting approval</h2>
-                      <Bell className="w-4 h-4 text-[#0050F5] dark:text-[#C7B9FF]" />
+                {/* 2. Update Approvals */}
+                <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
+                  <div className="space-y-3">
+                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                      Update Approvals
                     </div>
-                    <p className="text-xs text-[var(--cms-text-secondary)] mt-1">
-                      Requires both GOJJA Technical Approval and Property Window Permission + Room Readiness (BR06 / BR14).
-                    </p>
-
-                    <div className="mt-4 space-y-2.5 text-sm">
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--cms-bg)]">
-                        <span className="font-semibold">Ready for review (REL-01 / REL-02)</span>
-                        <span className="font-mono-tabular font-bold text-[#0050F5] dark:text-[#C7B9FF]">
-                          {data.releases.length} releases
-                        </span>
+                    <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-[#7C35E0] flex items-center justify-center shrink-0">
+                        <Download className="w-5 h-5" />
                       </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--cms-bg)]">
-                        <span className="font-semibold">Deferred / Awaiting Room Readiness</span>
-                        <span className="font-mono-tabular font-bold text-amber-600 dark:text-amber-300">
-                          {data.updateJobs.filter((j) => j.stage !== 'Healthy').length} endpoints
-                        </span>
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-bold text-[var(--cms-text)]">TV App v1.0.4</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                          2 devices pending approval
+                        </div>
+                        <div className="text-[10px] text-[var(--cms-text-secondary)] pt-1">
+                          ⓘ Install only when eligible and approved.
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => setActiveTab('updates')}
-                    className="w-full py-3 px-4 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)] border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <span>Review update</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <span>Review schedule</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
+                </div>
+
+                {/* 3. Recent Activity */}
+                <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                        Recent Activity
+                      </span>
+                      <button
+                        onClick={() => setActiveTab('support-qa')}
+                        className="text-xs font-semibold text-[var(--cms-link)] hover:underline inline-flex items-center gap-0.5"
+                      >
+                        <span>View all</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5 text-xs">
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-[#7C35E0] mt-1.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[var(--cms-text)]">Welcome campaign published</div>
+                          <div className="text-[10px] text-[var(--cms-text-secondary)]">12 min ago · Marketing Admin</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[var(--cms-text)]">Room 202 device went offline</div>
+                          <div className="text-[10px] text-[var(--cms-text-secondary)]">18 min ago · ARU-TV-202</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[var(--cms-text)]">Connector online · Front Office PC</div>
+                          <div className="text-[10px] text-[var(--cms-text-secondary)]">24 min ago · Heartbeat OK</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[var(--cms-divider)] text-[10px] text-[var(--cms-text-secondary)] font-mono-tabular">
+                    SSOT Audit Log · 3 events in last hour
+                  </div>
                 </div>
               </div>
 
-              {/* Bottom Row: Active Campaigns + Rooms & TVs Table */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Active Campaigns Card */}
-                <div className="lg:col-span-6 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold">Active campaigns</h2>
-                    <button
-                      onClick={() => setActiveTab('campaigns')}
-                      className="text-xs font-semibold text-[var(--cms-link)] hover:underline"
-                    >
-                      Manage all
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {propCampaigns.slice(0, 2).map((cmp) => (
-                      <div
-                        key={cmp.id}
-                        onClick={() => setActiveTab('campaigns')}
-                        className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between gap-3 cursor-pointer hover:border-[#0050F5] transition-colors"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={cmp.imageUrl}
-                            alt={cmp.name}
-                            referrerPolicy="no-referrer"
-                            className="w-14 h-11 rounded-lg object-cover shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <div className="text-sm font-bold truncate">{cmp.name}</div>
-                            <div className="text-xs text-[var(--cms-text-secondary)]">
-                              1 Nov – 30 Nov 2026 · {cmp.placement} · {cmp.totalPlaySeconds}s played
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 shrink-0">
-                          {cmp.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rooms & TVs Quick Status Table */}
-                <div className="lg:col-span-6 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold">Rooms & TVs</h2>
-                    <button
-                      onClick={() => setActiveTab('rooms')}
-                      className="text-xs font-semibold text-[var(--cms-link)] hover:underline"
-                    >
-                      View all ({propEndpoints.length})
-                    </button>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
-                          <th className="py-2 pr-3 font-medium">Room</th>
-                          <th className="py-2 px-3 font-medium">TV Endpoint</th>
-                          <th className="py-2 px-3 font-medium">Status</th>
-                          <th className="py-2 px-3 font-medium">Version</th>
-                          <th className="py-2 pl-3 text-right font-medium">Preview</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--cms-divider)]">
-                        {propEndpoints.slice(0, 5).map((ep) => {
-                          const r = propRooms.find((rm) => rm.id === ep.roomId);
-                          return (
-                            <tr key={ep.id} className="hover:bg-black/5 dark:hover:bg-white/5">
-                              <td className="py-2.5 pr-3 font-mono-tabular font-semibold">{r?.code || ep.roomId}</td>
-                              <td className="py-2.5 px-3">{ep.label} ({ep.id})</td>
-                              <td className="py-2.5 px-3 font-semibold">
-                                {ep.connection === 'Online' ? (
-                                  <span className="text-emerald-700 dark:text-emerald-300">Online</span>
-                                ) : (
-                                  <span className="text-rose-700 dark:text-rose-300">Offline</span>
-                                )}
-                              </td>
-                              <td className="py-2.5 px-3 font-mono-tabular">v{ep.appVersion}</td>
-                              <td className="py-2.5 pl-3 text-right">
-                                <button
-                                  onClick={() => setTvModalEndpointId(ep.id)}
-                                  className="px-2.5 py-1 rounded-lg bg-[#0050F5]/10 text-[#0050F5] dark:text-[#C7B9FF] font-semibold hover:bg-[#0050F5] hover:text-white transition-colors"
-                                >
-                                  Open TV
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+              {/* Persistent Footer Bar (Exact V-12: Cloud connected, Connector online, Privacy, Help) */}
+              <div className="pt-6 border-t border-[var(--cms-divider)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--cms-text-secondary)]">
+                <div>© 2026 GOJJA SmartTV</div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Cloud connected
+                  </span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Local connector online
+                  </span>
+                  <span>·</span>
+                  <a href="#privacy" className="hover:text-[var(--cms-text)]">Privacy</a>
+                  <span>·</span>
+                  <a href="#help" onClick={(e) => { e.preventDefault(); setActiveTab('support-qa'); }} className="hover:text-[var(--cms-text)]">Help</a>
                 </div>
               </div>
             </div>

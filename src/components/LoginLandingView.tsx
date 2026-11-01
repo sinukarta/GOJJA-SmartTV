@@ -9,16 +9,25 @@ import {
   EyeOff,
   ShieldCheck,
   Tv,
-  Building2,
-  Network,
+  Palette,
+  Megaphone,
+  BarChart3,
+  HelpCircle,
+  ChevronDown,
   Sparkles,
   CheckCircle2,
+  AlertTriangle,
+  Building2,
+  Radio,
   Layers,
+  Wrench,
+  Globe,
 } from 'lucide-react';
 import {
   EnvironmentId,
   UserAccount,
   RoleDefinition,
+  GuestLocale,
 } from '../data/mockData';
 import { GojjaWordmark } from './GojjaWordmark';
 
@@ -39,21 +48,26 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
   onLoginSuccess,
   onOpenTvShowcase,
 }) => {
-  const [portalTab, setPortalTab] = useState<'Property' | 'ISP' | 'GOJJA'>('Property');
-  const [emailInput, setEmailInput] = useState<string>('you@hotelarunika.com');
+  const [emailInput, setEmailInput] = useState<string>('hello@hotel.com');
   const [passwordInput, setPasswordInput] = useState<string>('••••••••••••');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [selectedEnv, setSelectedEnv] = useState<EnvironmentId>('DEMO');
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [activeBoardIdx, setActiveBoardIdx] = useState<number>(0);
+  const [activeLocale, setActiveLocale] = useState<GuestLocale>('en');
+  const [showLocaleMenu, setShowLocaleMenu] = useState<boolean>(false);
+  const [showPersonaDrawer, setShowPersonaDrawer] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
+  const [selectedPersona, setSelectedPersona] = useState<UserAccount>(
+    userAccounts.find((u) => u.alias === 'property-admin') ||
+      userAccounts.find((u) => u.alias === 'property-manager') ||
+      userAccounts[0]
+  );
 
-  const handlePortalTabSelect = (tab: 'Property' | 'ISP' | 'GOJJA') => {
-    setPortalTab(tab);
+  const handlePersonaSelect = (acc: UserAccount) => {
+    setSelectedPersona(acc);
+    setEmailInput(acc.email);
     setLoginError(null);
-    if (tab === 'Property') setEmailInput('you@hotelarunika.com');
-    else if (tab === 'ISP') setEmailInput('admin@alphahospitality.net.id');
-    else setEmailInput('platform.admin@gojja.tv');
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -62,7 +76,7 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
     const q = emailInput.trim().toLowerCase();
     const matched =
       userAccounts.find((u) => u.email.toLowerCase() === q || u.alias.toLowerCase() === q) ||
-      userAccounts.find((u) => u.alias === 'property-manager')!;
+      selectedPersona;
 
     if (selectedEnv === 'LIVE_LAB' && !matched.allowedEnvironments.includes('LIVE_LAB')) {
       setLoginError(
@@ -73,414 +87,605 @@ export const LoginLandingView: React.FC<LoginLandingViewProps> = ({
     onLoginSuccess(matched, selectedEnv);
   };
 
-  const referenceBoards = [
-    {
-      title: 'V-06 • Linen Hospitality CMS & Dark Mode Suite',
-      caption: 'Split-panel login, property overview, branding & content editor, and Warm Graphite Dark mode.',
-      src: '/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png',
-    },
-    {
-      title: 'V-05 • GOJJA Open Future Brand & Digital Experience System v1.0',
-      caption: 'Custom lowercase gojja wordmark geometry, 5-color spectrum, typography scales, and Corbel motion language.',
-      src: '/assets/aistudio/GOJJA_SmartTV_open_future_design_system_c976ac35.png',
-    },
-    {
-      title: 'V-04 • Hospitality 10-Foot Guest TV Experience Showcase',
-      caption: 'Splash & Welcome, Personalized Home, Live TV Guide, Spa Promotion, Dining & QR, and 4-Locale Selector.',
-      src: '/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png',
-    },
+  const handleGoogleSignIn = () => {
+    // Authenticate with active selected persona in DEMO or current verified account
+    onLoginSuccess(selectedPersona, selectedEnv);
+  };
+
+  const locales: { id: GuestLocale; label: string; code: string }[] = [
+    { id: 'en', label: 'English', code: 'EN' },
+    { id: 'id', label: 'Bahasa Indonesia', code: 'ID' },
+    { id: 'zh-CN', label: '简体中文', code: '中文' },
+    { id: 'ja-JP', label: '日本語', code: '日本語' },
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col">
-      {/* Top 3-Zone Navigation Bar (Follows Top Bar Contract) */}
-      <header className="flex items-center justify-between gap-8 px-6 md:px-10 py-4 bg-[var(--cms-header)] border-b border-[var(--cms-divider)]">
-        <a href="#top" className="whitespace-nowrap shrink-0">
-          <GojjaWordmark size="sm" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
-        </a>
+    <div className="relative min-h-screen w-full bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col justify-between overflow-x-hidden font-sans">
+      {/* Background Resort Photography Layer (Exact V-11 Reference) */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img
+          src="/assets/aistudio/file_000000007f6882118a6641812590e14f_11e44e63.png"
+          alt="Luxury Resort Cliffside Infinity Pool"
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover object-center"
+        />
+        {/* Scrim Overlay tuned for crisp text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent dark:from-black/75 dark:via-black/45 dark:to-black/30" />
+      </div>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--cms-text-secondary)]">
-          <a href="#login-split" className="hover:text-[var(--cms-text)] transition-colors whitespace-nowrap shrink-0">
-            Workspace Sign In
-          </a>
-          <a href="#rbac-personas" className="hover:text-[var(--cms-text)] transition-colors whitespace-nowrap shrink-0">
-            16 Role Personas
-          </a>
-          <a href="#architecture" className="hover:text-[var(--cms-text)] transition-colors whitespace-nowrap shrink-0">
-            Platform Architecture
-          </a>
-          <a href="#design-boards" className="hover:text-[var(--cms-text)] transition-colors whitespace-nowrap shrink-0">
-            Design System & TV Mockups
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={onOpenTvShowcase}
-            className="px-4 py-2 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2"
-          >
-            <Tv className="w-3.5 h-3.5" />
-            <span>Launch TV Guest App</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Split-Panel Login & Hospitality Hero (Matches 01 / LOGIN in Linen Hospitality Mockup) */}
-      <main id="login-split" className="max-w-7xl w-full mx-auto px-4 md:px-8 py-8 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 rounded-3xl overflow-hidden border border-[var(--cms-divider)] bg-[var(--cms-surface)] shadow-sm items-stretch">
-          {/* Left Hospitality Photography Panel */}
-          <div className="lg:col-span-6 relative min-h-[360px] lg:min-h-[600px] flex flex-col justify-between p-8 md:p-10 overflow-hidden">
-            <img
-              src="/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png"
-              alt="Hospitality Resort Sanctuary Pool"
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 w-full h-full object-cover object-left-top scale-110"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#10172F]/90 via-[#10172F]/45 to-[#10172F]/25" />
-
-            <div className="relative z-10 flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-widest uppercase text-[#F8F5EE]/90">
-                OPEN FUTURE • HOSPITALITY CORE P1
-              </span>
-              <span className="text-xs font-mono-tabular text-[#F8F5EE]/80">
-                SSOT Seed v1.0 • 3 Properties · 14 TVs
-              </span>
-            </div>
-
-            <div className="relative z-10 space-y-4 max-w-md mt-auto">
-              <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight tracking-tight" style={{ textWrap: 'balance' }}>
-                A more connected, more human tomorrow.
-              </h1>
-              <p className="text-sm text-slate-200 leading-relaxed">
-                Centralize guest welcome experiences, multi-layer property branding, provider channel packages, and authorized local ADB device onboarding across direct hotels and ISP partner fleets.
-              </p>
-              <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-amber-200/95">
-                <span>30 Contracted Seats</span>
-                <span>·</span>
-                <span>14 Allocated TVs</span>
-                <span>·</span>
-                <span>4 Guest Locales (ID/EN/中文/日本語)</span>
-              </div>
+      {/* Main Split-Panel Presentation (Desktop 60:40 / Mobile Compact Header + Priority Card) */}
+      <div className="relative z-10 w-full min-h-screen flex flex-col lg:flex-row items-stretch justify-between">
+        {/* Mobile Compact Resort Header (Exact User Preference: Compact header, prioritized auth form) */}
+        <div className="lg:hidden p-5 text-white flex flex-col gap-3 relative z-10">
+          <div className="flex items-center justify-between">
+            <GojjaWordmark size="sm" showDescriptor={true} variant="color" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onOpenTvShowcase}
+                className="px-3 py-1.5 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white text-[11px] font-semibold inline-flex items-center gap-1.5 shadow-xs"
+              >
+                <Tv className="w-3.5 h-3.5 text-amber-300" />
+                <span>TV Preview</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPersonaDrawer(true)}
+                className="px-2.5 py-1.5 rounded-xl bg-black/35 backdrop-blur-md border border-white/20 text-white text-[11px] font-semibold inline-flex items-center gap-1 shadow-xs"
+                title="Test 16 Role Personas"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>16 Roles</span>
+              </button>
             </div>
           </div>
+          <div>
+            <div className="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-sm">
+              A more connected stay.
+            </div>
+            <div className="text-xs text-slate-200">
+              One platform. Every guest experience.
+            </div>
+          </div>
+        </div>
 
-          {/* Right Authentication & Workspace Form Panel */}
-          <div className="lg:col-span-6 p-8 md:p-12 flex flex-col justify-between bg-[var(--cms-surface)]">
-            {/* Top Theme Mode Control (Sun / Moon Pill matching Linen Hospitality 01 / LOGIN) */}
-            <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs">
-                <button
-                  type="button"
-                  onClick={() => setSelectedEnv('DEMO')}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-                    selectedEnv === 'DEMO'
-                      ? 'bg-[#0050F5] text-white'
-                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
-                  }`}
-                >
-                  DEMO Workspace
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedEnv('LIVE_LAB')}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-                    selectedEnv === 'LIVE_LAB'
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
-                  }`}
-                >
-                  LIVE_LAB (Real ADB)
-                </button>
+        {/* Desktop Left Side: Brand Identity, Headlines, 4 Highlight Cards & Heritage Footer */}
+        <div className="hidden lg:flex lg:w-[58%] xl:w-[60%] p-8 lg:p-14 xl:p-16 flex-col justify-between text-white">
+          {/* Top Logo */}
+          <div className="space-y-2">
+            <GojjaWordmark size="xl" showDescriptor={true} variant="color" />
+          </div>
+
+          {/* Center Brand Statements & 4 Feature Highlights */}
+          <div className="my-10 lg:my-auto space-y-8 max-w-2xl">
+            <div className="space-y-3">
+              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight leading-[1.08] text-white drop-shadow-md">
+                A more connected stay.
+              </h1>
+              <p className="text-xl sm:text-2xl font-medium text-slate-100/95 tracking-tight">
+                One platform. Every guest experience.
+              </p>
+              <p className="text-sm sm:text-base text-slate-200/90 leading-relaxed max-w-xl pt-1">
+                Manage your properties, screens and hospitality experiences from one secure workspace.
+              </p>
+            </div>
+
+            {/* 4 Feature Highlight Cards in a Row (Exact V-11) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-2">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
+                <div className="w-9 h-9 rounded-xl bg-[#0050F5]/25 border border-[#0050F5]/40 flex items-center justify-center text-blue-200">
+                  <Tv className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">SmartTV & Rooms</div>
+                  <div className="text-[10px] text-slate-300">Living room & suite screens</div>
+                </div>
               </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
+                <div className="w-9 h-9 rounded-xl bg-[#7C35E0]/25 border border-[#7C35E0]/40 flex items-center justify-center text-purple-200">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">Brand & Content</div>
+                  <div className="text-[10px] text-slate-300">Identity & media library</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
+                <div className="w-9 h-9 rounded-xl bg-[#CA3596]/25 border border-[#CA3596]/40 flex items-center justify-center text-pink-200">
+                  <Megaphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">Channels & Campaigns</div>
+                  <div className="text-[10px] text-slate-300">IPTV line-up & offers</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 dark:bg-black/30 backdrop-blur-md border border-white/20 flex flex-col items-start gap-2.5 shadow-lg">
+                <div className="w-9 h-9 rounded-xl bg-[#FF5E70]/25 border border-[#FF5E70]/40 flex items-center justify-center text-rose-200">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-white leading-tight">Fleet & Insights</div>
+                  <div className="text-[10px] text-slate-300">ADB health & playback</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick TV Preview Trigger */}
+            <div className="pt-2 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={onOpenTvShowcase}
+                className="px-5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white text-xs font-semibold inline-flex items-center gap-2 transition-all shadow-md group"
+              >
+                <Tv className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+                <span>Launch Interactive TV Guest Experience</span>
+              </button>
 
               <button
                 type="button"
-                onClick={onToggleTheme}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:opacity-90 transition-all"
-                title="Toggle Light / Warm Graphite Dark Mode (620ms circular reveal)"
+                onClick={() => setShowPersonaDrawer(!showPersonaDrawer)}
+                className="px-4 py-2.5 rounded-xl bg-black/25 hover:bg-black/40 backdrop-blur-md border border-white/20 text-white text-xs font-semibold inline-flex items-center gap-2 transition-all"
               >
-                <Sun className={`w-4 h-4 ${theme === 'light' ? 'text-amber-500 fill-amber-400' : 'text-[var(--cms-text-secondary)]'}`} />
-                <Moon className={`w-4 h-4 ${theme === 'dark' ? 'text-[#C7B9FF] fill-[#C7B9FF]' : 'text-[var(--cms-text-secondary)]'}`} />
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Test 16 Role Personas & RBAC</span>
               </button>
             </div>
+          </div>
 
-            {/* Center Wordmark & Form */}
-            <div className="my-8 max-w-md mx-auto w-full space-y-6">
-              <div className="text-center space-y-2">
-                <div className="flex justify-center">
-                  <GojjaWordmark size="lg" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
-                </div>
-                <h2 className="text-xl font-bold pt-2">Welcome to GOJJA SmartTV</h2>
-                <p className="text-sm text-[var(--cms-text-secondary)]">
-                  Hospitality entertainment. Made human.
-                </p>
-              </div>
-
-              {/* Property / ISP / GOJJA Segmented Switcher */}
-              <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-semibold">
-                {(['Property', 'ISP', 'GOJJA'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => handlePortalTabSelect(tab)}
-                    className={`py-2 rounded-lg transition-all ${
-                      portalTab === tab
-                        ? 'bg-[var(--cms-surface)] text-[var(--cms-text)] shadow-xs'
-                        : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
-                    }`}
-                  >
-                    {tab === 'GOJJA' ? 'GOJJA Central' : tab}
-                  </button>
-                ))}
-              </div>
-
-              {loginError && (
-                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs">
-                  {loginError}
-                </div>
-              )}
-
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-[var(--cms-text-secondary)] mb-1">
-                    Work Email or Role Alias
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-sm focus:outline-2 focus:outline-[#0050F5]"
-                      placeholder="you@hotelarunika.com"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[var(--cms-text-secondary)] mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      required
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-sm focus:outline-2 focus:outline-[#0050F5]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]"
-                      aria-label="Toggle password visibility"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs">
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded border-[var(--cms-control-border)] accent-[#0050F5]"
-                    />
-                    <span>Remember me</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setEmailInput('you@hotelarunika.com')}
-                    className="text-[var(--cms-link)] font-medium hover:underline"
-                  >
-                    Reset to default account
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 px-5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
-                >
-                  <span>Sign in to {selectedEnv}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
+          {/* Bottom Left Heritage Tagline (Exact V-11) */}
+          <div className="pt-6 border-t border-white/15 text-xs tracking-wider space-y-0.5">
+            <div className="font-extrabold uppercase text-white/95 tracking-[0.2em]">
+              OPEN. CONNECTED. FORWARD.
             </div>
-
-            {/* Bottom Quick Access Bar */}
-            <div className="pt-4 border-t border-[var(--cms-divider)] flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--cms-text-secondary)]">
-              <span>Quick Entry:</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {[
-                  { alias: 'property-manager', label: 'Property Manager (P-01)' },
-                  { alias: 'alpha-admin', label: 'ISP Alpha Admin' },
-                  { alias: 'alpha-installer', label: 'Field Installer (ADB)' },
-                  { alias: 'demo-platform-admin', label: 'GOJJA Platform Admin' },
-                  { alias: 'demo-finance', label: 'GOJJA Finance' },
-                ].map((quick) => (
-                  <button
-                    key={quick.alias}
-                    type="button"
-                    onClick={() => {
-                      const acc = userAccounts.find((u) => u.alias === quick.alias)!;
-                      onLoginSuccess(acc, selectedEnv === 'LIVE_LAB' && acc.allowedEnvironments.includes('LIVE_LAB') ? 'LIVE_LAB' : 'DEMO');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-[var(--cms-bg)] hover:bg-[#0050F5] hover:text-white border border-[var(--cms-divider)] font-medium transition-colors"
-                  >
-                    {quick.label}
-                  </button>
-                ))}
-              </div>
+            <div className="text-[11px] uppercase text-white/70 tracking-[0.16em]">
+              INDONESIA · HOSPITALITY TECHNOLOGY
             </div>
           </div>
         </div>
 
-        {/* SECTION 2: Interactive 16-Role Server-Side RBAC Persona Matrix */}
-        <section id="rbac-personas" className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0050F5] dark:text-[#C7B9FF]">
-                01. SERVER-SIDE RBAC & LEAST-PRIVILEGE PERSONAS
-              </span>
-              <h2 className="text-2xl font-bold mt-1">
-                One-Click Role & Scope Inspector (R-01 through R-16)
-              </h2>
-            </div>
-            <p className="text-xs text-[var(--cms-text-secondary)] max-w-md">
-              Select any persona below to launch directly into their scoped surface. Every API mutation and query enforces role grants, partner relationships, and property ownership on the server.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {userAccounts.map((acc) => {
-              const role = rolesCatalog.find((r) => r.id === acc.roleId);
-              return (
-                <div
-                  key={acc.id}
-                  className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between gap-3 hover:border-[#0050F5] transition-colors"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono-tabular font-bold text-[#0050F5] dark:text-[#C7B9FF]">
-                        {acc.roleId} · {acc.badgeLabel}
-                      </span>
-                      <span className="text-[11px] text-[var(--cms-text-secondary)] font-mono-tabular">
-                        Scope: {acc.propertyIds.join(', ')}
-                      </span>
-                    </div>
-                    <div className="text-sm font-bold">{acc.name}</div>
-                    <div className="text-[11px] text-[var(--cms-text-secondary)] font-mono-tabular truncate">
-                      {acc.email}
-                    </div>
-                    <p className="text-xs text-[var(--cms-text-secondary)] line-clamp-2 pt-1">
-                      {role?.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-[var(--cms-divider)] flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-[var(--cms-text-secondary)]">
-                      {role?.permissions.length || 0} grants · {role?.exclusions.length || 0} exclusions
-                    </span>
-                    <button
-                      onClick={() => onLoginSuccess(acc, 'DEMO')}
-                      className="px-3 py-1.5 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center gap-1 transition-colors"
-                    >
-                      <span>Enter as {acc.roleId}</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* SECTION 3: Visual Design Boards & TV Guest App Reference Gallery */}
-        <section id="design-boards" className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0050F5] dark:text-[#C7B9FF]">
-                02. OFFICIAL DESIGN SYSTEM & HOSPITALITY SHOWCASE BOARDS
-              </span>
-              <h2 className="text-2xl font-bold mt-1">
-                Visual Reference Gallery (V-04, V-05 & V-06)
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {referenceBoards.map((b, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveBoardIdx(idx)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                    activeBoardIdx === idx
-                      ? 'bg-[#0050F5] text-white'
-                      : 'bg-[var(--cms-surface)] border border-[var(--cms-divider)] text-[var(--cms-text-secondary)]'
-                  }`}
-                >
-                  Board 0{idx + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-5 rounded-3xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="text-base font-bold">{referenceBoards[activeBoardIdx].title}</h3>
-                <p className="text-xs text-[var(--cms-text-secondary)]">
-                  {referenceBoards[activeBoardIdx].caption}
-                </p>
-              </div>
+        {/* Right Side: Organic Curved White/Pearl Auth Panel (Exact V-11) */}
+        <div className="w-full lg:w-[42%] xl:w-[40%] bg-[var(--cms-surface)] rounded-t-[36px] lg:rounded-t-none lg:rounded-l-[48px] p-6 sm:p-10 lg:p-12 flex flex-col justify-between shadow-2xl relative z-20">
+          {/* Top Utility Bar: Locale Selector, Sun/Moon Pill, Help */}
+          <div className="flex items-center justify-end gap-3 pb-6">
+            {/* Locale Dropdown */}
+            <div className="relative">
               <button
-                onClick={onOpenTvShowcase}
-                className="px-4 py-2 rounded-xl bg-[#0050F5] text-white text-xs font-semibold inline-flex items-center gap-2 shrink-0"
+                type="button"
+                onClick={() => setShowLocaleMenu(!showLocaleMenu)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:border-[var(--brand-indigo)] transition-colors"
+                aria-label="Select language"
               >
-                <Tv className="w-3.5 h-3.5" />
-                <span>Open Interactive 16:9 TV Guest Simulator</span>
+                <Globe className="w-3.5 h-3.5 text-[var(--cms-text-secondary)]" />
+                <span>{locales.find((l) => l.id === activeLocale)?.code || 'EN'}</span>
+                <ChevronDown className="w-3 h-3 text-[var(--cms-text-secondary)]" />
+              </button>
+
+              {showLocaleMenu && (
+                <div className="absolute right-0 top-full mt-1.5 w-40 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] shadow-xl p-1 z-50 text-xs">
+                  {locales.map((loc) => (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveLocale(loc.id);
+                        setShowLocaleMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${
+                        activeLocale === loc.id
+                          ? 'bg-[#EEF0FF] dark:bg-white/10 text-[var(--brand-indigo)] font-semibold'
+                          : 'text-[var(--cms-text)] hover:bg-[var(--cms-bg)]'
+                      }`}
+                    >
+                      <span>{loc.label}</span>
+                      <span className="text-[10px] text-[var(--cms-text-secondary)]">{loc.code}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Circular Sun/Moon Toggle (Matches 620ms Circular Reveal Pill) */}
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:opacity-90 transition-all"
+              title="Toggle Light / Warm Graphite Dark Mode"
+            >
+              <Sun
+                className={`w-4 h-4 ${
+                  theme === 'light' ? 'text-amber-500 fill-amber-400' : 'text-[var(--cms-text-secondary)]'
+                }`}
+              />
+              <span className="text-[var(--cms-divider)]">|</span>
+              <Moon
+                className={`w-4 h-4 ${
+                  theme === 'dark' ? 'text-[#C7B9FF] fill-[#C7B9FF]' : 'text-[var(--cms-text-secondary)]'
+                }`}
+              />
+            </button>
+
+            {/* Help Button */}
+            <button
+              type="button"
+              onClick={() => setShowHelpModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium hover:border-[var(--brand-indigo)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Help</span>
+            </button>
+          </div>
+
+          {/* Form Container (Exact V-11 Layout) */}
+          <div className="w-full max-w-sm mx-auto my-auto space-y-6">
+            {/* Centered Logo & Greeting */}
+            <div className="text-center space-y-2">
+              <div className="flex justify-center pb-1">
+                <GojjaWordmark size="lg" showDescriptor={true} variant={theme === 'dark' ? 'reverse' : 'color'} />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--cms-text)]">
+                Welcome back
+              </h2>
+              <p className="text-xs text-[var(--cms-text-secondary)]">
+                Sign in to your GOJJA workspace.
+              </p>
+            </div>
+
+            {/* DEMO / LIVE_LAB Environment Selector */}
+            <div className="p-1 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] grid grid-cols-2 gap-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setSelectedEnv('DEMO')}
+                className={`py-1.5 rounded-lg transition-all ${
+                  selectedEnv === 'DEMO'
+                    ? 'bg-[var(--brand-indigo)] text-white shadow-xs'
+                    : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                }`}
+              >
+                DEMO Workspace
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedEnv('LIVE_LAB')}
+                className={`py-1.5 rounded-lg transition-all ${
+                  selectedEnv === 'LIVE_LAB'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                }`}
+              >
+                LIVE_LAB (Real ADB)
               </button>
             </div>
 
-            <div className="rounded-2xl overflow-hidden border border-[var(--cms-divider)] bg-black/5">
-              <img
-                src={referenceBoards[activeBoardIdx].src}
-                alt={referenceBoards[activeBoardIdx].title}
-                referrerPolicy="no-referrer"
-                className="w-full h-auto object-contain max-h-[620px] mx-auto"
-              />
+            {/* Error Banner */}
+            {loginError && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            {/* Login Form */}
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              {/* Work email */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[var(--cms-text)]">
+                  Work email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="email"
+                    required
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="hello@hotel.com"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[var(--cms-text)]">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-[var(--cms-text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember me & Forgot password */}
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-[var(--cms-text)] font-medium">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded text-[var(--brand-indigo)] border-[var(--cms-divider)] focus:ring-0"
+                  />
+                  <span>Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    alert('Password reset link sent to registered administrator contact in DEMO workspace.')
+                  }
+                  className="font-medium text-[var(--cms-link)] hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {/* Primary Action Button (Vivid Indigo Gradient .btn-luxury-indigo) */}
+              <button
+                type="submit"
+                className="w-full py-3 px-4 rounded-xl btn-luxury-indigo text-white text-xs font-bold inline-flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
+              >
+                <span>Sign in</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+
+            {/* Divider 'or' */}
+            <div className="relative flex items-center justify-center my-4">
+              <div className="border-t border-[var(--cms-divider)] w-full" />
+              <span className="bg-[var(--cms-surface)] px-3 text-[11px] text-[var(--cms-text-secondary)] uppercase tracking-wider">
+                or
+              </span>
+            </div>
+
+            {/* Continue with Google */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full py-2.5 px-4 rounded-xl bg-[var(--cms-bg)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-2.5 transition-colors"
+            >
+              {/* Google 4-color SVG mark */}
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+
+            {/* Security Note & Support Link (Exact V-11) */}
+            <div className="pt-2 text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-[11px] text-[var(--cms-text-secondary)]">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Secure access for your organization.</span>
+              </div>
+              <div className="text-[11px] text-[var(--cms-text-secondary)]">
+                Need access?{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowHelpModal(true)}
+                  className="font-semibold text-[var(--cms-link)] hover:underline"
+                >
+                  Contact your administrator.
+                </button>
+              </div>
+              <div className="text-[10px] text-[var(--cms-text-secondary)] pt-1">
+                By continuing, you agree to our{' '}
+                <a href="#terms" className="underline hover:text-[var(--cms-text)]">
+                  Terms
+                </a>{' '}
+                and{' '}
+                <a href="#privacy" className="underline hover:text-[var(--cms-text)]">
+                  Privacy Policy
+                </a>
+                .
+              </div>
             </div>
           </div>
-        </section>
 
-        {/* SECTION 4: Architectural Pillars */}
-        <section id="architecture" className="grid grid-cols-1 md:grid-cols-3 gap-5 pb-8">
-          <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-2">
-            <Layers className="w-5 h-5 text-[#0050F5]" />
-            <h3 className="text-base font-bold">01. Multi-Layer Branding & Inheritance</h3>
-            <p className="text-xs text-[var(--cms-text-secondary)] leading-relaxed">
-              Platform → Customer → Property → Room Class → Room → Stay resolution with field-level provenance, 4 guest locales, and atomic manifest publication.
-            </p>
+          {/* Footer inside Right Panel (Exact V-11) */}
+          <div className="pt-6 border-t border-[var(--cms-divider)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[var(--cms-text-secondary)]">
+            <span>© 2026 GOJJA SmartTV</span>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                All systems operational
+              </span>
+              <span>·</span>
+              <span className="font-mono-tabular">31 October 2026</span>
+            </div>
           </div>
-          <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-2">
-            <Network className="w-5 h-5 text-[#0050F5]" />
-            <h3 className="text-base font-bold">02. Real Local Connector & ADB Lab</h3>
-            <p className="text-xs text-[var(--cms-text-secondary)] leading-relaxed">
-              Explicit local network consent, bounded /24 RFC1918 discovery, port 5555 and wireless TLS pairing routes, and verified read-only getprop device inventory.
-            </p>
+        </div>
+      </div>
+
+      {/* Slide-out Tester Drawer: Quick Persona Switcher (Allows testing all 16 RBAC roles without typing) */}
+      {showPersonaDrawer && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
+          <div className="w-full max-w-md bg-[var(--cms-surface)] h-full p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--cms-divider)]">
+                <div>
+                  <h3 className="text-base font-bold text-[var(--cms-text)]">Role Personas & RBAC Catalog</h3>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Select any persona to pre-fill credentials and test authorization scopes
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPersonaDrawer(false)}
+                  className="px-2.5 py-1 rounded-lg bg-[var(--cms-bg)] text-xs font-semibold hover:opacity-80"
+                >
+                  ✕ Close
+                </button>
+              </div>
+
+              {/* Grouped Personas */}
+              <div className="space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                  Property Operations (Direct)
+                </div>
+                {userAccounts
+                  .filter((u) => u.propertyIds.length > 0 && !u.partnerId)
+                  .map((acc) => (
+                    <button
+                      key={acc.alias}
+                      type="button"
+                      onClick={() => {
+                        handlePersonaSelect(acc);
+                        setShowPersonaDrawer(false);
+                      }}
+                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                        selectedPersona.alias === acc.alias
+                          ? 'bg-[#EEF0FF] dark:bg-white/10 border-[var(--brand-indigo)] font-bold'
+                          : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] hover:border-[var(--brand-indigo)]'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-[var(--cms-text)]">
+                          {acc.name} <span className="text-[10px] text-[var(--cms-text-secondary)]">({acc.roleId})</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--cms-text-secondary)]">{acc.badgeLabel}</div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        {acc.allowedEnvironments.join(' · ')}
+                      </span>
+                    </button>
+                  ))}
+
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)] pt-2">
+                  ISP & Reseller Partner
+                </div>
+                {userAccounts
+                  .filter((u) => u.partnerId)
+                  .map((acc) => (
+                    <button
+                      key={acc.alias}
+                      type="button"
+                      onClick={() => {
+                        handlePersonaSelect(acc);
+                        setShowPersonaDrawer(false);
+                      }}
+                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                        selectedPersona.alias === acc.alias
+                          ? 'bg-[#EEF0FF] dark:bg-white/10 border-[var(--brand-indigo)] font-bold'
+                          : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] hover:border-[var(--brand-indigo)]'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-[var(--cms-text)]">
+                          {acc.name} <span className="text-[10px] text-[var(--cms-text-secondary)]">({acc.roleId})</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--cms-text-secondary)]">{acc.badgeLabel}</div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        {acc.allowedEnvironments.join(' · ')}
+                      </span>
+                    </button>
+                  ))}
+
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)] pt-2">
+                  GOJJA Central & Field Ops
+                </div>
+                {userAccounts
+                  .filter((u) => !u.propertyIds.length && !u.partnerId)
+                  .map((acc) => (
+                    <button
+                      key={acc.alias}
+                      type="button"
+                      onClick={() => {
+                        handlePersonaSelect(acc);
+                        setShowPersonaDrawer(false);
+                      }}
+                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                        selectedPersona.alias === acc.alias
+                          ? 'bg-[#EEF0FF] dark:bg-white/10 border-[var(--brand-indigo)] font-bold'
+                          : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] hover:border-[var(--brand-indigo)]'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-[var(--cms-text)]">
+                          {acc.name} <span className="text-[10px] text-[var(--cms-text-secondary)]">({acc.roleId})</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--cms-text-secondary)]">{acc.badgeLabel}</div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        {acc.allowedEnvironments.join(' · ')}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[var(--cms-divider)] text-xs text-[var(--cms-text-secondary)]">
+              Click any persona to auto-fill the login form with their email.
+            </div>
           </div>
-          <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-2">
-            <ShieldCheck className="w-5 h-5 text-[#0050F5]" />
-            <h3 className="text-base font-bold">03. Two-Stage Update & Financial Integrity</h3>
-            <p className="text-xs text-[var(--cms-text-secondary)] leading-relaxed">
-              Separates GOJJA technical artifact approval from hotel maintenance windows and room housekeeping readiness, alongside idempotent wholesale/direct invoicing.
-            </p>
+        </div>
+      )}
+
+      {/* Help Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[var(--cms-surface)] rounded-2xl p-6 shadow-2xl border border-[var(--cms-divider)] space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--cms-divider)]">
+              <h3 className="font-bold text-base text-[var(--cms-text)]">GOJJA Workspace Help</h3>
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(false)}
+                className="text-xs px-2 py-1 rounded bg-[var(--cms-bg)]"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-xs text-[var(--cms-text-secondary)] space-y-2 leading-relaxed">
+              <p>
+                <strong>DEMO Workspace:</strong> Safe sandbox pre-seeded with 3 properties, 14 endpoints, 4 locales, and full synthetic telemetry.
+              </p>
+              <p>
+                <strong>LIVE_LAB Workspace:</strong> Real local LAN scanner & real ADB bridge. Requires running the companion <code>gojja-connector.mjs</code> on your workstation or LAN. Zero fake devices will be shown.
+              </p>
+              <p>
+                <strong>Need an account?</strong> Contact your property administrator or GOJJA platform operations at <code>support@gojja.tv</code>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowHelpModal(false)}
+              className="w-full py-2.5 rounded-xl bg-[var(--brand-indigo)] text-white text-xs font-bold"
+            >
+              Close
+            </button>
           </div>
-        </section>
-      </main>
+        </div>
+      )}
     </div>
   );
 };

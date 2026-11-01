@@ -387,25 +387,37 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
   ];
 
   return (
-    <div className={embedded ? 'w-full' : 'fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center p-4 md:p-6 overflow-y-auto'}>
-      <div className="w-full max-w-6xl">
-        {/* Top Reviewer / Remote Control Bar (Outside TV Safe Area per UX02 / Section 10.1) */}
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-3 py-2 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-200">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-white">TV Guest App Preview</span>
-            <span className="text-slate-400">·</span>
-            <span className="font-mono-tabular text-amber-300">
-              {property.name} · Room {room.code} ({endpoint.id})
-            </span>
-            <span className="text-slate-400">·</span>
-            <span className="inline-flex items-center gap-1">
-              {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-400" /> : <WifiOff className="w-3.5 h-3.5 text-rose-400" />}
-              {endpoint.connection} (Config v{endpoint.appliedConfigVersion})
-            </span>
+    <div className={embedded ? 'w-full' : 'fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-start md:justify-center p-2.5 sm:p-4 md:p-6 overflow-y-auto'}>
+      <div className="w-full max-w-6xl my-auto">
+        {/* Top Reviewer / Remote Control Bar (Responsive 2-row layout on mobile, 1-row on desktop) */}
+        <div className="flex flex-col gap-2 mb-2.5 sm:mb-3 px-3 py-2 sm:py-2.5 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-200">
+          {/* Top Line: App title, room info, status, and CLOSE button */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 truncate">
+              <span className="font-bold text-white shrink-0">TV Guest App</span>
+              <span className="text-slate-500">·</span>
+              <span className="font-mono-tabular text-amber-300 truncate">
+                Room {room.code} ({endpoint.id})
+              </span>
+              <span className="text-slate-500 hidden xs:inline">·</span>
+              <span className="hidden xs:inline-flex items-center gap-1 shrink-0">
+                {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-400" /> : <WifiOff className="w-3.5 h-3.5 text-rose-400" />}
+                <span className="hidden sm:inline">{endpoint.connection}</span>
+              </span>
+            </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 transition-colors shrink-0"
+                title="Close TV Preview"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          {/* Screen Switcher Pills */}
-          <div className="flex items-center gap-1 flex-wrap">
+          {/* Bottom Line: Horizontally scrollable Screen Switcher Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
             {screenTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -414,27 +426,18 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                   setFocusIndex(0);
                   if (tab.id === 'TV-04-GUIDE') handleSelectChannel(channels[0]);
                 }}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                  activeScreen === tab.id ? 'bg-[#0050F5] text-white' : 'bg-white/5 text-slate-300 hover:bg-white/15'
+                className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                  activeScreen === tab.id ? 'bg-[#0050F5] text-white shadow-xs' : 'bg-white/5 text-slate-300 hover:bg-white/15'
                 }`}
               >
                 {tab.label}
               </button>
             ))}
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="ml-2 p-1.5 rounded-lg bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 transition-colors"
-                title="Close TV Preview"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </div>
 
-        {/* 16:9 10-Foot TV Scene Canvas */}
-        <div className="tv-scene relative w-full aspect-video rounded-2xl overflow-hidden border-2 border-[#2D3545] shadow-2xl select-none flex flex-col justify-between">
+        {/* 16:9 10-Foot TV Scene Canvas (Adapts to min-h on mobile, aspect-video on md+) */}
+        <div className="tv-scene relative w-full min-h-[460px] sm:min-h-[500px] md:min-h-0 md:aspect-video rounded-2xl overflow-hidden border-2 border-[#2D3545] shadow-2xl select-none flex flex-col justify-between">
           {/* Background Hospitality Photography + Measured Contrast Scrim */}
           <img
             src={property.heroImageUrl}
@@ -445,24 +448,24 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-[#10151C] via-[#10151C]/75 to-[#10151C]/45" />
 
           {/* TV Safe Region Header */}
-          <div className="relative z-10 flex items-center justify-between px-8 pt-6">
-            <div className="flex items-center gap-4">
+          <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-6">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <div
-                className="px-3.5 py-1.5 rounded-lg border border-[#DCC6A1]/40 bg-black/40 backdrop-blur-md"
+                className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg border border-[#DCC6A1]/40 bg-black/40 backdrop-blur-md shrink-0"
                 style={{ borderColor: `${property.accentColor}66` }}
               >
-                <div className="text-sm font-bold tracking-widest text-[#F8F5EE]">{property.logoText}</div>
-                <div className="text-[10px] tracking-[0.2em] text-[#DCC6A1]">{property.logoSubtitle}</div>
+                <div className="text-xs sm:text-sm font-bold tracking-widest text-[#F8F5EE]">{property.logoText}</div>
+                <div className="text-[9px] sm:text-[10px] tracking-[0.2em] text-[#DCC6A1]">{property.logoSubtitle}</div>
               </div>
               {!isOnline && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs">
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs">
                   <WifiOff className="w-3.5 h-3.5" />
-                  <span>Offline Ready Shell (Cached General Config v{endpoint.appliedConfigVersion})</span>
+                  <span>Offline Ready Shell (v{endpoint.appliedConfigVersion})</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-[#F8F5EE]/90 font-mono-tabular">
+            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-[#F8F5EE]/90 font-mono-tabular shrink-0">
               <span>18:30</span>
               <span>•</span>
               <span>
@@ -470,55 +473,55 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
               </span>
               <button
                 onClick={() => setMuted(!muted)}
-                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                 title={muted ? 'Unmute TV Audio' : 'Mute TV Audio'}
               >
-                {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                {muted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
               </button>
             </div>
           </div>
 
           {/* Toast for Service Request */}
           {serviceToast && (
-            <div className="relative z-30 mx-8 mt-2 px-4 py-2.5 rounded-xl bg-emerald-950/90 border border-emerald-400/50 text-emerald-100 text-xs flex items-center gap-2">
+            <div className="relative z-30 mx-4 sm:mx-8 mt-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-950/90 border border-emerald-400/50 text-emerald-100 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{serviceToast}</span>
             </div>
           )}
 
           {/* MAIN TV SCREEN CONTENT */}
-          <div className="relative z-10 flex-1 flex flex-col justify-center px-8 py-4 overflow-hidden">
+          <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 md:px-8 py-2 sm:py-4 overflow-y-auto md:overflow-hidden">
             {/* SCREEN 01: WELCOME */}
             {activeScreen === 'TV-02-WELCOME' && (
-              <div className="max-w-2xl mx-auto text-center space-y-4">
-                <div className="text-xs uppercase tracking-[0.25em] text-[#DCC6A1] font-semibold">
+              <div className="max-w-2xl mx-auto text-center space-y-3 sm:space-y-4 my-auto">
+                <div className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#DCC6A1] font-semibold">
                   {property.name}
                 </div>
-                <h1 className="text-3xl md:text-5xl font-bold text-[#F8F5EE] tracking-tight">
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-[#F8F5EE] tracking-tight">
                   {t.welcomeTitle}
                 </h1>
-                <p className="text-lg md:text-xl text-[#DCC6A1] font-medium">
+                <p className="text-base sm:text-lg md:text-xl text-[#DCC6A1] font-medium">
                   {resolvedGreetingName ? `${resolvedGreetingName} • ${t.roomLabel} ${room.code}` : `${t.roomLabel} ${room.code}`}
                 </p>
                 {corporateGroup && stay?.groupId === corporateGroup.id && (
-                  <p className="text-sm text-amber-200/90 bg-amber-500/15 border border-amber-400/30 rounded-lg px-4 py-2 inline-block">
+                  <p className="text-xs sm:text-sm text-amber-200/90 bg-amber-500/15 border border-amber-400/30 rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 inline-block">
                     {corporateGroup.message[guestLocale]}
                   </p>
                 )}
-                <p className="text-sm text-[#CDD3DD] max-w-lg mx-auto">
+                <p className="text-xs sm:text-sm text-[#CDD3DD] max-w-lg mx-auto">
                   {property.welcomeSubline[guestLocale]}
                 </p>
-                <div className="pt-3">
+                <div className="pt-2 sm:pt-3">
                   <button
                     data-focused="true"
                     onClick={() => {
                       setActiveScreen('TV-03-HOME');
                       setFocusIndex(0);
                     }}
-                    className="tv-focusable inline-flex items-center gap-3 px-7 py-3.5 rounded-xl bg-[#1E2530]/90 border border-[#DCC6A1] text-[#F8F5EE] font-semibold text-base transition-all"
+                    className="tv-focusable inline-flex items-center gap-2 sm:gap-3 px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-xl bg-[#1E2530]/90 border border-[#DCC6A1] text-[#F8F5EE] font-semibold text-xs sm:text-base transition-all"
                   >
                     <span>{t.startStayBtn}</span>
-                    <ChevronRight className="w-5 h-5 text-[#DCC6A1]" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#DCC6A1]" />
                   </button>
                 </div>
               </div>
@@ -526,34 +529,34 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
             {/* SCREEN 02: PERSONALIZED HOME */}
             {activeScreen === 'TV-03-HOME' && (
-              <div className="flex flex-col justify-between h-full">
-                <div className="max-w-xl space-y-2 my-auto">
-                  <p className="text-lg md:text-xl text-[#CDD3DD] font-medium">
+              <div className="flex flex-col justify-between h-full py-1 sm:py-2">
+                <div className="max-w-xl space-y-1.5 sm:space-y-2 my-auto">
+                  <p className="text-sm sm:text-lg md:text-xl text-[#CDD3DD] font-medium">
                     {property.welcomeHeadline[guestLocale]},
                   </p>
-                  <h2 className="text-3xl md:text-4xl font-bold text-[#F8F5EE] tracking-tight">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#F8F5EE] tracking-tight">
                     {resolvedGreetingName || `${t.roomLabel} ${room.code}`}
                   </h2>
-                  <p className="text-sm text-[#CDD3DD]/90 line-clamp-2">
+                  <p className="text-xs sm:text-sm text-[#CDD3DD]/90 line-clamp-2">
                     {corporateGroup && stay?.groupId === corporateGroup.id
                       ? corporateGroup.message[guestLocale]
                       : property.welcomeSubline[guestLocale]}
                   </p>
-                  <div className="pt-2">
+                  <div className="pt-1.5 sm:pt-2">
                     <button
                       data-focused={focusIndex === 6 ? 'true' : 'false'}
                       onClick={() => setActiveScreen('TV-07-PROMO')}
-                      className="tv-focusable inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/55 border border-[#DCC6A1]/50 text-left text-xs text-[#F8F5EE] hover:bg-black/70 transition-all"
+                      className="tv-focusable inline-flex items-center gap-2 sm:gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-black/55 border border-[#DCC6A1]/50 text-left text-xs text-[#F8F5EE] hover:bg-black/70 transition-all"
                     >
-                      <Sparkles className="w-4 h-4 text-[#DCC6A1] shrink-0" />
-                      <span>{t.discoverBtn}</span>
-                      <ChevronRight className="w-4 h-4 text-[#DCC6A1]" />
+                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#DCC6A1] shrink-0" />
+                      <span className="truncate">{t.discoverBtn}</span>
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#DCC6A1] shrink-0" />
                     </button>
                   </div>
                 </div>
 
                 {/* Bottom D-Pad Navigation Rail */}
-                <div className="grid grid-cols-5 gap-3 pt-4">
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 md:gap-3 pt-2 sm:pt-4">
                   {[
                     { icon: Tv, label: t.menuTv, idx: 0 },
                     { icon: Utensils, label: t.menuDining, idx: 1 },
@@ -578,14 +581,14 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                             setActiveScreen('TV-06-SERVICES');
                           }
                         }}
-                        className={`tv-focusable flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl border transition-all ${
+                        className={`tv-focusable flex flex-col items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3.5 px-1 sm:px-2 md:py-4 md:px-3 rounded-xl border transition-all ${
                           isFocused
                             ? 'bg-[#2A2622]/95 border-[#DCC6A1] text-[#F8F5EE]'
                             : 'bg-black/50 border-white/15 text-[#CDD3DD] hover:bg-black/65'
                         }`}
                       >
-                        <Icon className="w-6 h-6" style={{ color: isFocused ? property.accentColor : '#CDD3DD' }} />
-                        <span className="text-xs md:text-sm font-semibold whitespace-nowrap">{item.label}</span>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" style={{ color: isFocused ? property.accentColor : '#CDD3DD' }} />
+                        <span className="text-[9px] sm:text-xs md:text-sm font-semibold truncate text-center w-full">{item.label}</span>
                       </button>
                     );
                   })}
@@ -595,14 +598,15 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
             {/* SCREEN 03: LIVE TV & CHANNEL GUIDE */}
             {activeScreen === 'TV-04-GUIDE' && (
-              <div className="grid grid-cols-12 gap-5 h-full items-stretch">
-                <div className="col-span-5 flex flex-col justify-between bg-black/55 border border-white/15 rounded-xl p-4">
+              <div className="flex flex-col md:grid md:grid-cols-12 gap-3 sm:gap-5 h-full items-stretch overflow-y-auto md:overflow-visible">
+                {/* Left/Bottom Channel List */}
+                <div className="order-2 md:order-1 md:col-span-5 flex flex-col justify-between bg-black/55 border border-white/15 rounded-xl p-3 sm:p-4">
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-lg font-bold text-[#F8F5EE]">{t.liveTvTitle}</h2>
-                      <span className="text-[11px] text-[#DCC6A1]">{t.catAll}</span>
+                    <div className="flex items-center justify-between mb-2 sm:mb-3">
+                      <h2 className="text-sm sm:text-lg font-bold text-[#F8F5EE]">{t.liveTvTitle}</h2>
+                      <span className="text-[10px] sm:text-[11px] text-[#DCC6A1]">{t.catAll}</span>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1 sm:space-y-1.5 max-h-40 md:max-h-none overflow-y-auto">
                       {channels.map((ch, idx) => {
                         const isFocused = focusIndex === idx;
                         return (
@@ -613,32 +617,32 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                               setFocusIndex(idx);
                               handleSelectChannel(ch);
                             }}
-                            className={`tv-focusable w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition-all ${
+                            className={`tv-focusable w-full flex items-center justify-between px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-left text-xs transition-all ${
                               isFocused
                                 ? 'bg-[#2B2620] border border-[#DCC6A1] text-white'
                                 : 'bg-white/5 text-[#CDD3DD] hover:bg-white/10'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5 truncate">
-                              <span className="font-mono-tabular text-[#DCC6A1] font-semibold">{ch.number}</span>
-                              <span className="font-semibold truncate">{ch.name}</span>
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="font-mono-tabular text-[#DCC6A1] font-semibold text-xs">{ch.number}</span>
+                              <span className="font-semibold truncate text-xs">{ch.name}</span>
                             </div>
-                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">{ch.category}</span>
+                            <span className="text-[10px] text-slate-400 shrink-0 ml-1.5">{ch.category}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
-                  <div className="text-[11px] text-slate-400 pt-2 border-t border-white/10">
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 pt-2 border-t border-white/10 mt-2">
                     Entitlement checked per room class & provider contract status.
                   </div>
                 </div>
 
-                {/* Right Live Player Preview Frame */}
-                <div className="col-span-7 flex flex-col justify-between bg-black/70 border border-white/15 rounded-xl p-4 relative overflow-hidden">
+                {/* Right/Top Live Player Preview Frame */}
+                <div className="order-1 md:order-2 md:col-span-7 flex flex-col justify-between bg-black/70 border border-white/15 rounded-xl p-3 sm:p-4 relative overflow-hidden min-h-[160px] sm:min-h-[220px] md:min-h-0">
                   {channelAccessState.allowed ? (
                     <>
-                      <div className="relative flex-1 rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
+                      <div className="relative flex-1 min-h-[110px] sm:min-h-[140px] rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
                         <img
                           src={selectedChannel.thumbnailUrl}
                           alt={selectedChannel.name}
@@ -646,29 +650,29 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                           className="absolute inset-0 w-full h-full object-cover opacity-75"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
-                        <div className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-full bg-black/65 border border-white/20 text-white text-xs">
-                          <Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
-                          <span>Playing Stream • {selectedChannel.name}</span>
+                        <div className="relative z-10 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/65 border border-white/20 text-white text-[11px] sm:text-xs">
+                          <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400 fill-emerald-400" />
+                          <span className="truncate">Playing Stream • {selectedChannel.name}</span>
                         </div>
                       </div>
-                      <div className="pt-3 flex items-center justify-between">
-                        <div>
+                      <div className="pt-2 sm:pt-3 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
                             <span>● Live Broadcast</span>
                             <span>•</span>
                             <span className="font-mono-tabular">{selectedChannel.programTime}</span>
                           </div>
-                          <div className="text-sm font-semibold text-white mt-0.5">
+                          <div className="text-xs sm:text-sm font-semibold text-white mt-0.5 truncate">
                             {selectedChannel.currentProgram[guestLocale]}
                           </div>
                         </div>
-                        <span className="text-xs font-mono-tabular text-slate-400">{selectedChannel.packageId}</span>
+                        <span className="text-xs font-mono-tabular text-slate-400 shrink-0">{selectedChannel.packageId}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="m-auto text-center max-w-md space-y-3 p-4">
-                      <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
-                      <h3 className="text-base font-bold text-white">Channel Not Included / Access Restricted</h3>
+                    <div className="m-auto text-center max-w-md space-y-2 p-3 sm:p-4">
+                      <AlertTriangle className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 mx-auto" />
+                      <h3 className="text-sm sm:text-base font-bold text-white">Channel Not Included / Access Restricted</h3>
                       <p className="text-xs text-slate-300 leading-relaxed">{channelAccessState.errorMsg}</p>
                     </div>
                   )}
@@ -678,21 +682,21 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
             {/* SCREEN 04: HOTEL PROMOTION */}
             {activeScreen === 'TV-07-PROMO' && activePromo && (
-              <div className="max-w-lg space-y-3 my-auto">
-                <span className="text-[11px] font-bold tracking-[0.2em] text-[#DCC6A1] uppercase">
+              <div className="max-w-lg space-y-2.5 sm:space-y-3 my-auto">
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#DCC6A1] uppercase">
                   {t.promoTag} • {activePromo.category}
                 </span>
-                <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight">
+                <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
                   {activePromo.headline[guestLocale]}
                 </h2>
-                <p className="text-xs md:text-sm text-[#CDD3DD]">
-                  Frequency Cap: Max {activePromo.frequencyCapPerStay}× per stay • Skippable after {activePromo.skippableAfterSeconds}s (Never injected into OTT or every channel zap).
+                <p className="text-xs sm:text-sm text-[#CDD3DD]">
+                  Frequency Cap: Max {activePromo.frequencyCapPerStay}× per stay • Skippable after {activePromo.skippableAfterSeconds}s.
                 </p>
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-2 sm:gap-3 pt-2">
                   <button
                     data-focused={focusIndex === 0 ? 'true' : 'false'}
                     onClick={() => setActiveScreen('TV-06-SERVICES')}
-                    className="tv-focusable px-5 py-2.5 rounded-xl bg-[#2A241E] border border-[#DCC6A1] text-white text-xs md:text-sm font-semibold inline-flex items-center gap-2"
+                    className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#2A241E] border border-[#DCC6A1] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2"
                   >
                     <span>{activePromo.ctaLabel[guestLocale]}</span>
                     <ChevronRight className="w-4 h-4 text-[#DCC6A1]" />
@@ -700,7 +704,7 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                   <button
                     data-focused={focusIndex === 1 ? 'true' : 'false'}
                     onClick={() => setActiveScreen('TV-03-HOME')}
-                    className="tv-focusable px-5 py-2.5 rounded-xl bg-black/55 border border-white/20 text-slate-200 text-xs md:text-sm font-medium"
+                    className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-black/55 border border-white/20 text-slate-200 text-xs sm:text-sm font-medium"
                   >
                     {t.skipBtn}
                   </button>
@@ -710,7 +714,7 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
             {/* SCREEN 05: DINING & GUEST SERVICES + QR */}
             {activeScreen === 'TV-06-SERVICES' && (
-              <div className="grid grid-cols-12 gap-4 items-stretch my-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-2.5 sm:gap-4 items-stretch my-auto max-h-[340px] sm:max-h-none overflow-y-auto md:overflow-visible">
                 {[
                   {
                     title: 'Kayumanis Restaurant',
@@ -736,30 +740,30 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                       setServiceToast(t.requestSent);
                       setTimeout(() => setServiceToast(null), 4000);
                     }}
-                    className={`tv-focusable col-span-3 rounded-xl p-4 flex flex-col justify-between cursor-pointer border transition-all ${
+                    className={`tv-focusable md:col-span-3 rounded-xl p-3 sm:p-4 flex flex-col justify-between cursor-pointer border transition-all ${
                       focusIndex === idx
                         ? 'bg-[#2A241E]/95 border-[#DCC6A1]'
                         : 'bg-black/60 border-white/15 hover:bg-black/75'
                     }`}
                   >
                     <div>
-                      <div className="text-sm font-bold text-white">{svc.title}</div>
-                      <p className="text-xs text-[#CDD3DD] mt-1">{svc.sub}</p>
+                      <div className="text-xs sm:text-sm font-bold text-white">{svc.title}</div>
+                      <p className="text-[11px] sm:text-xs text-[#CDD3DD] mt-0.5 sm:mt-1">{svc.sub}</p>
                     </div>
-                    <div className="mt-4 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-[#DCC6A1] font-semibold">
+                    <div className="mt-2.5 sm:mt-4 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-[#DCC6A1] font-semibold">
                       <span>{svc.action}</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
                 ))}
 
                 {/* Scoped Non-PII QR Handoff Card */}
-                <div className="col-span-3 rounded-xl p-4 bg-black/75 border border-[#DCC6A1]/40 flex flex-col items-center justify-center text-center">
-                  <div className="text-xs font-semibold text-[#DCC6A1] mb-2">{t.scanPhone}</div>
-                  <div className="p-2.5 bg-white rounded-xl mb-2">
-                    <QrCode className="w-14 h-14 text-slate-900" />
+                <div className="md:col-span-3 rounded-xl p-3 sm:p-4 bg-black/75 border border-[#DCC6A1]/40 flex flex-col items-center justify-center text-center">
+                  <div className="text-xs font-semibold text-[#DCC6A1] mb-1 sm:mb-2">{t.scanPhone}</div>
+                  <div className="p-2 sm:p-2.5 bg-white rounded-xl mb-1.5 sm:mb-2">
+                    <QrCode className="w-10 h-10 sm:w-14 sm:h-14 text-slate-900" />
                   </div>
-                  <div className="text-[10px] text-slate-300 leading-snug">
+                  <div className="text-[9px] sm:text-[10px] text-slate-300 leading-snug">
                     Scoped Ephemeral Token (No guest name or PII in URL — FR17-02)
                   </div>
                 </div>
@@ -768,12 +772,12 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
             {/* SCREEN 06: 4-LOCALE SELECTOR */}
             {activeScreen === 'TV-08-LANGUAGE' && (
-              <div className="max-w-md mx-auto w-full bg-black/75 border border-white/20 rounded-2xl p-5 space-y-3">
+              <div className="max-w-md mx-auto w-full bg-black/75 border border-white/20 rounded-2xl p-4 sm:p-5 space-y-2.5 sm:space-y-3 my-auto">
                 <div className="text-center">
-                  <h2 className="text-lg font-bold text-white">{t.chooseLangTitle}</h2>
-                  <p className="text-xs text-[#CDD3DD] mt-0.5">{t.chooseLangSub}</p>
+                  <h2 className="text-base sm:text-lg font-bold text-white">{t.chooseLangTitle}</h2>
+                  <p className="text-[11px] sm:text-xs text-[#CDD3DD] mt-0.5">{t.chooseLangSub}</p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   {(
                     [
                       { code: 'id', label: 'Bahasa Indonesia', tag: 'ID' },
@@ -793,19 +797,19 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                           setFocusIndex(idx);
                           setActiveScreen('TV-03-HOME');
                         }}
-                        className={`tv-focusable w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs md:text-sm font-medium transition-all ${
+                        className={`tv-focusable w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border text-xs sm:text-sm font-medium transition-all ${
                           isFocused
                             ? 'bg-[#2B251F] border-[#DCC6A1] text-white'
                             : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="px-2 py-0.5 rounded bg-white/10 font-mono-tabular text-xs text-[#DCC6A1]">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 font-mono-tabular text-[11px] sm:text-xs text-[#DCC6A1]">
                             {loc.tag}
                           </span>
                           <span>{loc.label}</span>
                         </div>
-                        {isCurrent && <span className="text-[11px] text-emerald-400">Active</span>}
+                        {isCurrent && <span className="text-[10px] sm:text-[11px] text-emerald-400 font-semibold">Active</span>}
                       </button>
                     );
                   })}
@@ -815,14 +819,14 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
             {/* SCREEN 07: HONEST MAINTENANCE / UPDATE STAGE */}
             {activeScreen === 'TV-09-MAINTENANCE' && (
-              <div className="max-w-lg mx-auto text-center bg-black/75 border border-white/20 rounded-2xl p-6 space-y-3">
-                <div className="text-xs uppercase tracking-widest text-amber-300 font-semibold">
+              <div className="max-w-lg mx-auto text-center bg-black/75 border border-white/20 rounded-2xl p-4 sm:p-6 space-y-2.5 sm:space-y-3 my-auto">
+                <div className="text-[10px] sm:text-xs uppercase tracking-widest text-amber-300 font-semibold">
                   Scheduled Property Maintenance Window
                 </div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-base sm:text-xl font-bold text-white">
                   Pembaruan sedang berlangsung. Mohon jangan memutus listrik perangkat.
                 </h2>
-                <p className="text-xs text-slate-300">
+                <p className="text-[11px] sm:text-xs text-slate-300">
                   Update in progress (Stage: Verifying Package Checksum • Target v{endpoint.desiredVersion}). Keycard power cut cannot be prevented by software; atomic manifest rollback protects current theme.
                 </p>
               </div>
@@ -830,14 +834,14 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
           </div>
 
           {/* TV Safe Region Footer: Language Shortcut & Co-Branding */}
-          <div className="relative z-10 flex items-center justify-between px-8 pb-5 text-xs text-[#CDD3DD]">
-            <div className="flex items-center gap-3">
+          <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 md:px-8 pb-3 sm:pb-5 text-[11px] sm:text-xs text-[#CDD3DD]">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 data-focused={activeScreen === 'TV-03-HOME' && focusIndex === 5 ? 'true' : 'false'}
                 onClick={() => setActiveScreen('TV-08-LANGUAGE')}
-                className="tv-focusable inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 border border-white/15 hover:bg-black/70 text-[#F8F5EE]"
+                className="tv-focusable inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-black/50 border border-white/15 hover:bg-black/70 text-[#F8F5EE] text-[11px] sm:text-xs"
               >
-                <Globe className="w-3.5 h-3.5 text-[#DCC6A1]" />
+                <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#DCC6A1]" />
                 <span>
                   {guestLocale === 'id'
                     ? 'Bahasa Indonesia'
@@ -851,61 +855,61 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
               {activeScreen !== 'TV-03-HOME' && (
                 <button
                   onClick={() => setActiveScreen('TV-03-HOME')}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                  className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] sm:text-xs"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>{t.backLabel}</span>
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#CDD3DD]/80">Powered by</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-[10px] sm:text-[11px] text-[#CDD3DD]/80">Powered by</span>
               <GojjaWordmark size="sm" showDescriptor={true} variant="reverse" />
             </div>
           </div>
         </div>
 
         {/* Interactive D-Pad Remote Control Strip for Mouse/Touch Reviewers */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-300">
-          <div className="flex items-center gap-2">
-            <Gamepad2 className="w-4 h-4 text-[#0050F5]" />
-            <span>D-Pad Remote Simulator (or use keyboard Arrow keys, Enter, Backspace/Esc):</span>
+        <div className="mt-2.5 sm:mt-3 flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-[#181C24] border border-white/10 text-xs text-slate-300">
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <Gamepad2 className="w-4 h-4 text-[#0050F5] shrink-0" />
+            <span className="text-[11px] sm:text-xs">D-Pad Remote Simulator:</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto w-full sm:w-auto justify-center pb-0.5 sm:pb-0">
             <button
               onClick={() => triggerDpadKey('ArrowLeft')}
-              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular"
+              className="px-2 sm:px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular text-[11px] sm:text-xs"
             >
               ◀ Left
             </button>
             <button
               onClick={() => triggerDpadKey('ArrowUp')}
-              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular"
+              className="px-2 sm:px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular text-[11px] sm:text-xs"
             >
               ▲ Up
             </button>
             <button
               onClick={() => triggerDpadKey('ArrowDown')}
-              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular"
+              className="px-2 sm:px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular text-[11px] sm:text-xs"
             >
               ▼ Down
             </button>
             <button
               onClick={() => triggerDpadKey('ArrowRight')}
-              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular"
+              className="px-2 sm:px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono-tabular text-[11px] sm:text-xs"
             >
               Right ▶
             </button>
             <button
               onClick={() => triggerDpadKey('Enter')}
-              className="px-3 py-1 rounded bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold"
+              className="px-2.5 sm:px-3 py-1 rounded bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-[11px] sm:text-xs"
             >
-              OK / Enter
+              OK
             </button>
             <button
               onClick={() => triggerDpadKey('Back')}
-              className="px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-white"
+              className="px-2.5 sm:px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-white text-[11px] sm:text-xs"
             >
               ↩ Back
             </button>
