@@ -217,6 +217,13 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
   }>({ loading: false, allowed: true, errorMsg: null });
   const [muted, setMuted] = useState<boolean>(true);
   const [serviceToast, setServiceToast] = useState<string | null>(null);
+  const [simulateStockLauncher, setSimulateStockLauncher] = useState<boolean>(
+    property.launcherConfig?.mode === 'STOCK_TV_LAUNCHER'
+  );
+
+  useEffect(() => {
+    setSimulateStockLauncher(property.launcherConfig?.mode === 'STOCK_TV_LAUNCHER');
+  }, [property.launcherConfig?.mode]);
 
   useEffect(() => {
     setGuestLocale(stay?.locale || property.defaultLocale || 'id');
@@ -224,6 +231,10 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
   const t = TV_UI_STRINGS[guestLocale];
   const activePromo = campaigns.find((c) => c.propertyId === property.id && c.status === 'Active') || campaigns[0];
+  const effectivePromoMediaUrl = property.promoMediaUrl || activePromo?.mediaUrl || activePromo?.imageUrl;
+  const effectivePromoMediaType =
+    property.promoMediaType || activePromo?.mediaType || (effectivePromoMediaUrl?.endsWith('.mp4') || effectivePromoMediaUrl?.startsWith('data:video/') ? 'video' : 'image');
+  const effectivePromoTitle = property.promoTitle || activePromo?.headline?.[guestLocale] || activePromo?.name;
 
   const handleSelectChannel = useCallback(
     async (ch: Channel) => {
@@ -436,23 +447,41 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
             )}
           </div>
 
-          {/* Bottom Line: Horizontally scrollable Screen Switcher Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-            {screenTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveScreen(tab.id);
-                  setFocusIndex(0);
-                  if (tab.id === 'TV-04-GUIDE') handleSelectChannel(channels[0]);
-                }}
-                className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  activeScreen === tab.id ? 'bg-[#0050F5] text-white shadow-xs' : 'bg-white/5 text-slate-300 hover:bg-white/15'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Bottom Line: Horizontally scrollable Screen Switcher Pills + GojjaLauncher vs Stock TV Toggle */}
+          <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+            <div className="flex items-center gap-1.5 shrink-0">
+              {screenTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setSimulateStockLauncher(false);
+                    setActiveScreen(tab.id);
+                    setFocusIndex(0);
+                    if (tab.id === 'TV-04-GUIDE') handleSelectChannel(channels[0]);
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    !simulateStockLauncher && activeScreen === tab.id
+                      ? 'bg-[#0050F5] text-white shadow-xs'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/15'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSimulateStockLauncher((prev) => !prev)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-mono-tabular font-semibold whitespace-nowrap shrink-0 cursor-pointer border transition-colors ${
+                simulateStockLauncher
+                  ? 'bg-amber-500/20 border-amber-400/50 text-amber-200'
+                  : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
+              }`}
+              title="Toggle between GojjaLauncher (Clean Hospitality Home) and Stock Uncleaned Android TV Launcher"
+            >
+              {simulateStockLauncher ? '⚠️ Stock TV Launcher (Uncleaned Ads)' : '✓ GojjaLauncher Active (CleanTV)'}
+            </button>
           </div>
         </div>
 
@@ -464,24 +493,47 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
               : 'flex-1 min-h-0 max-h-[calc(100dvh-150px)]'
           } rounded-2xl overflow-hidden border-2 border-[#2D3545] shadow-2xl select-none flex flex-col justify-between`}
         >
-          {/* Background Hospitality Photography + Measured Contrast Scrim */}
-          <img
-            src={cleanBackdropUrl}
-            alt={property.name}
-            referrerPolicy="no-referrer"
-            className="absolute inset-0 w-full h-full object-cover opacity-50 transition-opacity duration-500"
-          />
+          {/* Background Hospitality Video or Photography + Measured Contrast Scrim */}
+          {property.heroMediaType === 'video' && property.heroVideoUrl ? (
+            <video
+              key={property.heroVideoUrl}
+              src={property.heroVideoUrl}
+              poster={cleanBackdropUrl}
+              autoPlay
+              loop
+              muted={muted}
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-500"
+            />
+          ) : (
+            <img
+              src={cleanBackdropUrl}
+              alt={property.name}
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover opacity-50 transition-opacity duration-500"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#10151C] via-[#10151C]/75 to-[#10151C]/45" />
 
           {/* TV Safe Region Header */}
           <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-6">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <div
-                className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg border border-[#DCC6A1]/40 bg-black/40 backdrop-blur-md shrink-0"
+                className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-[#DCC6A1]/40 bg-black/45 backdrop-blur-md shrink-0 flex items-center gap-2.5"
                 style={{ borderColor: `${property.accentColor}66` }}
               >
-                <div className="text-xs sm:text-sm font-bold tracking-widest text-[#F8F5EE]">{property.logoText}</div>
-                <div className="text-[9px] sm:text-[10px] tracking-[0.2em] text-[#DCC6A1]">{property.logoSubtitle}</div>
+                {property.logoImageUrl && (
+                  <img
+                    src={property.logoImageUrl}
+                    alt={property.logoText}
+                    referrerPolicy="no-referrer"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-contain bg-black/20 p-0.5 shrink-0"
+                  />
+                )}
+                <div>
+                  <div className="text-xs sm:text-sm font-bold tracking-widest text-[#F8F5EE]">{property.logoText}</div>
+                  <div className="text-[9px] sm:text-[10px] tracking-[0.2em] text-[#DCC6A1]">{property.logoSubtitle}</div>
+                </div>
               </div>
               {!isOnline && (
                 <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs">
@@ -517,6 +569,49 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
 
           {/* MAIN TV SCREEN CONTENT */}
           <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 md:px-8 py-2 sm:py-4 overflow-y-auto md:overflow-hidden">
+            {/* SIMULATED UNCLEANED STOCK ANDROID TV / GOOGLE TV LAUNCHER (Before GojjaCleanTV ADB Takeover) */}
+            {simulateStockLauncher ? (
+              <div className="my-auto space-y-3 bg-slate-950/90 border border-rose-500/40 rounded-2xl p-4 sm:p-5 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="font-bold text-white">Stock Consumer Google TV Launcher (`com.google.android.tvlauncher`)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSimulateStockLauncher(false)}
+                    className="px-3 py-1 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-[11px]"
+                  >
+                    Switch to GojjaLauncher (CleanTV) →
+                  </button>
+                </div>
+                <div className="p-3 rounded-xl bg-gradient-to-r from-rose-950/80 via-purple-950/70 to-slate-900 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 text-[10px] font-bold uppercase">
+                      Sponsored Ad Carousel
+                    </span>
+                    <div className="text-sm sm:text-base font-bold text-white mt-1">
+                      Watch Blockbuster Action Now — Rent for Rp49,000 on Personal Google Account
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Unbranded consumer home screen: No hotel identity, previous guest Netflix login exposed, and paid ad clutter.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {['Netflix (Guest Logged In!)', 'Prime Video Ads', 'YouTube Trending', 'Google Play Store'].map((bloat, i) => (
+                    <div key={i} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-[11px] text-slate-300">
+                      <div className="font-semibold text-white truncate">{bloat}</div>
+                      <div className="text-[10px] text-rose-300 mt-0.5">Stock Bloatware</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[11px] text-emerald-300 font-mono-tabular">
+                  💡 Tip: Use <strong>GojjaCleanTV (`GojjaLauncher`)</strong> in Brand Studio to run non-root ADB <code>pm disable-user</code> &amp; lock your hotel dashboard as the default HOME screen.
+                </div>
+              </div>
+            ) : (
+              <>
             {/* SCREEN 01: WELCOME */}
             {activeScreen === 'TV-02-WELCOME' && (
               <div className="max-w-2xl mx-auto text-center space-y-3 sm:space-y-4 my-auto">
@@ -706,34 +801,62 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
               </div>
             )}
 
-            {/* SCREEN 04: HOTEL PROMOTION */}
+            {/* SCREEN 04: HOTEL PROMOTION (Supports Real Uploaded Video & Image!) */}
             {activeScreen === 'TV-07-PROMO' && activePromo && (
-              <div className="max-w-lg space-y-2.5 sm:space-y-3 my-auto">
-                <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#DCC6A1] uppercase">
-                  {t.promoTag} • {activePromo.category}
-                </span>
-                <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-                  {activePromo.headline[guestLocale]}
-                </h2>
-                <p className="text-xs sm:text-sm text-[#CDD3DD]">
-                  Frequency Cap: Max {activePromo.frequencyCapPerStay}× per stay • Skippable after {activePromo.skippableAfterSeconds}s.
-                </p>
-                <div className="flex items-center gap-2 sm:gap-3 pt-2">
-                  <button
-                    data-focused={focusIndex === 0 ? 'true' : 'false'}
-                    onClick={() => setActiveScreen('TV-06-SERVICES')}
-                    className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#2A241E] border border-[#DCC6A1] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2"
-                  >
-                    <span>{activePromo.ctaLabel[guestLocale]}</span>
-                    <ChevronRight className="w-4 h-4 text-[#DCC6A1]" />
-                  </button>
-                  <button
-                    data-focused={focusIndex === 1 ? 'true' : 'false'}
-                    onClick={() => setActiveScreen('TV-03-HOME')}
-                    className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-black/55 border border-white/20 text-slate-200 text-xs sm:text-sm font-medium"
-                  >
-                    {t.skipBtn}
-                  </button>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-center my-auto">
+                <div className="md:col-span-6 space-y-2.5 sm:space-y-3">
+                  <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#DCC6A1] uppercase">
+                    {t.promoTag} • {activePromo.category}
+                  </span>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight">
+                    {effectivePromoTitle || activePromo.headline[guestLocale]}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#CDD3DD]">
+                    Frequency Cap: Max {activePromo.frequencyCapPerStay}× per stay • Skippable after {activePromo.skippableAfterSeconds}s.
+                  </p>
+                  <div className="flex items-center gap-2 sm:gap-3 pt-2">
+                    <button
+                      data-focused={focusIndex === 0 ? 'true' : 'false'}
+                      onClick={() => setActiveScreen('TV-06-SERVICES')}
+                      className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#2A241E] border border-[#DCC6A1] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2"
+                    >
+                      <span>{activePromo.ctaLabel[guestLocale]}</span>
+                      <ChevronRight className="w-4 h-4 text-[#DCC6A1]" />
+                    </button>
+                    <button
+                      data-focused={focusIndex === 1 ? 'true' : 'false'}
+                      onClick={() => setActiveScreen('TV-03-HOME')}
+                      className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-black/55 border border-white/20 text-slate-200 text-xs sm:text-sm font-medium"
+                    >
+                      {t.skipBtn}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Column: Live Promotional Video or Banner Player */}
+                <div className="md:col-span-6 rounded-2xl overflow-hidden border border-[#DCC6A1]/40 bg-black/80 shadow-xl relative aspect-video flex items-center justify-center">
+                  {effectivePromoMediaType === 'video' && effectivePromoMediaUrl ? (
+                    <video
+                      key={effectivePromoMediaUrl}
+                      src={effectivePromoMediaUrl}
+                      autoPlay
+                      loop
+                      muted={muted}
+                      controls
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={effectivePromoMediaUrl || cleanBackdropUrl}
+                      alt={effectivePromoTitle || 'Hotel Promotion'}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md bg-black/70 border border-white/15 text-[10px] font-mono-tabular text-[#DCC6A1] uppercase pointer-events-none">
+                    {effectivePromoMediaType === 'video' ? '▶ Promo Video Feed' : 'Promo Banner Asset'}
+                  </div>
                 </div>
               </div>
             )}
@@ -856,6 +979,8 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                   Update in progress (Stage: Verifying Package Checksum • Target v{endpoint.desiredVersion}). Keycard power cut cannot be prevented by software; atomic manifest rollback protects current theme.
                 </p>
               </div>
+            )}
+              </>
             )}
           </div>
 

@@ -1,101 +1,77 @@
-# GOJJA SmartTV — Precision Layout, Navigation & Viewport Polish Plan
+# Implementation Plan: Real Brand Studio Media Uploads & `GojjaCleanTV` (`GojjaLauncher`) SmartTV ADB Takeover
 
-This plan resolves the five visual and interaction issues identified in the latest review: replacing text-baked mockup backgrounds with clean resort photography, locking the Login Page to a single `100dvh` zero-scroll viewport on both desktop and mobile, separating sidebar navigation selectors and views so each menu item highlights and renders independently, making the TV Guest App Preview close button (`✕`) always visible within the viewport, and splitting the dashboard into independent scroll containers with a fixed sidebar footer and ultra-thin luxury scrollbars.
+## 1. Architectural Overview
 
-## User Review & Critical Decisions
+This upgrade transforms **Brand Studio**, **Promotions & Campaigns**, and the **SmartTV Deployment Pipeline** into a complete hospitality branding and existing-TV replacement system inspired by the non-root ADB architecture of `Gathin23/cleanyourtv` — built natively as **GojjaCleanTV (`GojjaLauncher`)**.
 
-> [!IMPORTANT]
-> Both design decisions from the clarification step have been locked in and are incorporated below:
+### Core Capabilities
+1. **Real Brand Studio Media Uploads + Curated Hospitality Presets**:
+   - **Hotel Brand Logo (`logoImageUrl`)**: Upload a transparent PNG, SVG, WebP, or JPG logo directly from the computer (persisted via server-side storage/Data URL up to 25MB), enter a direct image URL, or toggle between **Image Logo + Wordmark** vs **Image Logo Only**.
+   - **TV Home / Welcome Background (`heroImageUrl` & `heroVideoUrl` + `heroMediaType: 'image' | 'video'`)**: Upload a custom 1080p/4K hotel background photo or looping MP4/WebM ambient video, enter a URL, or one-click select from curated luxury hospitality video & photo presets (Infinity Pool Aerial Loop, Javanese Sanctuary Dusk, Oceanfront Resort Villa, Culinary & Spa Showcase).
+   - **Featured Promotional Video / Banner (`promoMediaUrl` & `promoMediaType: 'image' | 'video'`)**: Upload or select promotional videos and images directly inside **Brand Studio** and **Promotions & Campaigns (`activeTab === 'campaigns'`)**, which immediately play inside the 10-foot SmartTV **Welcome Screen**, **Home Screen**, and **04 Promo** tab.
 
-- **Confirmed Decision 1 (Dedicated Menu Views & Selectors)**: Every sidebar item (`Overview`, `Rooms & Guests`, `Devices`, `Discovery & Deploy`, `Brand Studio`, `Content Library`, `Campaigns`, `Channels & Packages`, `Updates`, `Analytics`, `Users & Access`, `Subscription`, `Support`, `Settings`) maintains its own independent active selector state (`activeTab === item.id`) and renders its own dedicated view without highlighting sibling items.
-- **Confirmed Decision 2 (Single-Screen `100dvh` Login on Mobile & Desktop)**: On mobile viewports (`< 1024px`), the 4 feature highlight cards are hidden so the compact resort header and the organic pearl authentication card fit cleanly within `100dvh` (`overflow-hidden`) with zero vertical scrolling. On desktop (`>= 1024px`), vertical spacing and card padding are calibrated so the 60:40 split layout also fits inside `100dvh` without scrolling.
-
----
-
-## 1. Overview & Core Concept
-
-- **What It Does**: Elevates the GOJJA SmartTV Hospitality CMS and 10-Foot TV Guest App prototype to a production-grade luxury standard where every viewport, scroll container, background image, and navigation state behaves predictably.
-- **Target Audience / Persona**: Hospitality property managers, owners, ISP partner operators, and executive reviewers evaluating the prototype on desktop laptops and mobile phones.
-- **Key Value**: Eliminates double-rendered background text, accidental page scrolling on login, dual-highlighted sidebar links, clipped modal close buttons, and coupled sidebar/content scrolling.
-
----
-
-## 2. User Experience & Visual Design
-
-### Key User Flows & Fixes
-
-1. **Clean Resort Background Photography (Issue #1)**:
-   - **Login Page (`LoginLandingView.tsx`)**: Replaces the text-baked V-11 mockup screenshot (`file_000000007f6882118a6641812590e14f_11e44e63.png`) with the clean, text-free cliffside sunset infinity pool photograph (`/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png`) paired with a subtle left-to-right contrast scrim and soft organic wave SVG divider on the right auth panel.
-   - **TV Guest App Backdrop (`mockData.ts` & `TvGuestAppModal.tsx`)**: Replaces the 6-panel UI collage image (`Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png`) on `P-01` (`Hotel Arunika Yogyakarta`) with the clean panoramic Borobudur resort photograph (`/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png`), ensuring the TV Guest App preview never shows ghost UI text behind the live TV canvas.
-
-2. **One-Screen Zero-Scroll Login Page — `100dvh` Desktop & Mobile (Issue #2)**:
-   - **Root Container**: Locked to `h-[100dvh] w-full overflow-hidden flex flex-col lg:flex-row`.
-   - **Mobile View (`< 1024px`)**: Renders a compact top resort header (official `gojja` vector wordmark + quick action buttons for `TV Preview` and `16 Roles` + 1-line tagline) directly above a flex-centered, compact organic pearl authentication card (`p-5`, tightened input heights `py-2`, compact social sign-in & footer). Feature cards are hidden on mobile so everything fits comfortably on one screen without scrolling.
-   - **Desktop View (`>= 1024px`)**: Left 58% showcase panel and Right 42% organic pearl auth container both use `h-full flex flex-col justify-between py-6 lg:py-8 px-10 xl:px-14` with scaled spacing (`space-y-3.5`) so even on 768px-tall laptop screens, the entire login experience fits on a single screen without scrollbars.
-
-3. **Dedicated Active Selector & View per Sidebar Menu Item (Issue #3)**:
-   - Removes the coupled active conditions (`(item.id === 'devices' && activeTab === 'rooms')`, `(item.id === 'channels' && activeTab === 'tv-services')`, `(item.id === 'users' && activeTab === 'support-qa')`, `(item.id === 'settings' && activeTab === 'branding')`).
-   - Each of the 14 navigation items sets `setActiveTab(item.id)` and checks strictly `activeTab === item.id`:
-     - **`Rooms & Guests` (`rooms`)**: Focuses on room occupancy, guest check-in/check-out lifecycle, housekeeping/privacy states, and room creation.
-     - **`Devices` (`devices`)**: Dedicated fleet hardware & endpoint management table (ADB status, applied config version, TV profile assignment, live TV preview trigger, and device maintenance toggle).
-     - **`Content Library` (`tv-services`)**: Curated hotel dining, spa, facilities, and concierge service catalog with mobile QR handoff tokens.
-     - **`Channels & Packages` (`channels`)**: Live IPTV channel line-up, provider contract status, and room-class channel package matrix (`Basic`, `International`, `Sports`).
-     - **`Users & Access` (`users`)**: 16-Role RBAC catalog, active user accounts directory, and instant persona switcher.
-     - **`Settings` (`settings`)**: Property workspace configuration (Wi-Fi SSID, Front Desk extension, timezone, default guest locale, environment mode, and demo reset).
-
-4. **Always-Visible TV Guest App Preview Close Button (Issue #4)**:
-   - Constrains the modal wrapper in `TvGuestAppModal.tsx` to `max-h-[100dvh] p-2 sm:p-4 flex flex-col items-center justify-center overflow-hidden` and caps the 16:9 TV canvas height on desktop laptops (`max-h-[calc(100dvh-140px)] aspect-video w-auto max-w-full mx-auto`) so the Top Reviewer Bar and Bottom D-Pad Bar are **never** pushed off the top or bottom edge of the screen.
-   - Enhances the Close button (`✕ Tutup Preview` / `✕ Close`) in the top-right of the reviewer bar with high-contrast styling (`bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-1.5 rounded-lg shadow-md`) plus an additional subtle corner close button inside the modal so the user can always exit immediately on both mobile and desktop.
-
-5. **Fixed Sidebar Footer & Independent Ultra-Thin Luxury Scrollbars (Issue #5)**:
-   - **App Shell Geometry**: The dashboard root changes from `min-h-screen` to `h-[100dvh] overflow-hidden flex flex-col`.
-   - **Left Sidebar (`aside`)**: `h-[calc(100dvh-72px)] flex flex-col justify-between overflow-hidden`:
-     - *Top*: Fixed `gojja SmartTV` Property Workspace header (`shrink-0`).
-     - *Middle*: Scrollable navigation list (`flex-1 overflow-y-auto luxury-scrollbar pr-1`) containing `WORKSPACE`, `ADMINISTRATION`, and `Need help?`.
-     - *Bottom Footer*: Pinned `shrink-0` footer containing the Resort Photo Card (`Open. Connected. Forward.`) and role status bar — always stays anchored at the bottom of the sidebar while the menu scrolls above it.
-   - **Right Viewport (`main`)**: `flex-1 h-[calc(100dvh-72px)] overflow-y-auto luxury-scrollbar` — scrolls completely independently of the left sidebar.
-   - **Ultra-Thin Scrollbar Styling (`index.css`)**: Custom `.luxury-scrollbar` class with `scrollbar-width: thin` (4px width in WebKit, transparent track, subtle translucent thumb `rgba(148, 163, 184, 0.25)` that brightens gently on hover).
+2. **`GojjaCleanTV` & `GojjaLauncher` Engine (Non-Root ADB SmartTV Replacement)**:
+   - Built on the same technical principles as `Gathin23/cleanyourtv`, tailored specifically for hospitality fleet management under the **GOJJA SmartTV** brand (`tv.gojja.hospitality.launcher` / `GojjaLauncher.apk`):
+     - **Step 1 — Non-Root ADB Handshake**: Connects to existing consumer/commercial Android TV or Google TV devices over LAN (`adb connect <tv-ip>:5555`).
+     - **Step 2 — Stock OEM & Google TV Debloat (`pm disable-user --user 0`)**: Safely disables ad-heavy stock launchers and telemetry bloatware without root:
+       - `com.google.android.tvlauncher` (Google TV Ad Launcher)
+       - `com.google.android.leanbacklauncher` (Android TV Stock Launcher)
+       - `com.google.android.tungsten.setupwraith` / OEM bloatware packages (`com.netflix.ninja`, `com.amazon.amazonvideo.livingroom`, `com.google.android.youtube.tv` — configurable per hotel policy).
+     - **Step 3 — Reversible Package State Backup**: Records disabled packages per TV endpoint so hotels can click **Restore Stock TV Launcher (`pm enable`)** at any time with zero factory reset required.
+     - **Step 4 — `GojjaLauncher` Home Screen Takeover**: Installs and locks `tv.gojja.hospitality.launcher/.GojjaHomeActivity` via `adb shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity` and launches the live branded hospitality dashboard (`am start -a android.intent.action.MAIN -c android.intent.category.HOME`).
+   - **Interactive `GojjaCleanTV` Control Panel & Downloadable CLI Script (`gojja-cleantv.sh` / `gojja-cleantv.bat`)**:
+     - Accessible directly inside **Brand Studio** (and **Discovery & Deploy**), allowing operators to:
+       - Select Debloat Profile (**Strict Hospitality Kiosk**, **Clean Launcher + Keep Streaming Apps**, or **Custom Package Selection**).
+       - Run **Apply `GojjaLauncher` Takeover to Property Fleet / Room TV** (executes real ADB commands in `LIVE_LAB` mode or updates fleet state in `DEMO` mode, visually switching the TV between *Stock Google TV Ad Screen* and *GojjaLauncher Branded Hospitality Screen*).
+       - Download a ready-to-run, self-contained **`gojja-cleantv.sh` (macOS/Linux)** or **`gojja-cleantv.ps1` (Windows PowerShell)** automation script pre-configured with the property's TV IP addresses, brand manifest URL, and reversible `--restore` flag.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 2. Planned Code Changes
 
-- **Decision 1: Independent Scroll Containers (`h-[100dvh] overflow-hidden` Shell)**
-  - *Chosen Approach*: Lock the outer shell to `100dvh` and give the sidebar nav area and the main content area separate `overflow-y-auto` containers with a pinned sidebar footer.
-  - *Why*: Matches native luxury desktop/SaaS workspace ergonomics where navigation context and brand footer remain stationary while large data tables or analytics scroll smoothly on the right.
-- **Decision 2: Strict 1-to-1 `NavTabId` Mapping**
-  - *Chosen Approach*: Map every sidebar button 1-to-1 to its own `NavTabId` and dedicated view section.
-  - *Why*: Eliminates confusing dual-selection highlights and gives operators focused workspaces for `Devices`, `Channels & Packages`, `Users & Access`, and `Settings`.
+### A. Data Models & Curated Hospitality Presets (`/src/data/mockData.ts`)
+- Extend `Property` interface with:
+  - `logoImageUrl?: string;`
+  - `heroMediaType?: 'image' | 'video';`
+  - `heroVideoUrl?: string;`
+  - `promoMediaType?: 'image' | 'video';`
+  - `promoMediaUrl?: string;`
+  - `promoTitle?: string;`
+  - `launcherConfig?: { mode: 'GOJJA_LAUNCHER' | 'STOCK_TV_LAUNCHER'; profile: 'STRICT_KIOSK' | 'CLEAN_WITH_OTT' | 'CUSTOM'; disabledPackages: string[]; lastAppliedAt: string; launcherVersion: string; };`
+- Extend `Campaign` interface with:
+  - `mediaUrl?: string;`
+  - `mediaType?: 'image' | 'video';`
+- Add `CURATED_BRAND_MEDIA_PRESETS` containing verified, high-speed MP4 video loops and 4K resort photography presets, plus sample SVG/PNG luxury hotel crest logos so users can test video/logo switching with a single click in addition to uploading files from their computer.
+
+### B. Backend Endpoints & `GojjaCleanTV` Script Generator (`/server.ts`)
+- Increase Express JSON body limit (`express.json({ limit: '30mb' })`) so direct base64/Data-URL image and short video uploads from the browser persist reliably without payload size errors.
+- Update `POST /api/branding/draft` and `POST /api/branding/publish` to persist `logoImageUrl`, `heroMediaType`, `heroImageUrl`, `heroVideoUrl`, `promoMediaType`, `promoMediaUrl`, `promoTitle`, and `launcherConfig`.
+- Update `POST /api/campaigns/create` to persist `mediaUrl` and `mediaType` (`image` | `video`).
+- Add `POST /api/branding/launcher-takeover`:
+  - Accepts `propertyId`, `endpointId` (or `'ALL'`), `action` (`'APPLY_GOJJA_LAUNCHER'` | `'RESTORE_STOCK_LAUNCHER'`), `profile`, and `disabledPackages`.
+  - In `LIVE_LAB` mode, executes real ADB commands (`pm disable-user --user 0 ...`, `cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity`, `input keyevent KEYCODE_HOME`) against connected TV IPs; in `DEMO` mode, updates the property and endpoint launcher state and logs the exact ADB command transcript.
+
+### C. Brand Studio & Campaigns Real Upload UI + `GojjaCleanTV` Panel (`/src/App.tsx`)
+- In **Brand Studio (`activeTab === 'branding'`)**:
+  - **1. Brand Logo Uploader**: Drag-and-drop / file picker (`PNG, SVG, JPG, WebP`), direct URL input, one-click luxury hotel crest presets, and live preview thumbnail with "Remove / Reset to Text Logo" button.
+  - **2. Welcome / Hero Background Media (Image or Video)**: Toggle between **Image Backdrop** and **Looping Video Backdrop (`MP4/WebM`)**, with computer file upload (`<input type="file" accept="image/*,video/*" />`), URL input, and Curated Resort Video/Photo Presets.
+  - **3. Featured In-Room Promo Video / Image**: Upload a promotional video or poster image directly in Brand Studio (or in **Promotions & Campaigns**) that syncs with the TV's `04 Promo` showcase and Welcome screen.
+  - **4. `GojjaCleanTV` (`GojjaLauncher`) SmartTV Override & Debloat Panel**:
+    - Interactive toggle & status badge showing `Active Launcher: GojjaLauncher v4.2 (Stock Launcher Disabled)` vs `Stock Google TV Launcher (Ad-Heavy)`.
+    - Selectable Debloat Package Checklist (`com.google.android.tvlauncher`, `com.google.android.leanbacklauncher`, `com.google.android.tungsten.setupwraith`, `com.netflix.ninja`, `com.google.android.youtube.tv`, etc.).
+    - Action buttons: **Apply `GojjaLauncher` Takeover (ADB)**, **Restore Stock TV Launcher**, and **Download `gojja-cleantv.sh` Script** (generates and downloads a complete shell script modeled on `cleanyourtv` customized for the active property).
+- In **Promotions & Campaigns (`activeTab === 'campaigns'`)**:
+  - Add file upload (`image/*,video/*`) + URL input + preset selector when creating a new campaign, and render video/image previews on campaign cards.
+
+### D. 10-Foot SmartTV Guest Experience (`/src/components/TvGuestAppModal.tsx`)
+- Render `property.logoImageUrl` in the top-left TV header (alongside or replacing text wordmark).
+- Render `<video autoPlay loop muted playsInline src={property.heroVideoUrl} />` when `heroMediaType === 'video'` is active, with smooth fallback to `heroImageUrl`.
+- Support playing uploaded promotional videos (`<video controls autoPlay loop muted />`) and campaign media inside the **04 Promo** screen and Welcome screen.
+- Add a **`Launcher Mode` Preview Toggle** (`GojjaLauncher Hospitality OS` vs `Stock Android TV Before GojjaCleanTV`) in the TV Preview header so stakeholders can visually compare a cluttered stock SmartTV vs the clean, branded `GojjaLauncher` experience.
 
 ---
 
-## 4. Technical Architecture & Data Strategy *(Technical Reference)*
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Root App Container (h-[100dvh] overflow-hidden)                              │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Mode A: LoginLandingView (h-[100dvh] overflow-hidden, Zero Scroll)           │
-│  ├─ Background Layer: Clean Resort Photo (file_0000...4380.png) + Scrim      │
-│  ├─ Mobile (<1024px): Compact Header + Centered Pearl Auth Card (No Cards)   │
-│  └─ Desktop (>=1024px): 58% Brand/4-Cards Panel + 42% Organic Pearl Auth     │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Mode B: Dashboard Workspace Shell (h-[100dvh] overflow-hidden flex-col)      │
-│  ├─ Top Header (h-[72px] shrink-0): Hamburger + Property Pill + Actions      │
-│  └─ Body Split (flex-1 flex overflow-hidden h-[calc(100dvh-72px)])           │
-│      ├─ Left Sidebar (w-[250px] shrink-0 flex-col overflow-hidden)           │
-│      │   ├─ Top Brand Header (shrink-0)                                      │
-│      │   ├─ Middle Nav List (flex-1 overflow-y-auto luxury-scrollbar)        │
-│      │   │   └─ 14 Distinct NavTabId Items (Strict 1:1 Active Highlight)     │
-│      │   └─ Bottom Pinned Footer (shrink-0: Resort Card + Role Info)         │
-│      └─ Right Main Viewport (flex-1 overflow-y-auto luxury-scrollbar)        │
-│          └─ 14 Dedicated Tab Views (overview, rooms, devices, discovery,     │
-│             branding, tv-services, campaigns, channels, updates, analytics,  │
-│             users, billing, support-qa, settings)                            │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Modal Overlay: TvGuestAppModal (max-h-[100dvh] overflow-hidden)              │
-│  ├─ Top Reviewer Bar (shrink-0, Prominent Red/White "✕ Close" Button)        │
-│  ├─ 16:9 TV Canvas (max-h-[calc(100dvh-140px)], Clean Borobudur Backdrop)    │
-│  └─ Bottom D-Pad Remote Simulator Strip (shrink-0)                           │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+## 3. Verification Criteria
+- Uploading a custom logo image, background video/image, or promotional video/image in **Brand Studio** immediately updates the live embedded TV preview and the full-screen **TV Guest App Preview** modal, and persists across Save Draft & Publish Changes.
+- Running **Apply `GojjaLauncher` Takeover** updates the property/device launcher state, logs the ADB `pm disable-user` + `cmd package set-home-activity` sequence, and allows downloading the self-contained `gojja-cleantv.sh` script.
+- `lint_applet` and `compile_applet` pass with zero TypeScript or build errors.

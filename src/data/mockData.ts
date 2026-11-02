@@ -92,6 +92,20 @@ export interface Property {
   wifiSsid: string;
   frontDeskExt: string;
   resourceVersion: number;
+  logoImageUrl?: string;
+  heroMediaType?: 'image' | 'video';
+  heroVideoUrl?: string;
+  promoMediaType?: 'image' | 'video';
+  promoMediaUrl?: string;
+  promoTitle?: string;
+  launcherConfig?: {
+    mode: 'GOJJA_LAUNCHER' | 'STOCK_TV_LAUNCHER';
+    profile: 'STRICT_KIOSK' | 'CLEAN_WITH_OTT' | 'CUSTOM';
+    disabledPackages: string[];
+    lastAppliedAt: string;
+    launcherVersion: string;
+    lastAdbTranscript?: string[];
+  };
 }
 
 export interface Subscription {
@@ -251,6 +265,8 @@ export interface Campaign {
   startUtc: string;
   endUtc: string;
   imageUrl: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
   headline: Record<GuestLocale, string>;
   ctaLabel: Record<GuestLocale, string>;
   creativeVersion: number;
@@ -261,6 +277,149 @@ export interface Campaign {
   failedAfterStartCount: number;
   totalPlaySeconds: number;
 }
+
+export interface GojjaCleanTvPackageItem {
+  pkg: string;
+  label: string;
+  category: 'STOCK_LAUNCHER' | 'TELEMETRY_ADS' | 'PRELOADED_OTT';
+  defaultInStrict: boolean;
+  defaultInOttKeep: boolean;
+  description: string;
+}
+
+export const GOJJA_CLEANTV_PACKAGES: GojjaCleanTvPackageItem[] = [
+  {
+    pkg: 'com.google.android.tvlauncher',
+    label: 'Google TV Stock Home Launcher (Ad Banner Shell)',
+    category: 'STOCK_LAUNCHER',
+    defaultInStrict: true,
+    defaultInOttKeep: true,
+    description: 'Disables default Google TV home screen & sponsored carousel so GojjaLauncher takes over HOME button.',
+  },
+  {
+    pkg: 'com.google.android.leanbacklauncher',
+    label: 'Android TV Leanback Stock Launcher',
+    category: 'STOCK_LAUNCHER',
+    defaultInStrict: true,
+    defaultInOttKeep: true,
+    description: 'Disables legacy Android TV stock home screen and recommendations row.',
+  },
+  {
+    pkg: 'com.google.android.leanbacklauncher.recommendations',
+    label: 'Android TV Sponsored Recommendations Service',
+    category: 'TELEMETRY_ADS',
+    defaultInStrict: true,
+    defaultInOttKeep: true,
+    description: 'Stops background ad & movie recommendation injection on Android TV.',
+  },
+  {
+    pkg: 'com.google.android.tungsten.setupwraith',
+    label: 'Google TV SetupWraith & Telemetry Agent',
+    category: 'TELEMETRY_ADS',
+    defaultInStrict: true,
+    defaultInOttKeep: true,
+    description: 'Disables background OEM setup prompts and consumer telemetry popups.',
+  },
+  {
+    pkg: 'com.netflix.ninja',
+    label: 'Preloaded Netflix Consumer App',
+    category: 'PRELOADED_OTT',
+    defaultInStrict: true,
+    defaultInOttKeep: false,
+    description: 'Optional: Disable if hotel restricts third-party OTT login leaks between stays.',
+  },
+  {
+    pkg: 'com.amazon.amazonvideo.livingroom',
+    label: 'Preloaded Prime Video App',
+    category: 'PRELOADED_OTT',
+    defaultInStrict: true,
+    defaultInOttKeep: false,
+    description: 'Optional: Disable preloaded Amazon Prime Video button hijack.',
+  },
+  {
+    pkg: 'com.google.android.youtube.tv',
+    label: 'YouTube for Android TV',
+    category: 'PRELOADED_OTT',
+    defaultInStrict: false,
+    defaultInOttKeep: false,
+    description: 'Optional: Keep enabled for guest entertainment or disable in strict kiosk mode.',
+  },
+];
+
+export const CURATED_BRAND_MEDIA_PRESETS = {
+  logos: [
+    {
+      id: 'crest-gold',
+      label: 'Royal Javanese Gold Crest (SVG)',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none"><rect width="120" height="120" rx="24" fill="#1E3A2F"/><circle cx="60" cy="60" r="44" stroke="#DCC6A1" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M60 26L74 54H46L60 26Z" fill="#DCC6A1"/><path d="M38 72C46 62 74 62 82 72" stroke="#DCC6A1" stroke-width="3" stroke-linecap="round"/><text x="60" y="92" text-anchor="middle" fill="#F8F5EE" font-family="serif" font-size="13" font-weight="bold" letter-spacing="3">ARUNIKA</text></svg>'
+      )}`,
+    },
+    {
+      id: 'crest-ocean',
+      label: 'Bayu Oceanfront Monogram (SVG)',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none"><rect width="120" height="120" rx="24" fill="#173753"/><circle cx="60" cy="60" r="44" stroke="#C8A97E" stroke-width="2.5"/><path d="M34 62C44 50 56 74 66 62C76 50 82 66 88 58" stroke="#C8A97E" stroke-width="4" stroke-linecap="round"/><text x="60" y="88" text-anchor="middle" fill="#F8F5EE" font-family="sans-serif" font-size="14" font-weight="bold" letter-spacing="3">BAYU</text></svg>'
+      )}`,
+    },
+    {
+      id: 'crest-sora',
+      label: 'Sora Urban Executive Emblem (SVG)',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none"><rect width="120" height="120" rx="24" fill="#0F172A"/><rect x="24" y="24" width="72" height="72" rx="14" stroke="#94A3B8" stroke-width="2.5"/><path d="M44 74V44L60 34L76 44V74" stroke="#F8FAFC" stroke-width="3.5" stroke-linejoin="round"/><text x="60" y="90" text-anchor="middle" fill="#94A3B8" font-family="sans-serif" font-size="12" font-weight="bold" letter-spacing="4">SORA</text></svg>'
+      )}`,
+    },
+  ],
+  heroBackgrounds: [
+    {
+      id: 'bg-sanctuary-img',
+      label: 'Javanese Sanctuary Courtyard (4K Photo)',
+      type: 'image' as const,
+      url: '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png',
+    },
+    {
+      id: 'bg-ocean-img',
+      label: 'Oceanfront Infinity Villa Dusk (4K Photo)',
+      type: 'image' as const,
+      url: '/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png',
+    },
+    {
+      id: 'bg-resort-video-1',
+      label: 'Tropical Resort Coastline Aerial (MP4 Video Loop)',
+      type: 'video' as const,
+      url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-city-traffic-at-night-11-large.mp4',
+    },
+    {
+      id: 'bg-resort-video-2',
+      label: 'Luxury Poolside & Palm Breeze (MP4 Video Loop)',
+      type: 'video' as const,
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    },
+  ],
+  promoMedia: [
+    {
+      id: 'promo-video-spa',
+      label: 'Royal Spa & Wellness Experience (MP4 Promo Video)',
+      type: 'video' as const,
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      title: 'Royal Javanese Spa • Complimentary 30-Min Welcome Ritual',
+    },
+    {
+      id: 'promo-video-dining',
+      label: 'Fine Dining & Sunset Lounge (MP4 Promo Video)',
+      type: 'video' as const,
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoy.mp4',
+      title: 'Kayumanis Chef Tasting Menu • Reserve via In-Room TV',
+    },
+    {
+      id: 'promo-image-sanctuary',
+      label: 'Private Pool & Sanctuary Offer (HD Banner Image)',
+      type: 'image' as const,
+      url: '/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png',
+      title: 'Private Villa Sunset High Tea • 20% In-House Guest Privilege',
+    },
+  ],
+};
 
 export interface Invoice {
   id: string;
@@ -452,8 +611,27 @@ export const ROLES_CATALOG: RoleDefinition[] = [
     name: 'Product / Business Owner',
     category: 'GOJJA_ADMIN',
     defaultSurface: 'gojja',
-    description: 'Commercial and product governance, plan catalog review, and aggregate business KPIs.',
-    permissions: ['plans.read', 'plans.manage', 'subscriptions.read', 'customers.read', 'properties.read', 'analytics.read', 'audit.read'],
+    description: 'Commercial and product governance, ISP & tenant onboarding, plan catalog review, and aggregate business KPIs.',
+    permissions: [
+      'plans.read',
+      'plans.manage',
+      'partners.manage',
+      'customers.read',
+      'customers.manage',
+      'properties.read',
+      'properties.manage',
+      'subscriptions.read',
+      'subscriptions.manage',
+      'seats.allocate',
+      'branding.read',
+      'branding.edit',
+      'branding.publish',
+      'media.manage',
+      'campaigns.edit',
+      'campaigns.publish',
+      'analytics.read',
+      'audit.read',
+    ],
     exclusions: ['payments.verify', 'adb.connect', 'guests.name.read'],
   },
   {
@@ -472,6 +650,12 @@ export const ROLES_CATALOG: RoleDefinition[] = [
       'subscriptions.read',
       'subscriptions.manage',
       'seats.allocate',
+      'branding.read',
+      'branding.edit',
+      'branding.publish',
+      'media.manage',
+      'campaigns.edit',
+      'campaigns.publish',
       'contracts.read',
       'contracts.verify',
       'audit.read',
@@ -983,6 +1167,22 @@ export const INITIAL_PROPERTIES: Property[] = [
     wifiSsid: 'Arunika-Sanctuary-5G',
     frontDeskExt: 'Dial 0 or WhatsApp +62 274 555 010',
     resourceVersion: 4,
+    heroMediaType: 'image',
+    promoMediaType: 'video',
+    promoMediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    promoTitle: 'Royal Javanese Spa • Complimentary 30-Min Welcome Ritual',
+    launcherConfig: {
+      mode: 'GOJJA_LAUNCHER',
+      profile: 'CLEAN_WITH_OTT',
+      disabledPackages: [
+        'com.google.android.tvlauncher',
+        'com.google.android.leanbacklauncher',
+        'com.google.android.leanbacklauncher.recommendations',
+        'com.google.android.tungsten.setupwraith',
+      ],
+      lastAppliedAt: '2026-11-02T05:30:00Z',
+      launcherVersion: 'GojjaLauncher v4.2.0-hospitality',
+    },
   },
   {
     id: 'P-02',

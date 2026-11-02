@@ -11,6 +11,7 @@ import {
   RoleId,
   ROLES_CATALOG,
   USER_ACCOUNTS,
+  UserAccount,
   INITIAL_PARTNERS,
   INITIAL_CUSTOMERS,
   INITIAL_PROPERTIES,
@@ -64,6 +65,7 @@ const execFileAsync = promisify(execFile);
 const STORE_FILE = path.resolve(process.cwd(), '.gojja-ssot-store.json');
 
 interface WorkspaceData {
+  userAccounts: UserAccount[];
   partners: Partner[];
   customers: Customer[];
   properties: Property[];
@@ -102,6 +104,7 @@ function clone<T>(val: T): T {
 
 function createInitialDemoWorkspace(): WorkspaceData {
   return {
+    userAccounts: clone(USER_ACCOUNTS),
     partners: clone(INITIAL_PARTNERS),
     customers: clone(INITIAL_CUSTOMERS),
     properties: clone(INITIAL_PROPERTIES),
@@ -176,6 +179,7 @@ function createInitialDemoWorkspace(): WorkspaceData {
 function createInitialLiveLabWorkspace(): WorkspaceData {
   // LIVE_LAB starts with zero fake verified devices or simulated candidates!
   return {
+    userAccounts: clone(USER_ACCOUNTS),
     partners: clone(INITIAL_PARTNERS),
     customers: clone(INITIAL_CUSTOMERS),
     properties: clone(INITIAL_PROPERTIES),
@@ -222,7 +226,7 @@ function loadStore(): SSOTStore {
     if (fs.existsSync(STORE_FILE)) {
       const raw = fs.readFileSync(STORE_FILE, 'utf-8');
       const parsed = JSON.parse(raw) as SSOTStore;
-      if (parsed && parsed.seedVersion === 'gojja-functional-demo-1' && parsed.DEMO && parsed.LIVE_LAB) {
+      if (parsed && parsed.seedVersion === 'gojja-functional-demo-3' && parsed.DEMO && parsed.LIVE_LAB) {
         return parsed;
       }
     }
@@ -230,7 +234,7 @@ function loadStore(): SSOTStore {
     console.warn('Could not load existing SSOT store, initializing fresh store:', e);
   }
   const fresh: SSOTStore = {
-    seedVersion: 'gojja-functional-demo-1',
+    seedVersion: 'gojja-functional-demo-3',
     DEMO: createInitialDemoWorkspace(),
     LIVE_LAB: createInitialLiveLabWorkspace(),
   };
@@ -253,9 +257,14 @@ function getRequestContext(req: Request) {
   const personaAlias = (req.headers['x-gojja-persona'] as string) || 'property-manager';
   const envRaw = (req.headers['x-gojja-env'] as string) || 'DEMO';
   const environmentId: EnvironmentId = envRaw === 'LIVE_LAB' ? 'LIVE_LAB' : 'DEMO';
-  const user = USER_ACCOUNTS.find((u) => u.alias === personaAlias) || USER_ACCOUNTS.find((u) => u.alias === 'property-manager')!;
+  const workspace = store[environmentId];
+  const accounts = workspace.userAccounts || USER_ACCOUNTS;
+  const user =
+    accounts.find((u) => u.alias === personaAlias) ||
+    accounts.find((u) => u.alias === 'property-manager') ||
+    USER_ACCOUNTS[0];
   const role = ROLES_CATALOG.find((r) => r.id === user.roleId)!;
-  return { user, role, environmentId, workspace: store[environmentId] };
+  return { user, role, environmentId, workspace };
 }
 
 function recordAudit(
@@ -467,7 +476,7 @@ function probeTcpSocket(ip: string, port: number, timeoutMs = 450): Promise<bool
 
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: '30mb' }));
 
   // 1. Bootstrap & Scoped State Query
   app.get('/api/bootstrap', async (req: Request, res: Response) => {
@@ -527,7 +536,7 @@ async function startServer() {
       currentUser: user,
       currentRole: role,
       rolesCatalog: ROLES_CATALOG,
-      userAccounts: USER_ACCOUNTS,
+      userAccounts: workspace.userAccounts || USER_ACCOUNTS,
       scenariosCatalog: SCENARIOS_CATALOG,
       analyticsFixture: ANALYTICS_FIXTURE,
       hostRuntime: {
@@ -581,12 +590,16 @@ async function startServer() {
   // 2. Authentication & Persona Switch Verification
   app.post('/api/auth/login', (req: Request, res: Response) => {
     const { emailOrAlias, environmentId = 'DEMO' } = req.body;
+    const targetEnv: EnvironmentId = environmentId === 'LIVE_LAB' ? 'LIVE_LAB' : 'DEMO';
+    const ws = store[targetEnv];
+    const accounts = ws.userAccounts || USER_ACCOUNTS;
     const query = String(emailOrAlias || '').trim().toLowerCase();
     const account =
-      USER_ACCOUNTS.find((u) => u.email.toLowerCase() === query || u.alias.toLowerCase() === query) ||
-      USER_ACCOUNTS.find((u) => u.alias === 'property-manager')!;
+      accounts.find((u) => u.email.toLowerCase() === query || u.alias.toLowerCase() === query) ||
+      accounts.find((u) => u.alias === 'property-manager') ||
+      USER_ACCOUNTS[0];
 
-    if (environmentId === 'LIVE_LAB' && !account.allowedEnvironments.includes('LIVE_LAB')) {
+    if (targetEnv === 'LIVE_LAB' && !account.allowedEnvironments.includes('LIVE_LAB')) {
       recordAudit(
         'LIVE_LAB',
         account.alias,
@@ -606,7 +619,7 @@ async function startServer() {
 
     const role = ROLES_CATALOG.find((r) => r.id === account.roleId)!;
     recordAudit(
-      environmentId === 'LIVE_LAB' ? 'LIVE_LAB' : 'DEMO',
+      targetEnv,
       account.alias,
       account.roleId,
       'auth.login',
@@ -617,7 +630,339 @@ async function startServer() {
       `Authenticated as ${account.name} (${role.name}).`
     );
 
-    return res.json({ user: account, role, environmentId });
+    return res.json({ user: account, role, environmentId: targetEnv });
+  });
+
+  // 2B. Multi-Tenant Governance: Create New ISP Reseller Partner (GOJJA Platform Owner / Admin)
+  app.post('/api/partners/create', (req: Request, res: Response) => {
+    const auth = authorizeAction(req, 'partners.manage');
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const { name, region = 'Jawa & Bali', contactEmail, supportTier = '24/7 NOC + Field SLA', adminName } = req.body;
+    const cleanName = String(name || '').trim();
+    if (!cleanName) {
+      return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'ISP Partner name is required.' });
+    }
+
+    const nextIdx = workspace.partners.length + 1;
+    const suffixChar = String.fromCharCode(64 + nextIdx); // C, D, E...
+    const partnerId = `ISP-${suffixChar}`;
+    const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `isp-${nextIdx}`;
+    const email = String(contactEmail || `admin@${slug}.net.id`).trim();
+
+    const newPartner: Partner = {
+      id: partnerId,
+      name: cleanName,
+      status: 'Active',
+      region: String(region).trim(),
+      contactEmail: email,
+      supportTier: String(supportTier).trim(),
+    };
+    workspace.partners.push(newPartner);
+
+    // Auto-create default R-08 ISP Partner Administrator account
+    const adminDisplayName = String(adminName || `${cleanName} Admin`).trim();
+    const initials = adminDisplayName
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    const newIspUser: UserAccount = {
+      id: `USR-ISP-${Date.now().toString().slice(-4)}`,
+      alias: `${slug}-admin`,
+      name: `${adminDisplayName} (${partnerId})`,
+      email,
+      roleId: 'R-08',
+      organizationId: partnerId,
+      partnerId,
+      propertyIds: [],
+      allowedEnvironments: ['DEMO', 'LIVE_LAB'],
+      avatarInitials: initials || 'IP',
+      badgeLabel: `${partnerId} Admin`,
+    };
+    workspace.userAccounts.push(newIspUser);
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'partners.manage',
+      partnerId,
+      null,
+      'ALLOW',
+      'PARTNER_ONBOARDED',
+      `Onboarded ISP Partner ${partnerId} (${cleanName}) and provisioned R-08 admin login '${newIspUser.alias}' (${newIspUser.email}).`
+    );
+
+    return res.json({
+      ok: true,
+      partner: newPartner,
+      createdUser: newIspUser,
+      message: `ISP Partner '${cleanName}' (${partnerId}) created with login account ${newIspUser.email}.`,
+    });
+  });
+
+  // 2C. Multi-Tenant Governance: Onboard New Tenant Property + Auto-Create Login & Starter Rooms/TVs
+  app.post('/api/tenants/create', (req: Request, res: Response) => {
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const {
+      propertyName,
+      legalEntity,
+      city = 'Bali',
+      categoryLabel = 'Luxury Resort • 15 Rooms',
+      partnerId: requestedPartnerId,
+      seats = 15,
+      wifiSsid,
+      frontDeskExt = '0',
+      adminName,
+      adminEmail,
+      accentColor = '#DCC6A1',
+      primaryColor = '#1E3A2F',
+    } = req.body;
+
+    // Determine effective partnerId (ISP R-08 is locked to their own partnerId)
+    const effectivePartnerId =
+      user.roleId === 'R-08'
+        ? user.partnerId
+        : requestedPartnerId && requestedPartnerId !== 'DIRECT'
+        ? String(requestedPartnerId)
+        : null;
+
+    const auth = authorizeAction(req, 'properties.manage', null, effectivePartnerId);
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const cleanPropName = String(propertyName || '').trim();
+    if (!cleanPropName) {
+      return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Property name is required.' });
+    }
+
+    const nextNum = workspace.properties.length + 1;
+    const propId = `P-0${nextNum}`;
+    const custId = `C-0${nextNum}`;
+    const subId = `SUB-0${nextNum}`;
+    const contractId = `CT-0${nextNum}`;
+    const slug = cleanPropName.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 16) || `hotel${nextNum}`;
+    const seatCount = Math.max(3, Number(seats) || 12);
+
+    const newCustomer: Customer = {
+      id: custId,
+      name: cleanPropName,
+      legalEntity: String(legalEntity || `PT ${cleanPropName} Hospitality`).trim(),
+      type: 'organization',
+      propertyId: propId,
+      partnerId: effectivePartnerId,
+      salesRoute: effectivePartnerId ? 'ISP_RESELLER' : 'DIRECT',
+      status: 'Active',
+    };
+    workspace.customers.push(newCustomer);
+
+    const newProperty: Property = {
+      id: propId,
+      customerId: custId,
+      partnerId: effectivePartnerId,
+      name: cleanPropName,
+      categoryLabel: String(categoryLabel).trim(),
+      city: String(city).trim(),
+      timezone: 'Asia/Jakarta',
+      defaultLocale: 'id',
+      experienceProfile: 'Hospitality',
+      heroImageUrl: '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png',
+      logoText: cleanPropName.toUpperCase().slice(0, 22),
+      logoSubtitle: String(city).toUpperCase(),
+      accentColor: String(accentColor),
+      primaryColor: String(primaryColor),
+      welcomeHeadline: {
+        id: `Selamat datang di ${cleanPropName}`,
+        en: `Welcome to ${cleanPropName}`,
+        'zh-CN': `欢迎下榻 ${cleanPropName}`,
+        'ja-JP': `${cleanPropName} へようこそ`,
+      },
+      welcomeSubline: {
+        id: 'Kenyamanan terhubung di setiap layar kamar Anda',
+        en: 'Every screen. Every stay. One connected experience.',
+        'zh-CN': '尊享智慧客房视听体验',
+        'ja-JP': '洗練されたコネクテッド・ステイをお楽しみください',
+      },
+      wifiSsid: String(wifiSsid || `${cleanPropName.split(' ')[0]}-Guest`).trim(),
+      frontDeskExt: String(frontDeskExt || '0').trim(),
+      resourceVersion: 1,
+    };
+    workspace.properties.push(newProperty);
+
+    const newSubscription: Subscription = {
+      id: subId,
+      customerId: custId,
+      propertyId: propId,
+      buyerId: effectivePartnerId || custId,
+      buyerType: effectivePartnerId ? 'ISP' : 'CUSTOMER',
+      planName: effectivePartnerId ? 'Hospitality Wholesale Seat Pool' : 'Direct Enterprise Hospitality Plan',
+      planVersion: '2026-Q4',
+      seats: seatCount,
+      unitPriceIdr: effectivePartnerId ? 20000 : 25000,
+      status: 'Active',
+      effectiveDate: '2026-11-02',
+    };
+    workspace.subscriptions.push(newSubscription);
+
+    const newContract: ProviderContract = {
+      id: contractId,
+      propertyId: propId,
+      holderName: newCustomer.legalEntity,
+      providerId: 'PRV-VISION',
+      providerName: 'Nusantara Vision Broadcast',
+      basis: 'room',
+      quantity: seatCount,
+      status: 'Active',
+      packages: ['PKG-FREE', 'PKG-BASIC', 'PKG-INTL', 'PKG-SPORTS'],
+      allowedRoomClasses: ['Standard', 'Deluxe', 'Suite'],
+      multiTvIncluded: true,
+      publicAreaAllowed: false,
+      validUntilUtc: '2027-12-31T23:59:59Z',
+      connectionStatus: 'Ready',
+    };
+    workspace.contracts.push(newContract);
+
+    // Auto-create 3 starter rooms + 3 online TV endpoints + 1 active guest stay (Confirmed Decision 2)
+    const starterRooms: Room[] = [
+      {
+        id: `ROOM-${propId}-101`,
+        propertyId: propId,
+        code: '101',
+        roomClass: 'Standard',
+        floor: 1,
+        housekeeping: 'Ready',
+        maintenanceAuthorized: false,
+      },
+      {
+        id: `ROOM-${propId}-102`,
+        propertyId: propId,
+        code: '102',
+        roomClass: 'Deluxe',
+        floor: 1,
+        housekeeping: 'Ready',
+        maintenanceAuthorized: true,
+      },
+      {
+        id: `ROOM-${propId}-201`,
+        propertyId: propId,
+        code: '201',
+        roomClass: 'Suite',
+        floor: 2,
+        housekeeping: 'Ready',
+        maintenanceAuthorized: true,
+      },
+    ];
+    workspace.rooms.push(...starterRooms);
+
+    const starterEndpoints: Endpoint[] = starterRooms.map((rm, idx) => ({
+      id: `E-${propId}-${rm.code}`,
+      propertyId: propId,
+      roomId: rm.id,
+      subscriptionId: subId,
+      label: `${rm.roomClass} Room ${rm.code} TV`,
+      connection: 'Online',
+      capabilityProfile: 'DEMO-MANAGED',
+      modelName: idx === 2 ? 'BRAVIA 4K VH21 (65")' : 'BRAVIA 4K VH21 (50")',
+      manufacturer: 'Sony',
+      androidVersion: '11',
+      sdkInt: 30,
+      appVersion: '2.4.1',
+      desiredVersion: '2.4.1',
+      appliedConfigVersion: 1,
+      lastSeenUtc: workspace.clockUtc,
+      ipHint: `192.168.${10 + nextNum}.${rm.code}`,
+      portHint: 5555,
+      serialRef: `SN-${propId}-${rm.code}`,
+      bindingVersion: 1,
+      origin: 'SEEDED',
+      verificationLevel: 'HEALTHY',
+    }));
+    workspace.endpoints.push(...starterEndpoints);
+
+    const sampleStay: Stay = {
+      id: `S-${propId}-101`,
+      propertyId: propId,
+      roomId: starterRooms[0].id,
+      displayName: 'Bapak Hendra Kusuma',
+      locale: 'id',
+      groupId: null,
+      arrivalUtc: workspace.clockUtc,
+      departureUtc: '2026-11-05T05:00:00Z',
+      status: 'InHouse',
+      contextVersion: 1,
+      ottCleanupStatus: 'NotApplicable',
+    };
+    workspace.stays.push(sampleStay);
+
+    // Auto-create default Property Manager (R-11) & Front Office (R-13) login accounts for this new property
+    const mgrName = String(adminName || `GM ${cleanPropName}`).trim();
+    const mgrEmail = String(adminEmail || `gm@${slug}.com`).trim();
+    const mgrAlias = `${slug}-manager`;
+    const foAlias = `${slug}-frontoffice`;
+
+    const newManagerUser: UserAccount = {
+      id: `USR-${propId}-MGR`,
+      alias: mgrAlias,
+      name: `${mgrName} (${cleanPropName})`,
+      email: mgrEmail,
+      roleId: 'R-11',
+      organizationId: custId,
+      partnerId: effectivePartnerId,
+      propertyIds: [propId],
+      allowedEnvironments: ['DEMO', 'LIVE_LAB'],
+      avatarInitials: mgrName.slice(0, 2).toUpperCase(),
+      badgeLabel: `Property Manager (${propId})`,
+    };
+
+    const newFrontOfficeUser: UserAccount = {
+      id: `USR-${propId}-FO`,
+      alias: foAlias,
+      name: `Front Desk ${cleanPropName}`,
+      email: `fo@${slug}.com`,
+      roleId: 'R-13',
+      organizationId: custId,
+      partnerId: effectivePartnerId,
+      propertyIds: [propId],
+      allowedEnvironments: ['DEMO'],
+      avatarInitials: 'FO',
+      badgeLabel: `Front Office (${propId})`,
+    };
+
+    workspace.userAccounts.push(newManagerUser, newFrontOfficeUser);
+
+    // Grant property visibility to GOJJA-HQ global accounts and parent ISP accounts
+    workspace.userAccounts.forEach((acc) => {
+      if (acc.organizationId === 'GOJJA-HQ' || (effectivePartnerId && acc.partnerId === effectivePartnerId)) {
+        if (!acc.propertyIds.includes(propId)) {
+          acc.propertyIds.push(propId);
+        }
+      }
+    });
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'properties.manage',
+      propId,
+      propId,
+      'ALLOW',
+      'TENANT_PROPERTY_ONBOARDED',
+      `Onboarded property '${cleanPropName}' (${propId}) under ${effectivePartnerId || 'DIRECT'} with ${seatCount} seats, 3 starter rooms/TVs, and login '${newManagerUser.email}'.`
+    );
+
+    return res.json({
+      ok: true,
+      property: newProperty,
+      customer: newCustomer,
+      subscription: newSubscription,
+      createdUsers: [newManagerUser, newFrontOfficeUser],
+      message: `Onboarded '${cleanPropName}' (${propId}) with 3 starter rooms/TVs and Property Manager login (${newManagerUser.email}).`,
+    });
   });
 
   // 3. Reset DEMO Workspace (Never touches LIVE_LAB!)
@@ -762,7 +1107,23 @@ async function startServer() {
 
   // 5. Branding Save Draft & Publish (Enforces Editor vs Publisher separation!)
   app.post('/api/branding/draft', (req: Request, res: Response) => {
-    const { propertyId, logoText, logoSubtitle, accentColor, primaryColor, welcomeHeadline, welcomeSubline, defaultLocale } = req.body;
+    const {
+      propertyId,
+      logoText,
+      logoSubtitle,
+      logoImageUrl,
+      heroImageUrl,
+      heroMediaType,
+      heroVideoUrl,
+      promoMediaType,
+      promoMediaUrl,
+      promoTitle,
+      accentColor,
+      primaryColor,
+      welcomeHeadline,
+      welcomeSubline,
+      defaultLocale,
+    } = req.body;
     const auth = authorizeAction(req, 'branding.edit', propertyId);
     if (!auth.allowed) {
       return res.status(403).json({ code: auth.reasonCode, message: auth.message });
@@ -771,8 +1132,15 @@ async function startServer() {
     const prop = workspace.properties.find((p) => p.id === propertyId);
     if (!prop) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Property not found.' });
 
-    if (logoText) prop.logoText = String(logoText).trim();
-    if (logoSubtitle) prop.logoSubtitle = String(logoSubtitle).trim();
+    if (logoText !== undefined) prop.logoText = String(logoText).trim();
+    if (logoSubtitle !== undefined) prop.logoSubtitle = String(logoSubtitle).trim();
+    if (logoImageUrl !== undefined) prop.logoImageUrl = String(logoImageUrl).trim();
+    if (heroImageUrl !== undefined && String(heroImageUrl).trim()) prop.heroImageUrl = String(heroImageUrl).trim();
+    if (heroMediaType === 'image' || heroMediaType === 'video') prop.heroMediaType = heroMediaType;
+    if (heroVideoUrl !== undefined) prop.heroVideoUrl = String(heroVideoUrl).trim();
+    if (promoMediaType === 'image' || promoMediaType === 'video') prop.promoMediaType = promoMediaType;
+    if (promoMediaUrl !== undefined) prop.promoMediaUrl = String(promoMediaUrl).trim();
+    if (promoTitle !== undefined) prop.promoTitle = String(promoTitle).trim();
     if (accentColor && /^#[0-9A-Fa-f]{6}$/.test(accentColor)) prop.accentColor = accentColor;
     if (primaryColor && /^#[0-9A-Fa-f]{6}$/.test(primaryColor)) prop.primaryColor = primaryColor;
     if (defaultLocale) prop.defaultLocale = defaultLocale as GuestLocale;
@@ -784,6 +1152,27 @@ async function startServer() {
     }
     prop.resourceVersion += 1;
 
+    // Also sync primary active campaign for this property if promoMediaUrl is updated
+    if (promoMediaUrl) {
+      const activeCmp = workspace.campaigns.find((c) => c.propertyId === propertyId && c.status === 'Active');
+      if (activeCmp) {
+        activeCmp.mediaUrl = String(promoMediaUrl).trim();
+        activeCmp.mediaType = promoMediaType === 'video' ? 'video' : 'image';
+        if (promoMediaType === 'image') {
+          activeCmp.imageUrl = String(promoMediaUrl).trim();
+        }
+        if (promoTitle) {
+          activeCmp.name = String(promoTitle).trim();
+          activeCmp.headline = {
+            ...activeCmp.headline,
+            en: String(promoTitle).trim(),
+            id: String(promoTitle).trim(),
+          };
+        }
+        activeCmp.creativeVersion += 1;
+      }
+    }
+
     // Update or add property layer override
     const existingOvr = workspace.profileOverrides.find((o) => o.propertyId === propertyId && o.layer === 'PROPERTY' && o.field === 'accentColor');
     if (existingOvr) {
@@ -793,8 +1182,185 @@ async function startServer() {
     }
 
     saveStore(store);
-    recordAudit(environmentId, user.alias, role.id, 'branding.edit', propertyId, propertyId, 'ALLOW', 'DRAFT_SAVED', `Saved branding draft v${prop.resourceVersion} for ${prop.name}.`);
-    return res.json({ ok: true, property: prop, message: 'Draft saved. Not applied to physical TVs until published.' });
+    recordAudit(environmentId, user.alias, role.id, 'branding.edit', propertyId, propertyId, 'ALLOW', 'DRAFT_SAVED', `Saved branding & media draft v${prop.resourceVersion} for ${prop.name}.`);
+    return res.json({ ok: true, property: prop, message: 'Branding & media draft saved. Ready to preview or publish to TVs.' });
+  });
+
+  // 5B. GojjaCleanTV / GojjaLauncher Non-Root ADB SmartTV Takeover & Reversible Restore
+  app.post('/api/branding/launcher-takeover', async (req: Request, res: Response) => {
+    const {
+      propertyId,
+      action = 'APPLY_GOJJA_LAUNCHER',
+      profile = 'CLEAN_WITH_OTT',
+      disabledPackages = [],
+    } = req.body;
+    const auth = authorizeAction(req, 'branding.edit', propertyId);
+    if (!auth.allowed) {
+      return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+    }
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const prop = workspace.properties.find((p) => p.id === propertyId);
+    if (!prop) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Property not found.' });
+
+    const propEndpoints = workspace.endpoints.filter((e) => e.propertyId === propertyId);
+    const onlineEndpoints = propEndpoints.filter((e) => e.connection === 'Online');
+    const pkgList: string[] = Array.isArray(disabledPackages)
+      ? disabledPackages.map((p) => String(p).trim()).filter(Boolean)
+      : [
+          'com.google.android.tvlauncher',
+          'com.google.android.leanbacklauncher',
+          'com.google.android.leanbacklauncher.recommendations',
+          'com.google.android.tungsten.setupwraith',
+        ];
+
+    const isRestore = action === 'RESTORE_STOCK_LAUNCHER';
+    const transcript: string[] = [];
+    const nowIso = new Date().toISOString();
+
+    for (const ep of onlineEndpoints) {
+      const targetAddr = `${ep.ipHint}:${ep.portHint || 5555}`;
+      transcript.push(`$ adb connect ${targetAddr}  # [${ep.id} · ${ep.modelName}]`);
+      if (isRestore) {
+        for (const pkg of prop.launcherConfig?.disabledPackages || pkgList) {
+          transcript.push(`$ adb -s ${targetAddr} shell pm enable --user 0 ${pkg}`);
+        }
+        transcript.push(`$ adb -s ${targetAddr} shell cmd package set-home-activity com.google.android.tvlauncher/.MainActivity`);
+        transcript.push(`$ adb -s ${targetAddr} shell input keyevent KEYCODE_HOME`);
+      } else {
+        transcript.push(`$ adb -s ${targetAddr} install -r -g GojjaLauncher-v4.2.0-hospitality.apk`);
+        for (const pkg of pkgList) {
+          transcript.push(`$ adb -s ${targetAddr} shell pm disable-user --user 0 ${pkg}`);
+        }
+        transcript.push(`$ adb -s ${targetAddr} shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity`);
+        transcript.push(`$ adb -s ${targetAddr} shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`);
+      }
+      ep.appVersion = isRestore ? 'stock-oem' : 'GojjaLauncher-4.2.0';
+      ep.appliedConfigVersion = prop.resourceVersion;
+    }
+
+    prop.launcherConfig = {
+      mode: isRestore ? 'STOCK_TV_LAUNCHER' : 'GOJJA_LAUNCHER',
+      profile: profile as 'STRICT_KIOSK' | 'CLEAN_WITH_OTT' | 'CUSTOM',
+      disabledPackages: isRestore ? [] : pkgList,
+      lastAppliedAt: nowIso,
+      launcherVersion: isRestore ? 'Stock Android/Google TV Launcher' : 'GojjaLauncher v4.2.0-hospitality',
+      lastAdbTranscript: transcript,
+    };
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'branding.publish',
+      `GojjaCleanTV@${propertyId}`,
+      propertyId,
+      'ALLOW',
+      isRestore ? 'STOCK_LAUNCHER_RESTORED' : 'GOJJA_LAUNCHER_APPLIED',
+      isRestore
+        ? `Re-enabled stock TV launcher packages via ADB on ${onlineEndpoints.length} online TV(s) in ${prop.name}.`
+        : `Applied GojjaCleanTV non-root ADB takeover (disabled ${pkgList.length} stock/ad packages & locked GojjaLauncher Home) on ${onlineEndpoints.length} online TV(s) in ${prop.name}.`
+    );
+
+    return res.json({
+      ok: true,
+      property: prop,
+      transcript,
+      message: isRestore
+        ? `Reversible restore complete: Stock OEM launcher re-enabled on ${onlineEndpoints.length} online TV(s).`
+        : `GojjaLauncher takeover applied on ${onlineEndpoints.length} online TV(s) (${pkgList.length} stock/bloatware packages disabled via non-root ADB).`,
+    });
+  });
+
+  // 5C. Create New Promotional Video / Image Campaign
+  app.post('/api/campaigns/create', (req: Request, res: Response) => {
+    const {
+      propertyId,
+      name,
+      category = 'Spa & Wellness',
+      placement = 'home_hero',
+      mediaType = 'video',
+      mediaUrl,
+      headlineEn,
+      headlineId,
+      ctaLabel = 'Explore Offer',
+      durationSeconds = 30,
+      frequencyCapPerStay = 3,
+    } = req.body;
+    const auth = authorizeAction(req, 'campaigns.edit', propertyId);
+    if (!auth.allowed) {
+      return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+    }
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const cleanName = String(name || '').trim();
+    const cleanMedia = String(mediaUrl || '').trim();
+    if (!cleanName || !cleanMedia) {
+      return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Campaign title and uploaded media/URL are required.' });
+    }
+
+    const nextIdx = workspace.campaigns.length + 1;
+    const newCmp: Campaign = {
+      id: `CMP-0${nextIdx}`,
+      propertyId,
+      name: cleanName,
+      category,
+      placement,
+      status: 'Active',
+      priority: 1,
+      frequencyCapPerStay: Number(frequencyCapPerStay) || 3,
+      durationSeconds: Number(durationSeconds) || 30,
+      skippableAfterSeconds: 5,
+      startUtc: '2026-11-01T00:00:00Z',
+      endUtc: '2026-12-31T23:59:59Z',
+      imageUrl:
+        mediaType === 'image'
+          ? cleanMedia
+          : '/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png',
+      mediaUrl: cleanMedia,
+      mediaType: mediaType === 'video' ? 'video' : 'image',
+      headline: {
+        id: String(headlineId || cleanName).trim(),
+        en: String(headlineEn || cleanName).trim(),
+        'zh-CN': String(headlineEn || cleanName).trim(),
+        'ja-JP': String(headlineEn || cleanName).trim(),
+      },
+      ctaLabel: {
+        id: String(ctaLabel).trim(),
+        en: String(ctaLabel).trim(),
+        'zh-CN': String(ctaLabel).trim(),
+        'ja-JP': String(ctaLabel).trim(),
+      },
+      creativeVersion: 1,
+      startsCount: 1,
+      completedCount: 1,
+      skippedCount: 0,
+      interruptedCount: 0,
+      failedAfterStartCount: 0,
+      totalPlaySeconds: Number(durationSeconds) || 30,
+    };
+    workspace.campaigns.unshift(newCmp);
+
+    // Also set as featured property promo so it immediately shows on TV Preview
+    const prop = workspace.properties.find((p) => p.id === propertyId);
+    if (prop) {
+      prop.promoMediaType = newCmp.mediaType;
+      prop.promoMediaUrl = newCmp.mediaUrl;
+      prop.promoTitle = newCmp.name;
+    }
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'campaigns.edit',
+      newCmp.id,
+      propertyId,
+      'ALLOW',
+      'CAMPAIGN_CREATED',
+      `Created ${newCmp.mediaType} campaign '${newCmp.name}' (${newCmp.id}) for ${propertyId}.`
+    );
+    return res.json({ ok: true, campaign: newCmp, message: `Promotional ${newCmp.mediaType} campaign '${newCmp.name}' published to TV Promo feed.` });
   });
 
   app.post('/api/branding/publish', (req: Request, res: Response) => {

@@ -1,6 +1,321 @@
 {
-  "seedVersion": "gojja-functional-demo-1",
+  "seedVersion": "gojja-functional-demo-3",
   "DEMO": {
+    "userAccounts": [
+      {
+        "id": "USR-01",
+        "alias": "demo-business-owner",
+        "name": "Dyan Raditya Sinukarta",
+        "email": "dyan@gojja.tv",
+        "roleId": "R-01",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "DR",
+        "badgeLabel": "Business Owner"
+      },
+      {
+        "id": "USR-02",
+        "alias": "demo-platform-admin",
+        "name": "Rendra Pratama",
+        "email": "platform.admin@gojja.tv",
+        "roleId": "R-02",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "RP",
+        "badgeLabel": "Platform Admin"
+      },
+      {
+        "id": "USR-03",
+        "alias": "demo-technical-admin-a",
+        "name": "Bima Sakti",
+        "email": "tech.approver@gojja.tv",
+        "roleId": "R-03",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "BS",
+        "badgeLabel": "Technical Admin"
+      },
+      {
+        "id": "USR-04",
+        "alias": "demo-security-admin",
+        "name": "Nadia Kusuma",
+        "email": "security@gojja.tv",
+        "roleId": "R-04",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "NK",
+        "badgeLabel": "Security Admin"
+      },
+      {
+        "id": "USR-05",
+        "alias": "demo-finance",
+        "name": "Sari Wulandari",
+        "email": "finance@gojja.tv",
+        "roleId": "R-05",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "SW",
+        "badgeLabel": "GOJJA Finance"
+      },
+      {
+        "id": "USR-06",
+        "alias": "demo-support",
+        "name": "Bagus Setiawan",
+        "email": "support@gojja.tv",
+        "roleId": "R-06",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "BG",
+        "badgeLabel": "Support L2"
+      },
+      {
+        "id": "USR-07",
+        "alias": "demo-auditor",
+        "name": "Hendra Wijaya",
+        "email": "auditor@gojja.tv",
+        "roleId": "R-07",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "HW",
+        "badgeLabel": "Compliance Auditor"
+      },
+      {
+        "id": "USR-08",
+        "alias": "alpha-admin",
+        "name": "Arif Budiman (Alpha ISP)",
+        "email": "admin@alphahospitality.net.id",
+        "roleId": "R-08",
+        "organizationId": "ISP-A",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "AB",
+        "badgeLabel": "ISP Alpha Admin"
+      },
+      {
+        "id": "USR-09",
+        "alias": "beta-admin",
+        "name": "Made Wirawan (Beta ISP)",
+        "email": "admin@betaconnect.co.id",
+        "roleId": "R-08",
+        "organizationId": "ISP-B",
+        "partnerId": "ISP-B",
+        "propertyIds": [
+          "P-02"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "MW",
+        "badgeLabel": "ISP Beta Admin"
+      },
+      {
+        "id": "USR-10",
+        "alias": "alpha-installer",
+        "name": "Dimas Kurniawan (Field Installer)",
+        "email": "installer@alphahospitality.net.id",
+        "roleId": "R-09",
+        "organizationId": "ISP-A",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "DK",
+        "badgeLabel": "Field Installer"
+      },
+      {
+        "id": "USR-11",
+        "alias": "property-owner",
+        "name": "Kanjeng Gusti (Owner P-01)",
+        "email": "owner@hotelarunika.com",
+        "roleId": "R-10",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "KG",
+        "badgeLabel": "Property Owner"
+      },
+      {
+        "id": "USR-12",
+        "alias": "property-manager",
+        "name": "Putri Maharani (GM P-01)",
+        "email": "you@hotelarunika.com",
+        "roleId": "R-11",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "PM",
+        "badgeLabel": "Property Manager"
+      },
+      {
+        "id": "USR-13",
+        "alias": "content-editor",
+        "name": "Larasati (Marketing Editor P-01)",
+        "email": "editor@hotelarunika.com",
+        "roleId": "R-12",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "LR",
+        "badgeLabel": "Content Editor"
+      },
+      {
+        "id": "USR-14",
+        "alias": "front-office",
+        "name": "Rizky Pratama (Front Office P-01)",
+        "email": "fo@hotelarunika.com",
+        "roleId": "R-13",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "FO",
+        "badgeLabel": "Front Office"
+      },
+      {
+        "id": "USR-15",
+        "alias": "property-analyst",
+        "name": "Kevin Santoso (Analyst P-01)",
+        "email": "analyst@hotelarunika.com",
+        "roleId": "R-14",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "KS",
+        "badgeLabel": "Property Analyst"
+      },
+      {
+        "id": "USR-16",
+        "alias": "property-finance",
+        "name": "Yulia Citra (Finance P-01)",
+        "email": "billing@hotelarunika.com",
+        "roleId": "R-15",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "YC",
+        "badgeLabel": "Property Finance"
+      },
+      {
+        "id": "USR-17",
+        "alias": "guest-room-101",
+        "name": "In-Room Guest (Room 101)",
+        "email": "guest.101@hotelarunika.local",
+        "roleId": "R-16",
+        "organizationId": "C-01",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "GU",
+        "badgeLabel": "Guest Session"
+      }
+    ],
     "partners": [
       {
         "id": "ISP-A",
@@ -62,7 +377,7 @@
         "timezone": "Asia/Jakarta",
         "defaultLocale": "id",
         "experienceProfile": "Hospitality",
-        "heroImageUrl": "/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png",
+        "heroImageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
         "logoText": "HOTEL ARUNIKA",
         "logoSubtitle": "YOGYAKARTA",
         "accentColor": "#DCC6A1",
@@ -81,7 +396,54 @@
         },
         "wifiSsid": "Arunika-Sanctuary-5G",
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
-        "resourceVersion": 4
+        "resourceVersion": 5,
+        "heroMediaType": "video",
+        "promoMediaType": "video",
+        "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "promoTitle": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
+        "launcherConfig": {
+          "mode": "GOJJA_LAUNCHER",
+          "profile": "CLEAN_WITH_OTT",
+          "disabledPackages": [
+            "com.google.android.tvlauncher",
+            "com.google.android.leanbacklauncher"
+          ],
+          "lastAppliedAt": "2026-11-02T14:18:17.421Z",
+          "launcherVersion": "GojjaLauncher v4.2.0-hospitality",
+          "lastAdbTranscript": [
+            "$ adb connect 192.168.10.101:5555  # [E-01 · BRAVIA 4K VH21]",
+            "$ adb -s 192.168.10.101:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
+            "$ adb -s 192.168.10.101:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
+            "$ adb -s 192.168.10.101:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
+            "$ adb -s 192.168.10.101:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
+            "$ adb -s 192.168.10.101:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
+            "$ adb connect 192.168.10.102:5555  # [E-02 · BRAVIA 4K VH21]",
+            "$ adb -s 192.168.10.102:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
+            "$ adb -s 192.168.10.102:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
+            "$ adb -s 192.168.10.102:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
+            "$ adb -s 192.168.10.102:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
+            "$ adb -s 192.168.10.102:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
+            "$ adb connect 192.168.10.103:5555  # [E-03 · BRAVIA 4K VH21]",
+            "$ adb -s 192.168.10.103:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
+            "$ adb -s 192.168.10.103:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
+            "$ adb -s 192.168.10.103:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
+            "$ adb -s 192.168.10.103:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
+            "$ adb -s 192.168.10.103:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
+            "$ adb connect 192.168.10.201:5555  # [E-04 · BRAVIA 4K VH21]",
+            "$ adb -s 192.168.10.201:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
+            "$ adb -s 192.168.10.201:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
+            "$ adb -s 192.168.10.201:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
+            "$ adb -s 192.168.10.201:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
+            "$ adb -s 192.168.10.201:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
+            "$ adb connect 192.168.10.231:5555  # [E-06 · BRAVIA XR 65]",
+            "$ adb -s 192.168.10.231:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
+            "$ adb -s 192.168.10.231:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
+            "$ adb -s 192.168.10.231:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
+            "$ adb -s 192.168.10.231:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
+            "$ adb -s 192.168.10.231:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME"
+          ]
+        },
+        "heroVideoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
       },
       {
         "id": "P-02",
@@ -93,7 +455,7 @@
         "timezone": "Asia/Makassar",
         "defaultLocale": "en",
         "experienceProfile": "Hospitality",
-        "heroImageUrl": "/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png",
+        "heroImageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
         "logoText": "BAYU BALI",
         "logoSubtitle": "OCEANFRONT SUITES",
         "accentColor": "#C8A97E",
@@ -124,7 +486,7 @@
         "timezone": "Asia/Jakarta",
         "defaultLocale": "id",
         "experienceProfile": "Hospitality",
-        "heroImageUrl": "/assets/aistudio/GOJJA_SmartTV_open_future_design_system_c976ac35.png",
+        "heroImageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
         "logoText": "SORA RESIDENCE",
         "logoSubtitle": "SCBD JAKARTA",
         "accentColor": "#94A3B8",
@@ -313,9 +675,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "2.4.1",
+        "appVersion": "GojjaLauncher-4.2.0",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 4,
+        "appliedConfigVersion": 5,
         "lastSeenUtc": "2026-11-02T06:59:00Z",
         "ipHint": "192.168.10.101",
         "portHint": 5555,
@@ -336,9 +698,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "2.4.1",
+        "appVersion": "GojjaLauncher-4.2.0",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 4,
+        "appliedConfigVersion": 5,
         "lastSeenUtc": "2026-11-02T06:59:10Z",
         "ipHint": "192.168.10.102",
         "portHint": 5555,
@@ -359,9 +721,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "2.4.1",
+        "appVersion": "GojjaLauncher-4.2.0",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 4,
+        "appliedConfigVersion": 5,
         "lastSeenUtc": "2026-11-02T06:59:20Z",
         "ipHint": "192.168.10.103",
         "portHint": 5555,
@@ -382,9 +744,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "2.4.0",
+        "appVersion": "GojjaLauncher-4.2.0",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 4,
+        "appliedConfigVersion": 5,
         "lastSeenUtc": "2026-11-02T06:59:05Z",
         "ipHint": "192.168.10.201",
         "portHint": 5555,
@@ -428,9 +790,9 @@
         "manufacturer": "Sony",
         "androidVersion": "12",
         "sdkInt": 31,
-        "appVersion": "2.4.1",
+        "appVersion": "GojjaLauncher-4.2.0",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 4,
+        "appliedConfigVersion": 5,
         "lastSeenUtc": "2026-11-02T06:59:30Z",
         "ipHint": "192.168.10.231",
         "portHint": 5555,
@@ -901,7 +1263,7 @@
       {
         "id": "CMP-01",
         "propertyId": "P-01",
-        "name": "Spa experience — Royal Javanese Ritual",
+        "name": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
         "category": "Spa & Wellness",
         "placement": "home_hero",
         "status": "Active",
@@ -913,8 +1275,8 @@
         "endUtc": "2026-11-30T23:59:59Z",
         "imageUrl": "/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png",
         "headline": {
-          "id": "Waktu untuk Bersantai — Royal Javanese Spa",
-          "en": "Time to Unwind — Royal Javanese Spa Ritual",
+          "id": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
+          "en": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
           "zh-CN": "放松时刻 — 皇家爪哇水疗体验",
           "ja-JP": "癒しのひととき — ロイヤルジャワニーズスパ"
         },
@@ -924,13 +1286,15 @@
           "zh-CN": "查看水疗服务",
           "ja-JP": "スパメニューを見る"
         },
-        "creativeVersion": 2,
+        "creativeVersion": 3,
         "startsCount": 10,
         "completedCount": 6,
         "skippedCount": 2,
         "interruptedCount": 1,
         "failedAfterStartCount": 1,
-        "totalPlaySeconds": 212
+        "totalPlaySeconds": 212,
+        "mediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "mediaType": "video"
       },
       {
         "id": "CMP-02",
@@ -1074,7 +1438,7 @@
         "value": "#DCC6A1",
         "updatedBy": "property-manager",
         "updatedAtUtc": "2026-11-01T08:00:00Z",
-        "version": 4
+        "version": 5
       },
       {
         "id": "OVR-03",
@@ -1398,17 +1762,30 @@
     ],
     "auditEvents": [
       {
-        "id": "AUD-1793523950387-723",
+        "id": "AUD-1793629097422-304",
         "environmentId": "DEMO",
         "timestampUtc": "2026-11-02T07:00:00Z",
         "actorAlias": "property-manager",
         "actorRole": "R-11",
-        "action": "demo.reset",
-        "targetRef": "DEMO_WORKSPACE",
-        "propertyId": null,
+        "action": "branding.publish",
+        "targetRef": "GojjaCleanTV@P-01",
+        "propertyId": "P-01",
         "outcome": "ALLOW",
-        "reasonCode": "SEED_RESTORED",
-        "details": "Restored DEMO workspace to clean seed (30 seats, 14 allocated, 16 available, 12 rooms, 11 online / 3 offline) without modifying LIVE_LAB."
+        "reasonCode": "GOJJA_LAUNCHER_APPLIED",
+        "details": "Applied GojjaCleanTV non-root ADB takeover (disabled 2 stock/ad packages & locked GojjaLauncher Home) on 5 online TV(s) in Hotel Arunika Yogyakarta."
+      },
+      {
+        "id": "AUD-1793629097391-962",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "branding.edit",
+        "targetRef": "P-01",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "DRAFT_SAVED",
+        "details": "Saved branding & media draft v5 for Hotel Arunika Yogyakarta."
       },
       {
         "id": "AUD-001",
@@ -1440,6 +1817,321 @@
     "clockUtc": "2026-11-02T07:00:00Z"
   },
   "LIVE_LAB": {
+    "userAccounts": [
+      {
+        "id": "USR-01",
+        "alias": "demo-business-owner",
+        "name": "Dyan Raditya Sinukarta",
+        "email": "dyan@gojja.tv",
+        "roleId": "R-01",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "DR",
+        "badgeLabel": "Business Owner"
+      },
+      {
+        "id": "USR-02",
+        "alias": "demo-platform-admin",
+        "name": "Rendra Pratama",
+        "email": "platform.admin@gojja.tv",
+        "roleId": "R-02",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "RP",
+        "badgeLabel": "Platform Admin"
+      },
+      {
+        "id": "USR-03",
+        "alias": "demo-technical-admin-a",
+        "name": "Bima Sakti",
+        "email": "tech.approver@gojja.tv",
+        "roleId": "R-03",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "BS",
+        "badgeLabel": "Technical Admin"
+      },
+      {
+        "id": "USR-04",
+        "alias": "demo-security-admin",
+        "name": "Nadia Kusuma",
+        "email": "security@gojja.tv",
+        "roleId": "R-04",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "NK",
+        "badgeLabel": "Security Admin"
+      },
+      {
+        "id": "USR-05",
+        "alias": "demo-finance",
+        "name": "Sari Wulandari",
+        "email": "finance@gojja.tv",
+        "roleId": "R-05",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "SW",
+        "badgeLabel": "GOJJA Finance"
+      },
+      {
+        "id": "USR-06",
+        "alias": "demo-support",
+        "name": "Bagus Setiawan",
+        "email": "support@gojja.tv",
+        "roleId": "R-06",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "BG",
+        "badgeLabel": "Support L2"
+      },
+      {
+        "id": "USR-07",
+        "alias": "demo-auditor",
+        "name": "Hendra Wijaya",
+        "email": "auditor@gojja.tv",
+        "roleId": "R-07",
+        "organizationId": "GOJJA-HQ",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01",
+          "P-02",
+          "P-03"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "HW",
+        "badgeLabel": "Compliance Auditor"
+      },
+      {
+        "id": "USR-08",
+        "alias": "alpha-admin",
+        "name": "Arif Budiman (Alpha ISP)",
+        "email": "admin@alphahospitality.net.id",
+        "roleId": "R-08",
+        "organizationId": "ISP-A",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "AB",
+        "badgeLabel": "ISP Alpha Admin"
+      },
+      {
+        "id": "USR-09",
+        "alias": "beta-admin",
+        "name": "Made Wirawan (Beta ISP)",
+        "email": "admin@betaconnect.co.id",
+        "roleId": "R-08",
+        "organizationId": "ISP-B",
+        "partnerId": "ISP-B",
+        "propertyIds": [
+          "P-02"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "MW",
+        "badgeLabel": "ISP Beta Admin"
+      },
+      {
+        "id": "USR-10",
+        "alias": "alpha-installer",
+        "name": "Dimas Kurniawan (Field Installer)",
+        "email": "installer@alphahospitality.net.id",
+        "roleId": "R-09",
+        "organizationId": "ISP-A",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "DK",
+        "badgeLabel": "Field Installer"
+      },
+      {
+        "id": "USR-11",
+        "alias": "property-owner",
+        "name": "Kanjeng Gusti (Owner P-01)",
+        "email": "owner@hotelarunika.com",
+        "roleId": "R-10",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "KG",
+        "badgeLabel": "Property Owner"
+      },
+      {
+        "id": "USR-12",
+        "alias": "property-manager",
+        "name": "Putri Maharani (GM P-01)",
+        "email": "you@hotelarunika.com",
+        "roleId": "R-11",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO",
+          "LIVE_LAB"
+        ],
+        "avatarInitials": "PM",
+        "badgeLabel": "Property Manager"
+      },
+      {
+        "id": "USR-13",
+        "alias": "content-editor",
+        "name": "Larasati (Marketing Editor P-01)",
+        "email": "editor@hotelarunika.com",
+        "roleId": "R-12",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "LR",
+        "badgeLabel": "Content Editor"
+      },
+      {
+        "id": "USR-14",
+        "alias": "front-office",
+        "name": "Rizky Pratama (Front Office P-01)",
+        "email": "fo@hotelarunika.com",
+        "roleId": "R-13",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "FO",
+        "badgeLabel": "Front Office"
+      },
+      {
+        "id": "USR-15",
+        "alias": "property-analyst",
+        "name": "Kevin Santoso (Analyst P-01)",
+        "email": "analyst@hotelarunika.com",
+        "roleId": "R-14",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "KS",
+        "badgeLabel": "Property Analyst"
+      },
+      {
+        "id": "USR-16",
+        "alias": "property-finance",
+        "name": "Yulia Citra (Finance P-01)",
+        "email": "billing@hotelarunika.com",
+        "roleId": "R-15",
+        "organizationId": "C-01",
+        "partnerId": "ISP-A",
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "YC",
+        "badgeLabel": "Property Finance"
+      },
+      {
+        "id": "USR-17",
+        "alias": "guest-room-101",
+        "name": "In-Room Guest (Room 101)",
+        "email": "guest.101@hotelarunika.local",
+        "roleId": "R-16",
+        "organizationId": "C-01",
+        "partnerId": null,
+        "propertyIds": [
+          "P-01"
+        ],
+        "allowedEnvironments": [
+          "DEMO"
+        ],
+        "avatarInitials": "GU",
+        "badgeLabel": "Guest Session"
+      }
+    ],
     "partners": [
       {
         "id": "ISP-A",
@@ -1501,7 +2193,7 @@
         "timezone": "Asia/Jakarta",
         "defaultLocale": "id",
         "experienceProfile": "Hospitality",
-        "heroImageUrl": "/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png",
+        "heroImageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
         "logoText": "HOTEL ARUNIKA",
         "logoSubtitle": "YOGYAKARTA",
         "accentColor": "#DCC6A1",
@@ -1520,7 +2212,23 @@
         },
         "wifiSsid": "Arunika-Sanctuary-5G",
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
-        "resourceVersion": 4
+        "resourceVersion": 4,
+        "heroMediaType": "image",
+        "promoMediaType": "video",
+        "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "promoTitle": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
+        "launcherConfig": {
+          "mode": "GOJJA_LAUNCHER",
+          "profile": "CLEAN_WITH_OTT",
+          "disabledPackages": [
+            "com.google.android.tvlauncher",
+            "com.google.android.leanbacklauncher",
+            "com.google.android.leanbacklauncher.recommendations",
+            "com.google.android.tungsten.setupwraith"
+          ],
+          "lastAppliedAt": "2026-11-02T05:30:00Z",
+          "launcherVersion": "GojjaLauncher v4.2.0-hospitality"
+        }
       },
       {
         "id": "P-02",
@@ -1532,7 +2240,7 @@
         "timezone": "Asia/Makassar",
         "defaultLocale": "en",
         "experienceProfile": "Hospitality",
-        "heroImageUrl": "/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png",
+        "heroImageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
         "logoText": "BAYU BALI",
         "logoSubtitle": "OCEANFRONT SUITES",
         "accentColor": "#C8A97E",
@@ -1563,7 +2271,7 @@
         "timezone": "Asia/Jakarta",
         "defaultLocale": "id",
         "experienceProfile": "Hospitality",
-        "heroImageUrl": "/assets/aistudio/GOJJA_SmartTV_open_future_design_system_c976ac35.png",
+        "heroImageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
         "logoText": "SORA RESIDENCE",
         "logoSubtitle": "SCBD JAKARTA",
         "accentColor": "#94A3B8",
@@ -2209,7 +2917,7 @@
       {
         "id": "AUD-LIVE-001",
         "environmentId": "LIVE_LAB",
-        "timestampUtc": "2026-11-01T05:08:22.188Z",
+        "timestampUtc": "2026-11-02T14:17:54.697Z",
         "actorAlias": "system",
         "actorRole": "R-02",
         "action": "workspace.init",
@@ -2220,6 +2928,6 @@
         "details": "LIVE_LAB initialized with zero synthetic candidates or fake verified endpoints."
       }
     ],
-    "clockUtc": "2026-11-01T05:08:22.189Z"
+    "clockUtc": "2026-11-02T14:17:54.698Z"
   }
 }

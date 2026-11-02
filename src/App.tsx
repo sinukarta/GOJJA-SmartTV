@@ -40,10 +40,16 @@ import {
   Settings,
   HelpCircle,
   X,
+  Upload,
+  Video,
+  Image as ImageIcon,
+  Terminal,
+  Trash2,
 } from 'lucide-react';
 import {
   EnvironmentId,
   GuestLocale,
+  RoleId,
   RoleDefinition,
   UserAccount,
   Partner,
@@ -70,6 +76,8 @@ import {
   DiscoveryRun,
   AuditEvent,
   ScenarioDefinition,
+  CURATED_BRAND_MEDIA_PRESETS,
+  GOJJA_CLEANTV_PACKAGES,
 } from './data/mockData';
 import { GojjaWordmark, RollingKpiValue } from './components/GojjaWordmark';
 import { TvGuestAppView } from './components/TvGuestAppModal';
@@ -78,6 +86,7 @@ import { LoginLandingView } from './components/LoginLandingView';
 
 type NavTabId =
   | 'overview'
+  | 'tenants'
   | 'rooms'
   | 'guests'
   | 'devices'
@@ -92,6 +101,45 @@ type NavTabId =
   | 'billing'
   | 'support-qa'
   | 'settings';
+
+function getAllowedTabsForRole(roleId: RoleId): NavTabId[] {
+  switch (roleId) {
+    case 'R-01': // Product / Business Owner (GOJJA HQ)
+      return ['overview', 'tenants', 'branding', 'campaigns', 'channels', 'analytics', 'users', 'billing', 'settings'];
+    case 'R-02': // Platform Administrator (GOJJA HQ)
+      return ['overview', 'tenants', 'rooms', 'devices', 'branding', 'campaigns', 'channels', 'users', 'billing', 'support-qa', 'settings'];
+    case 'R-03': // Technical Administrator (GOJJA HQ)
+      return ['overview', 'devices', 'updates', 'support-qa', 'users'];
+    case 'R-04': // Security Administrator (GOJJA HQ)
+      return ['overview', 'users', 'support-qa', 'settings'];
+    case 'R-05': // GOJJA Finance (GOJJA HQ)
+      return ['overview', 'tenants', 'billing', 'users'];
+    case 'R-06': // Support Operator (GOJJA HQ)
+      return ['overview', 'devices', 'support-qa', 'users'];
+    case 'R-07': // Compliance Auditor (GOJJA HQ)
+      return ['overview', 'analytics', 'billing', 'support-qa'];
+    case 'R-08': // ISP Partner Administrator
+      return ['overview', 'tenants', 'rooms', 'devices', 'channels', 'billing', 'support-qa', 'users'];
+    case 'R-09': // Partner / Assigned Field Installer
+      return ['overview', 'devices', 'discovery', 'rooms'];
+    case 'R-10': // Property Owner
+      return ['overview', 'rooms', 'devices', 'branding', 'tv-services', 'campaigns', 'channels', 'updates', 'analytics', 'billing', 'settings'];
+    case 'R-11': // Property Manager
+      return ['overview', 'rooms', 'devices', 'branding', 'tv-services', 'campaigns', 'channels', 'updates', 'analytics', 'support-qa', 'settings', 'users'];
+    case 'R-12': // Content Editor
+      return ['overview', 'branding', 'tv-services', 'campaigns'];
+    case 'R-13': // Front Office
+      return ['overview', 'rooms', 'devices'];
+    case 'R-14': // Property Analyst
+      return ['overview', 'analytics'];
+    case 'R-15': // Property Finance
+      return ['overview', 'billing'];
+    case 'R-16': // In-Room Guest
+      return ['overview'];
+    default:
+      return ['overview', 'rooms', 'devices'];
+  }
+}
 
 interface BootstrapPayload {
   environmentId: EnvironmentId;
@@ -202,9 +250,24 @@ export default function App() {
   // TV Guest App Modal state
   const [tvModalEndpointId, setTvModalEndpointId] = useState<string | null>(null);
 
-  // Branding Editor local form state
+  // Branding Editor local form state (Real Media Upload + Presets + GojjaCleanTV)
   const [brandLogoText, setBrandLogoText] = useState<string>('HOTEL ARUNIKA');
   const [brandLogoSubtitle, setBrandLogoSubtitle] = useState<string>('YOGYAKARTA');
+  const [brandLogoImageUrl, setBrandLogoImageUrl] = useState<string>('');
+  const [brandHeroMediaType, setBrandHeroMediaType] = useState<'image' | 'video'>('image');
+  const [brandHeroImageUrl, setBrandHeroImageUrl] = useState<string>(
+    '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png'
+  );
+  const [brandHeroVideoUrl, setBrandHeroVideoUrl] = useState<string>(
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+  );
+  const [brandPromoMediaType, setBrandPromoMediaType] = useState<'image' | 'video'>('video');
+  const [brandPromoMediaUrl, setBrandPromoMediaUrl] = useState<string>(
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+  );
+  const [brandPromoTitle, setBrandPromoTitle] = useState<string>(
+    'Royal Javanese Spa • Complimentary 30-Min Welcome Ritual'
+  );
   const [brandAccentColor, setBrandAccentColor] = useState<string>('#DCC6A1');
   const [brandPrimaryColor, setBrandPrimaryColor] = useState<string>('#1E3A2F');
   const [brandLocaleTab, setBrandLocaleTab] = useState<GuestLocale>('en');
@@ -214,6 +277,26 @@ export default function App() {
     'zh-CN': '欢迎下榻日惹阿鲁尼卡酒店',
     'ja-JP': 'ジョグジャカルタの静寂なサンクチュアリへようこそ',
   });
+
+  // GojjaCleanTV / GojjaLauncher Non-Root ADB Takeover state
+  const [cleanTvProfile, setCleanTvProfile] = useState<'STRICT_KIOSK' | 'CLEAN_WITH_OTT' | 'CUSTOM'>('CLEAN_WITH_OTT');
+  const [cleanTvDisabledPackages, setCleanTvDisabledPackages] = useState<string[]>([
+    'com.google.android.tvlauncher',
+    'com.google.android.leanbacklauncher',
+    'com.google.android.leanbacklauncher.recommendations',
+    'com.google.android.tungsten.setupwraith',
+  ]);
+  const [cleanTvTranscript, setCleanTvTranscript] = useState<string[]>([]);
+
+  // New Campaign Upload form state
+  const [newCmpName, setNewCmpName] = useState<string>('');
+  const [newCmpCategory, setNewCmpCategory] = useState<Campaign['category']>('Spa & Wellness');
+  const [newCmpPlacement, setNewCmpPlacement] = useState<Campaign['placement']>('home_hero');
+  const [newCmpMediaType, setNewCmpMediaType] = useState<'image' | 'video'>('video');
+  const [newCmpMediaUrl, setNewCmpMediaUrl] = useState<string>(
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+  );
+  const [newCmpCta, setNewCmpCta] = useState<string>('Reserve via Concierge');
 
   // Room & Stay creation state
   const [newRoomCode, setNewRoomCode] = useState<string>('');
@@ -225,6 +308,20 @@ export default function App() {
 
   // Finance Payment Verification form state
   const [paymentTxRef, setPaymentTxRef] = useState<string>('TRX-ALPHA-20261102-901');
+
+  // Multi-Tenant Onboarding state (Add ISP Partner & Add Tenant Property)
+  const [newIspName, setNewIspName] = useState<string>('');
+  const [newIspRegion, setNewIspRegion] = useState<string>('Bali & Nusa Tenggara');
+  const [newIspEmail, setNewIspEmail] = useState<string>('');
+  const [newIspAdminName, setNewIspAdminName] = useState<string>('');
+
+  const [newTenantName, setNewTenantName] = useState<string>('');
+  const [newTenantCity, setNewTenantCity] = useState<string>('Bali');
+  const [newTenantPartnerId, setNewTenantPartnerId] = useState<string>('ISP-A');
+  const [newTenantSeats, setNewTenantSeats] = useState<number>(15);
+  const [newTenantWifi, setNewTenantWifi] = useState<string>('');
+  const [newTenantAdminName, setNewTenantAdminName] = useState<string>('');
+  const [newTenantAdminEmail, setNewTenantAdminEmail] = useState<string>('');
 
   // Acceptance Test Runner state
   const [acceptanceReport, setAcceptanceReport] = useState<{
@@ -319,9 +416,22 @@ export default function App() {
           setSelectedPropertyId(propToUse.id);
           setBrandLogoText(propToUse.logoText);
           setBrandLogoSubtitle(propToUse.logoSubtitle);
+          setBrandLogoImageUrl(propToUse.logoImageUrl || '');
+          setBrandHeroMediaType(propToUse.heroMediaType || 'image');
+          setBrandHeroImageUrl(propToUse.heroImageUrl);
+          if (propToUse.heroVideoUrl) setBrandHeroVideoUrl(propToUse.heroVideoUrl);
+          setBrandPromoMediaType(propToUse.promoMediaType || 'video');
+          if (propToUse.promoMediaUrl) setBrandPromoMediaUrl(propToUse.promoMediaUrl);
+          if (propToUse.promoTitle) setBrandPromoTitle(propToUse.promoTitle);
           setBrandAccentColor(propToUse.accentColor);
           setBrandPrimaryColor(propToUse.primaryColor);
           setBrandHeadline(propToUse.welcomeHeadline);
+          if (propToUse.launcherConfig?.disabledPackages?.length) {
+            setCleanTvDisabledPackages(propToUse.launcherConfig.disabledPackages);
+          }
+          if (propToUse.launcherConfig?.lastAdbTranscript?.length) {
+            setCleanTvTranscript(propToUse.launcherConfig.lastAdbTranscript);
+          }
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Failed to load workspace';
@@ -344,12 +454,140 @@ export default function App() {
     }, 6000);
   };
 
+  const handleUploadFileToDataUrl = (
+    file: File | undefined,
+    maxMb: number,
+    onSuccess: (dataUrl: string, detectedType: 'image' | 'video', fileName: string) => void
+  ) => {
+    if (!file) return;
+    const sizeMb = file.size / (1024 * 1024);
+    if (sizeMb > maxMb) {
+      showNotice('error', `File '${file.name}' (${sizeMb.toFixed(1)} MB) exceeds the ${maxMb} MB browser upload limit.`);
+      return;
+    }
+    const detectedType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        onSuccess(reader.result, detectedType, file.name);
+        showNotice('success', `Uploaded ${detectedType} '${file.name}' (${sizeMb.toFixed(2)} MB) into live preview.`);
+      }
+    };
+    reader.onerror = () => {
+      showNotice('error', `Could not read file '${file.name}'.`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownloadGojjaCleanTvScript = (prop: Property, endpoints: Endpoint[], packagesToDisable: string[]) => {
+    const onlineIps = endpoints.map((e) => `${e.ipHint}:${e.portHint || 5555}`);
+    const pkgLines = packagesToDisable.map((p) => `  "${p}"`).join('\n');
+    const ipLines = (onlineIps.length ? onlineIps : ['192.168.10.101:5555']).map((ip) => `  "${ip}"`).join('\n');
+
+    const scriptContent = `#!/usr/bin/env bash
+# ==============================================================================
+# GojjaCleanTV (GojjaLauncher) — Non-Root Android TV / Google TV Takeover Script
+# Architecture aligned with Gathin23/cleanyourtv + GOJJA SmartTV Hospitality CMS
+# Property: ${prop.name} (${prop.id}) | City: ${prop.city}
+# Generated: ${new Date().toISOString()}
+# ==============================================================================
+# Usage:
+#   chmod +x gojja-cleantv-${prop.id.toLowerCase()}.sh
+#   ./gojja-cleantv-${prop.id.toLowerCase()}.sh --apply     # Disable stock ad launcher & set GojjaLauncher
+#   ./gojja-cleantv-${prop.id.toLowerCase()}.sh --restore   # Re-enable stock OEM launcher (100% reversible)
+# ==============================================================================
+
+set -euo pipefail
+
+MODE="\${1:---apply}"
+GOJJA_LAUNCHER_PKG="tv.gojja.hospitality.launcher"
+GOJJA_HOME_ACTIVITY="tv.gojja.hospitality.launcher/.GojjaHomeActivity"
+GOJJA_APK_FILE="\${GOJJA_APK_FILE:-GojjaLauncher-v4.2.0-hospitality.apk}"
+
+TV_TARGETS=(
+${ipLines}
+)
+
+PACKAGES_TO_DISABLE=(
+${pkgLines}
+)
+
+echo "=================================================================="
+echo " GOJJA SmartTV · GojjaCleanTV Non-Root ADB Provisioner"
+echo " Property: ${prop.name} (${prop.id})"
+echo " Mode:     \${MODE}"
+echo "=================================================================="
+
+if ! command -v adb >/dev/null 2>&1; then
+  echo "[ERROR] 'adb' (Android Platform Tools) is not installed in PATH."
+  exit 1
+fi
+
+for TARGET in "\${TV_TARGETS[@]}"; do
+  echo ""
+  echo ">>> Connecting to SmartTV at \${TARGET} ..."
+  adb connect "\${TARGET}" || continue
+
+  if [[ "\${MODE}" == "--restore" ]]; then
+    echo ">>> [RESTORE] Re-enabling stock Android TV / Google TV packages on \${TARGET}..."
+    for PKG in "\${PACKAGES_TO_DISABLE[@]}"; do
+      adb -s "\${TARGET}" shell pm enable --user 0 "\${PKG}" 2>/dev/null || true
+      echo "    + Enabled \${PKG}"
+    done
+    adb -s "\${TARGET}" shell cmd package set-home-activity com.google.android.tvlauncher/.MainActivity 2>/dev/null || true
+    adb -s "\${TARGET}" shell input keyevent KEYCODE_HOME
+    echo ">>> [OK] Stock TV launcher restored on \${TARGET}."
+  else
+    echo ">>> [BACKUP] Saving current enabled package snapshot..."
+    adb -s "\${TARGET}" shell pm list packages -e > "gojja_backup_\${TARGET//[:.]/_}.txt" || true
+
+    if [[ -f "\${GOJJA_APK_FILE}" ]]; then
+      echo ">>> [INSTALL] Installing \${GOJJA_APK_FILE} on \${TARGET}..."
+      adb -s "\${TARGET}" install -r -g "\${GOJJA_APK_FILE}"
+    fi
+
+    echo ">>> [DEBLOAT] Disabling stock ad-heavy launcher & bloatware (non-root pm disable-user)..."
+    for PKG in "\${PACKAGES_TO_DISABLE[@]}"; do
+      adb -s "\${TARGET}" shell pm disable-user --user 0 "\${PKG}" 2>/dev/null || true
+      echo "    - Disabled \${PKG}"
+    done
+
+    echo ">>> [LOCK HOME] Setting GojjaLauncher as default Hospitality Home Activity..."
+    adb -s "\${TARGET}" shell cmd package set-home-activity "\${GOJJA_HOME_ACTIVITY}" 2>/dev/null || true
+    adb -s "\${TARGET}" shell am start -a android.intent.action.MAIN -c android.intent.category.HOME
+    echo ">>> [OK] GojjaLauncher active on \${TARGET} (${prop.logoText})."
+  fi
+done
+
+echo ""
+echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
+`;
+
+    const blob = new Blob([scriptContent], { type: 'text/x-shellscript;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gojja-cleantv-${prop.id.toLowerCase()}.sh`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showNotice('success', `Downloaded gojja-cleantv-${prop.id.toLowerCase()}.sh script (${endpoints.length} TV endpoints configured).`);
+  };
+
   const handleLoginSuccess = async (account: UserAccount, env: EnvironmentId) => {
     setPersonaAlias(account.alias);
     setEnvironmentId(env);
     await fetchBootstrap(account.alias, env);
+    if (account.propertyIds && account.propertyIds.length > 0) {
+      setSelectedPropertyId(account.propertyIds[0]);
+    }
+    const allowed = getAllowedTabsForRole(account.roleId);
     if (account.roleId === 'R-16') {
       setTvModalEndpointId('E-01');
+      setActiveTab('overview');
+    } else if (account.roleId === 'R-01' || account.roleId === 'R-02' || account.roleId === 'R-08') {
+      setActiveTab('tenants');
     } else if (account.roleId === 'R-09') {
       setActiveTab('discovery');
     } else if (account.roleId === 'R-05' || account.roleId === 'R-15') {
@@ -357,11 +595,11 @@ export default function App() {
     } else if (account.roleId === 'R-12') {
       setActiveTab('branding');
     } else if (account.roleId === 'R-13') {
-      setActiveTab('guests');
+      setActiveTab('rooms');
     } else if (account.roleId === 'R-14') {
       setActiveTab('analytics');
     } else {
-      setActiveTab('overview');
+      setActiveTab(allowed[0] || 'overview');
     }
     setViewMode('dashboard');
     showNotice('info', `Signed in as ${account.name} (${account.roleId} · ${account.badgeLabel}) in ${env} workspace.`);
@@ -473,8 +711,11 @@ export default function App() {
     );
   }
 
-  const workspaceNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const allowedTabs = getAllowedTabsForRole(currentRole.id);
+
+  const allWorkspaceNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'tenants', label: 'Tenants & ISPs', icon: Building2 },
     { id: 'rooms', label: 'Rooms & Guests', icon: Bed },
     { id: 'devices', label: 'Devices', icon: Tv },
     { id: 'discovery', label: 'Discovery & Deploy', icon: Radar },
@@ -486,12 +727,16 @@ export default function App() {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
-  const adminNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const allAdminNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'users', label: 'Users & Access', icon: ShieldCheck },
     { id: 'billing', label: 'Subscription', icon: CreditCard },
     { id: 'support-qa', label: 'Support', icon: LifeBuoy },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  // Filter sidebar items strictly by role permissions (Confirmed Decision 1)
+  const workspaceNav = allWorkspaceNav.filter((item) => allowedTabs.includes(item.id));
+  const adminNav = allAdminNav.filter((item) => allowedTabs.includes(item.id));
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-[var(--cms-bg)] text-[var(--cms-text)] flex flex-col font-sans">
@@ -534,9 +779,22 @@ export default function App() {
                 if (p) {
                   setBrandLogoText(p.logoText);
                   setBrandLogoSubtitle(p.logoSubtitle);
+                  setBrandLogoImageUrl(p.logoImageUrl || '');
+                  setBrandHeroMediaType(p.heroMediaType || 'image');
+                  setBrandHeroImageUrl(p.heroImageUrl);
+                  if (p.heroVideoUrl) setBrandHeroVideoUrl(p.heroVideoUrl);
+                  setBrandPromoMediaType(p.promoMediaType || 'video');
+                  if (p.promoMediaUrl) setBrandPromoMediaUrl(p.promoMediaUrl);
+                  if (p.promoTitle) setBrandPromoTitle(p.promoTitle);
                   setBrandAccentColor(p.accentColor);
                   setBrandPrimaryColor(p.primaryColor);
                   setBrandHeadline(p.welcomeHeadline);
+                  if (p.launcherConfig?.disabledPackages?.length) {
+                    setCleanTvDisabledPackages(p.launcherConfig.disabledPackages);
+                  }
+                  if (p.launcherConfig?.lastAdbTranscript?.length) {
+                    setCleanTvTranscript(p.launcherConfig.lastAdbTranscript);
+                  }
                 }
               }}
               aria-label="Select active property"
@@ -722,52 +980,56 @@ export default function App() {
                 </nav>
               </div>
 
-              {/* Group 2: ADMINISTRATION */}
-              <div className="space-y-1">
-                <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                  ADMINISTRATION
+              {/* Group 2: ADMINISTRATION (Rendered only if role has admin tabs) */}
+              {adminNav.length > 0 && (
+                <div className="space-y-1">
+                  <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                    ADMINISTRATION
+                  </div>
+                  <nav className="space-y-0.5 pt-1">
+                    {adminNav.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                            isActive
+                              ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
+                              : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
                 </div>
-                <nav className="space-y-0.5 pt-1">
-                  {adminNav.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveTab(item.id);
-                          setMobileMenuOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                          isActive
-                            ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
-                            : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
+              )}
 
               {/* Need help? link */}
-              <div className="px-3 pt-1">
-                <a
-                  href="#help"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab('support-qa');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Need help?</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
+              {allowedTabs.includes('support-qa') && (
+                <div className="px-3 pt-1">
+                  <a
+                    href="#help"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('support-qa');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span>Need help?</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Pinned Bottom Resort Card Footer in Drawer */}
@@ -851,48 +1113,52 @@ export default function App() {
               </nav>
             </div>
 
-            {/* Group 2: ADMINISTRATION */}
-            <div className="space-y-1">
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                ADMINISTRATION
+            {/* Group 2: ADMINISTRATION (Rendered only if role has admin tabs) */}
+            {adminNav.length > 0 && (
+              <div className="space-y-1">
+                <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                  ADMINISTRATION
+                </div>
+                <nav className="space-y-0.5 pt-1">
+                  {adminNav.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
+                            : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
               </div>
-              <nav className="space-y-0.5 pt-1">
-                {adminNav.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-semibold shadow-xs'
-                          : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+            )}
 
             {/* Need help? link */}
-            <div className="px-3 pt-1">
-              <a
-                href="#help"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab('support-qa');
-                }}
-                className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-                <span>Need help?</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
+            {allowedTabs.includes('support-qa') && (
+              <div className="px-3 pt-1">
+                <a
+                  href="#help"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab('support-qa');
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Need help?</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* 3. Pinned Bottom Resort Photo Card Footer (Always stays anchored at bottom of sidebar) */}
@@ -1832,15 +2098,15 @@ export default function App() {
           )}
 
           {/* ===================================================================== */}
-          {/* TAB 4: BRANDING & CONTENT (Matches 03 / BRANDING & CAMPAIGNS Mockup) */}
+          {/* TAB 4: BRAND STUDIO + REAL MEDIA UPLOADS + GOJJACLEANTV ADB LAUNCHER  */}
           {/* ===================================================================== */}
           {activeTab === 'branding' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Branding & content</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Brand Studio & SmartTV Launcher</h1>
                   <p className="text-sm text-[var(--cms-text-secondary)]">
-                    Personalise the guest experience with your hotel’s identity and curated content.
+                    Upload real hotel logos, looping background videos/photos, promotional videos, and replace stock SmartTV launchers via non-root ADB (`GojjaCleanTV`).
                   </p>
                 </div>
                 <div className="text-xs font-mono-tabular text-[var(--cms-text-secondary)]">
@@ -1848,43 +2114,297 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Two-Column Split Editor + Live Embedded TV Home Preview (Matches 03 / BRANDING & CAMPAIGNS) */}
+              {/* Two-Column Split Editor + Live Embedded TV Home Preview */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Column: Hotel Logo, Theme Colors, Welcome Video, Guest Locale */}
-                <div className="lg:col-span-5 p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
-                  {/* Hotel Logo Slot */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold">Hotel logo</label>
+                {/* Left Column: Real Media Uploaders (Logo, Hero Background Video/Image, Promo Video/Image, Colors, Locales) */}
+                <div className="lg:col-span-5 p-5 sm:p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-6">
+                  {/* 1. REAL HOTEL LOGO UPLOAD + PRESETS + WORDMARK */}
+                  <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold uppercase tracking-wider">1. Hotel Brand Logo (Upload / Preset / Text)</label>
+                      {brandLogoImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setBrandLogoImageUrl('')}
+                          className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Clear Image</span>
+                        </button>
+                      )}
+                    </div>
+
                     <div className="flex items-center gap-4">
-                      <div className="w-36 h-24 rounded-xl border border-dashed border-[var(--cms-control-border)] bg-[var(--cms-bg)] flex flex-col items-center justify-center p-3 text-center">
-                        <Sparkles className="w-5 h-5 text-[#DCC6A1] mb-1" />
-                        <div className="text-xs font-bold tracking-wider">{brandLogoText}</div>
-                        <div className="text-[9px] tracking-widest text-[var(--cms-text-secondary)]">
-                          {brandLogoSubtitle}
+                      <div className="w-32 h-24 rounded-xl border border-dashed border-[var(--cms-control-border)] bg-[#10151C] flex flex-col items-center justify-center p-2.5 text-center shrink-0 relative overflow-hidden">
+                        {brandLogoImageUrl ? (
+                          <img
+                            src={brandLogoImageUrl}
+                            alt="Uploaded Hotel Logo"
+                            referrerPolicy="no-referrer"
+                            className="w-12 h-12 object-contain mb-1"
+                          />
+                        ) : (
+                          <Sparkles className="w-5 h-5 text-[#DCC6A1] mb-1" />
+                        )}
+                        <div className="text-[11px] font-bold tracking-wider text-[#F8F5EE] truncate w-full">{brandLogoText}</div>
+                        <div className="text-[9px] tracking-widest text-[#DCC6A1] truncate w-full">{brandLogoSubtitle}</div>
+                      </div>
+
+                      <div className="flex-1 space-y-2 text-xs">
+                        <label className="w-full py-2 px-3 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload Logo File (PNG/SVG/JPG)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              handleUploadFileToDataUrl(file, 10, (dataUrl) => {
+                                setBrandLogoImageUrl(dataUrl);
+                              });
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={brandLogoImageUrl}
+                          onChange={(e) => setBrandLogoImageUrl(e.target.value)}
+                          placeholder="Or paste Logo Image / SVG URL..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-[11px]"
+                        />
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <input
+                            type="text"
+                            value={brandLogoText}
+                            onChange={(e) => setBrandLogoText(e.target.value)}
+                            placeholder="Hotel Brand Title"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-semibold text-xs"
+                          />
+                          <input
+                            type="text"
+                            value={brandLogoSubtitle}
+                            onChange={(e) => setBrandLogoSubtitle(e.target.value)}
+                            placeholder="Location Subtitle"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs"
+                          />
                         </div>
                       </div>
-                      <div className="flex-1 space-y-2 text-xs">
-                        <input
-                          type="text"
-                          value={brandLogoText}
-                          onChange={(e) => setBrandLogoText(e.target.value)}
-                          placeholder="Hotel Brand Title"
-                          className="w-full px-3 py-1.5 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-semibold"
-                        />
-                        <input
-                          type="text"
-                          value={brandLogoSubtitle}
-                          onChange={(e) => setBrandLogoSubtitle(e.target.value)}
-                          placeholder="Location Subtitle"
-                          className="w-full px-3 py-1.5 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
-                        />
+                    </div>
+
+                    {/* Curated Hotel Logo Crest Presets */}
+                    <div className="space-y-1">
+                      <span className="text-[11px] text-[var(--cms-text-secondary)] block">Quick-Test Hotel Crest Presets:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CURATED_BRAND_MEDIA_PRESETS.logos.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setBrandLogoImageUrl(preset.url)}
+                            className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+                              brandLogoImageUrl === preset.url
+                                ? 'bg-[#0050F5]/15 border-[#0050F5] text-[#0050F5] dark:text-[#C7B9FF]'
+                                : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
 
-                  {/* Theme Colors Swatches */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold">Theme colors (Property Override Layer)</label>
+                  {/* 2. HERO WELCOME BACKGROUND: IMAGE OR LOOPING VIDEO UPLOAD */}
+                  <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold uppercase tracking-wider">2. TV Home Background (Photo or Video)</label>
+                      <div className="inline-flex rounded-lg bg-[var(--cms-bg)] p-0.5 border border-[var(--cms-divider)] text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => setBrandHeroMediaType('image')}
+                          className={`px-2.5 py-1 rounded-md font-semibold inline-flex items-center gap-1 ${
+                            brandHeroMediaType === 'image' ? 'bg-[#0050F5] text-white' : 'text-[var(--cms-text-secondary)]'
+                          }`}
+                        >
+                          <ImageIcon className="w-3 h-3" />
+                          <span>Photo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBrandHeroMediaType('video')}
+                          className={`px-2.5 py-1 rounded-md font-semibold inline-flex items-center gap-1 ${
+                            brandHeroMediaType === 'video' ? 'bg-[#0050F5] text-white' : 'text-[var(--cms-text-secondary)]'
+                          }`}
+                        >
+                          <Video className="w-3 h-3" />
+                          <span>Video Loop</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 h-16 rounded-xl overflow-hidden bg-slate-900 border border-[var(--cms-divider)] shrink-0 relative">
+                        {brandHeroMediaType === 'video' && brandHeroVideoUrl ? (
+                          <video src={brandHeroVideoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={brandHeroImageUrl} alt="Hero Backdrop" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1.5 text-xs">
+                        <label className="w-full py-1.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-control-border)] font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="w-3.5 h-3.5 text-[#0050F5]" />
+                          <span>Upload {brandHeroMediaType === 'video' ? 'MP4/WebM Video' : '4K Background Photo'}</span>
+                          <input
+                            type="file"
+                            accept={brandHeroMediaType === 'video' ? 'video/*,image/*' : 'image/*,video/*'}
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              handleUploadFileToDataUrl(file, 22, (dataUrl, detectedType) => {
+                                setBrandHeroMediaType(detectedType);
+                                if (detectedType === 'video') {
+                                  setBrandHeroVideoUrl(dataUrl);
+                                } else {
+                                  setBrandHeroImageUrl(dataUrl);
+                                }
+                              });
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={brandHeroMediaType === 'video' ? brandHeroVideoUrl : brandHeroImageUrl}
+                          onChange={(e) =>
+                            brandHeroMediaType === 'video'
+                              ? setBrandHeroVideoUrl(e.target.value)
+                              : setBrandHeroImageUrl(e.target.value)
+                          }
+                          placeholder={brandHeroMediaType === 'video' ? 'Paste MP4/WebM video URL...' : 'Paste 4K image URL...'}
+                          className="w-full px-2.5 py-1 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {CURATED_BRAND_MEDIA_PRESETS.heroBackgrounds.map((bg) => (
+                        <button
+                          key={bg.id}
+                          type="button"
+                          onClick={() => {
+                            setBrandHeroMediaType(bg.type);
+                            if (bg.type === 'video') setBrandHeroVideoUrl(bg.url);
+                            else setBrandHeroImageUrl(bg.url);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+                            (bg.type === 'video' && brandHeroMediaType === 'video' && brandHeroVideoUrl === bg.url) ||
+                            (bg.type === 'image' && brandHeroMediaType === 'image' && brandHeroImageUrl === bg.url)
+                              ? 'bg-[#0050F5]/15 border-[#0050F5] text-[#0050F5] dark:text-[#C7B9FF]'
+                              : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] text-[var(--cms-text-secondary)]'
+                          }`}
+                        >
+                          {bg.type === 'video' ? '🎬 ' : '🖼️ '}
+                          {bg.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. PROMOTIONAL VIDEO OR IMAGE SHOWCASE UPLOAD (Syncs with 04 Promo Screen) */}
+                  <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold uppercase tracking-wider">3. Promotional Video / Image (04 Promo)</label>
+                      <div className="inline-flex rounded-lg bg-[var(--cms-bg)] p-0.5 border border-[var(--cms-divider)] text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => setBrandPromoMediaType('video')}
+                          className={`px-2.5 py-1 rounded-md font-semibold ${
+                            brandPromoMediaType === 'video' ? 'bg-[#0050F5] text-white' : 'text-[var(--cms-text-secondary)]'
+                          }`}
+                        >
+                          Promo Video
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBrandPromoMediaType('image')}
+                          className={`px-2.5 py-1 rounded-md font-semibold ${
+                            brandPromoMediaType === 'image' ? 'bg-[#0050F5] text-white' : 'text-[var(--cms-text-secondary)]'
+                          }`}
+                        >
+                          Promo Image
+                        </button>
+                      </div>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={brandPromoTitle}
+                      onChange={(e) => setBrandPromoTitle(e.target.value)}
+                      placeholder="Promotion Headline (e.g., Royal Javanese Spa • 30-Min Ritual)"
+                      className="w-full px-3 py-1.5 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs font-semibold"
+                    />
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 h-16 rounded-xl overflow-hidden bg-slate-900 border border-[var(--cms-divider)] shrink-0">
+                        {brandPromoMediaType === 'video' ? (
+                          <video src={brandPromoMediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={brandPromoMediaUrl} alt="Promo Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1.5 text-xs">
+                        <label className="w-full py-1.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-control-border)] font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="w-3.5 h-3.5 text-[#0050F5]" />
+                          <span>Upload Promo Video / Image</span>
+                          <input
+                            type="file"
+                            accept="video/*,image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              handleUploadFileToDataUrl(file, 22, (dataUrl, detectedType, fileName) => {
+                                setBrandPromoMediaType(detectedType);
+                                setBrandPromoMediaUrl(dataUrl);
+                                if (!brandPromoTitle) setBrandPromoTitle(fileName.replace(/\.[^.]+$/, ''));
+                              });
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={brandPromoMediaUrl}
+                          onChange={(e) => setBrandPromoMediaUrl(e.target.value)}
+                          placeholder="Or paste Promo Video (.mp4) / Image URL..."
+                          className="w-full px-2.5 py-1 rounded-lg bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {CURATED_BRAND_MEDIA_PRESETS.promoMedia.map((pm) => (
+                        <button
+                          key={pm.id}
+                          type="button"
+                          onClick={() => {
+                            setBrandPromoMediaType(pm.type);
+                            setBrandPromoMediaUrl(pm.url);
+                            setBrandPromoTitle(pm.title);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+                            brandPromoMediaUrl === pm.url
+                              ? 'bg-[#0050F5]/15 border-[#0050F5] text-[#0050F5] dark:text-[#C7B9FF]'
+                              : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] text-[var(--cms-text-secondary)]'
+                          }`}
+                        >
+                          {pm.type === 'video' ? '▶ ' : '🖼️ '}
+                          {pm.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Theme Colors & 4-Locale Guest Copy */}
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold uppercase tracking-wider">4. Theme Colors & 4-Locale Copy</label>
                     <div className="flex items-center gap-3">
                       {[
                         { primary: '#1E3A2F', accent: '#DCC6A1', name: 'Javanese Sanctuary' },
@@ -1900,7 +2420,7 @@ export default function App() {
                             setBrandAccentColor(swatch.accent);
                           }}
                           title={swatch.name}
-                          className={`w-9 h-9 rounded-full border-2 transition-transform ${
+                          className={`w-8 h-8 rounded-full border-2 transition-transform ${
                             brandAccentColor === swatch.accent ? 'scale-110 border-[#0050F5]' : 'border-transparent'
                           }`}
                           style={{ background: `linear-gradient(135deg, ${swatch.primary} 50%, ${swatch.accent} 50%)` }}
@@ -1910,38 +2430,12 @@ export default function App() {
                         type="color"
                         value={brandAccentColor}
                         onChange={(e) => setBrandAccentColor(e.target.value)}
-                        className="w-9 h-9 rounded-lg cursor-pointer border border-[var(--cms-divider)]"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-[var(--cms-divider)]"
                         title="Custom Accent Color"
                       />
                     </div>
-                  </div>
 
-                  {/* Welcome Video Asset Slot */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold">Welcome video (Verified Checksum & Quota)</label>
-                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={activeProperty.heroImageUrl}
-                          alt="Welcome Video Thumbnail"
-                          referrerPolicy="no-referrer"
-                          className="w-16 h-10 rounded-lg object-cover"
-                        />
-                        <div className="text-xs">
-                          <div className="font-semibold">welcome-arunika.mp4</div>
-                          <div className="text-[11px] text-[var(--cms-text-secondary)] font-mono-tabular">
-                            120 MB • 00:45 • Ready
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">In Use</span>
-                    </div>
-                  </div>
-
-                  {/* 4-Locale Guest Copy Tabs (EN / ID / 中文 / 日本語) */}
-                  <div className="space-y-2.5">
-                    <label className="block text-xs font-bold">Guest locale (4 Mandatory Guest Languages)</label>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1.5 pt-1">
                       {(
                         [
                           { code: 'en', label: 'EN' },
@@ -1954,7 +2448,7 @@ export default function App() {
                           key={loc.code}
                           type="button"
                           onClick={() => setBrandLocaleTab(loc.code)}
-                          className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                          className={`py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
                             brandLocaleTab === loc.code
                               ? 'bg-[#0050F5] text-white border-[#0050F5]'
                               : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] text-[var(--cms-text-secondary)]'
@@ -1979,130 +2473,338 @@ export default function App() {
                       />
                     </div>
                   </div>
-
-                  {/* Field Inheritance Provenance Inspector (C-36) */}
-                  <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs space-y-1.5">
-                    <div className="font-bold">Effective Inheritance Provenance (C-36)</div>
-                    {data.profileOverrides.map((ovr) => (
-                      <div key={ovr.id} className="flex items-center justify-between text-[11px] font-mono-tabular">
-                        <span>
-                          {ovr.layer} ({ovr.targetId}) → {ovr.field}
-                        </span>
-                        <span className="font-semibold text-[#0050F5] dark:text-[#C7B9FF]">
-                          {ovr.value.slice(0, 22)} (v{ovr.version})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
-                {/* Right Column: Live Interactive TV Home Preview + Save Draft & Publish Actions */}
-                <div className="lg:col-span-7 p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-base font-bold">TV home preview (Live Interactive Canvas)</h2>
-                      <p className="text-xs text-[var(--cms-text-secondary)]">
-                        Click tiles inside the TV screen below or use the D-pad controls to test the guest journey.
-                      </p>
+                {/* Right Column: Live Interactive TV Home Preview + GojjaCleanTV ADB Launcher Takeover Panel */}
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 className="text-base font-bold">TV Home Preview (Live Interactive Canvas)</h2>
+                        <p className="text-xs text-[var(--cms-text-secondary)]">
+                          Click <strong>04 Promo</strong> inside the preview bar below to test your uploaded Promo Video, or toggle between <strong>GojjaLauncher</strong> and <strong>Stock TV Launcher</strong>.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                        className="px-3.5 py-1.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-control-border)] text-xs font-semibold hover:bg-[#0050F5] hover:text-white transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        <span>Full-Screen TV Preview</span>
+                      </button>
+                    </div>
+
+                    <TvGuestAppView
+                      embedded={true}
+                      property={{
+                        ...activeProperty,
+                        logoText: brandLogoText,
+                        logoSubtitle: brandLogoSubtitle,
+                        logoImageUrl: brandLogoImageUrl || undefined,
+                        heroMediaType: brandHeroMediaType,
+                        heroImageUrl: brandHeroImageUrl || activeProperty.heroImageUrl,
+                        heroVideoUrl: brandHeroVideoUrl || undefined,
+                        promoMediaType: brandPromoMediaType,
+                        promoMediaUrl: brandPromoMediaUrl || undefined,
+                        promoTitle: brandPromoTitle || undefined,
+                        accentColor: brandAccentColor,
+                        primaryColor: brandPrimaryColor,
+                        welcomeHeadline: brandHeadline,
+                      }}
+                      room={modalRoom}
+                      endpoint={modalEndpoint}
+                      stay={modalStay}
+                      corporateGroup={modalGroup}
+                      channels={data.channels}
+                      campaigns={data.campaigns}
+                      onOpenChannelCheck={async (epId, chId) => {
+                        try {
+                          return await apiCall('/api/tv/open-channel', {
+                            method: 'POST',
+                            body: JSON.stringify({ endpointId: epId, channelId: chId }),
+                          });
+                        } catch (err: unknown) {
+                          return { allowed: false, message: err instanceof Error ? err.message : 'Access restricted' };
+                        }
+                      }}
+                    />
+
+                    {/* Bottom Sticky Action Row: Save Draft (branding.edit) vs Publish Changes (branding.publish) */}
+                    <div className="pt-3 border-t border-[var(--cms-divider)] flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-xs text-[var(--cms-text-secondary)]">
+                        Active Role: <strong>{currentRole.name}</strong> · Publish Authority:{' '}
+                        <strong>{currentRole.permissions.includes('branding.publish') ? 'Granted' : 'Denied (Editor Only)'}</strong>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await apiCall('/api/branding/draft', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                  propertyId: activeProperty.id,
+                                  logoText: brandLogoText,
+                                  logoSubtitle: brandLogoSubtitle,
+                                  logoImageUrl: brandLogoImageUrl,
+                                  heroMediaType: brandHeroMediaType,
+                                  heroImageUrl: brandHeroImageUrl,
+                                  heroVideoUrl: brandHeroVideoUrl,
+                                  promoMediaType: brandPromoMediaType,
+                                  promoMediaUrl: brandPromoMediaUrl,
+                                  promoTitle: brandPromoTitle,
+                                  accentColor: brandAccentColor,
+                                  primaryColor: brandPrimaryColor,
+                                  welcomeHeadline: brandHeadline,
+                                }),
+                              });
+                              await fetchBootstrap();
+                              showNotice('info', res.message);
+                            } catch (err: unknown) {
+                              showNotice('error', err instanceof Error ? err.message : 'Save draft denied');
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] text-xs font-semibold"
+                        >
+                          Save draft
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await apiCall('/api/branding/draft', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                  propertyId: activeProperty.id,
+                                  logoText: brandLogoText,
+                                  logoSubtitle: brandLogoSubtitle,
+                                  logoImageUrl: brandLogoImageUrl,
+                                  heroMediaType: brandHeroMediaType,
+                                  heroImageUrl: brandHeroImageUrl,
+                                  heroVideoUrl: brandHeroVideoUrl,
+                                  promoMediaType: brandPromoMediaType,
+                                  promoMediaUrl: brandPromoMediaUrl,
+                                  promoTitle: brandPromoTitle,
+                                  accentColor: brandAccentColor,
+                                  primaryColor: brandPrimaryColor,
+                                  welcomeHeadline: brandHeadline,
+                                }),
+                              });
+                              const pubRes = await apiCall('/api/branding/publish', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                  propertyId: activeProperty.id,
+                                  title: `${brandLogoText} Media, Video & GojjaLauncher Manifest`,
+                                }),
+                              });
+                              await fetchBootstrap();
+                              showNotice('success', pubRes.message);
+                            } catch (err: unknown) {
+                              showNotice('error', err instanceof Error ? err.message : 'Publish denied by RBAC');
+                            }
+                          }}
+                          className="px-6 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center gap-2"
+                        >
+                          <span>Publish changes to TVs</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <TvGuestAppView
-                    embedded={true}
-                    property={{
-                      ...activeProperty,
-                      logoText: brandLogoText,
-                      logoSubtitle: brandLogoSubtitle,
-                      accentColor: brandAccentColor,
-                      primaryColor: brandPrimaryColor,
-                      welcomeHeadline: brandHeadline,
-                    }}
-                    room={modalRoom}
-                    endpoint={modalEndpoint}
-                    stay={modalStay}
-                    corporateGroup={modalGroup}
-                    channels={data.channels}
-                    campaigns={data.campaigns}
-                    onOpenChannelCheck={async (epId, chId) => {
-                      try {
-                        return await apiCall('/api/tv/open-channel', {
-                          method: 'POST',
-                          body: JSON.stringify({ endpointId: epId, channelId: chId }),
-                        });
-                      } catch (err: unknown) {
-                        return { allowed: false, message: err instanceof Error ? err.message : 'Access restricted' };
-                      }
-                    }}
-                  />
-
-                  {/* Bottom Sticky Action Row: Save Draft (branding.edit) vs Publish Changes (branding.publish) */}
-                  <div className="pt-3 border-t border-[var(--cms-divider)] flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-xs text-[var(--cms-text-secondary)]">
-                      Active Role: <strong>{currentRole.name}</strong> · Publish Authority:{' '}
-                      <strong>{currentRole.permissions.includes('branding.publish') ? 'Granted' : 'Denied (Editor Only)'}</strong>
+                  {/* =================================================================== */}
+                  {/* GOJJACLEANTV (GOJJALAUNCHER) NON-ROOT ADB SMARTTV TAKEOVER PANEL    */}
+                  {/* =================================================================== */}
+                  <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--cms-divider)] pb-3">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="w-4 h-4 text-[#0050F5]" />
+                          <h3 className="text-base font-bold">
+                            GojjaCleanTV (`GojjaLauncher`) — Non-Root ADB SmartTV Replacement
+                          </h3>
+                        </div>
+                        <p className="text-[var(--cms-text-secondary)]">
+                          Replaces existing Android TV / Google TV stock ad-heavy launchers (`pm disable-user --user 0`) and locks `GojjaLauncher` as the default HOME screen (`cmd package set-home-activity`) with 100% reversible restore.
+                        </p>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full font-mono-tabular font-bold text-[11px] shrink-0 ${
+                          activeProperty.launcherConfig?.mode === 'STOCK_TV_LAUNCHER'
+                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                            : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                        }`}
+                      >
+                        {activeProperty.launcherConfig?.mode === 'STOCK_TV_LAUNCHER'
+                          ? 'Stock OEM Launcher Active'
+                          : 'GojjaLauncher v4.2 Active'}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    {/* Profile Presets */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        {
+                          id: 'CLEAN_WITH_OTT' as const,
+                          title: 'Clean Launcher + Keep OTT',
+                          desc: 'Disables Google TV stock launcher & ads; keeps YouTube/Netflix available.',
+                        },
+                        {
+                          id: 'STRICT_KIOSK' as const,
+                          title: 'Strict Hospitality Kiosk',
+                          desc: 'Disables stock launcher, recommendations, and preloaded consumer OTT apps.',
+                        },
+                        {
+                          id: 'CUSTOM' as const,
+                          title: 'Custom ADB Package List',
+                          desc: 'Manually toggle which Android TV packages to disable via ADB.',
+                        },
+                      ].map((prof) => (
+                        <button
+                          key={prof.id}
+                          type="button"
+                          onClick={() => {
+                            setCleanTvProfile(prof.id);
+                            if (prof.id === 'STRICT_KIOSK') {
+                              setCleanTvDisabledPackages(
+                                GOJJA_CLEANTV_PACKAGES.filter((p) => p.defaultInStrict).map((p) => p.pkg)
+                              );
+                            } else if (prof.id === 'CLEAN_WITH_OTT') {
+                              setCleanTvDisabledPackages(
+                                GOJJA_CLEANTV_PACKAGES.filter((p) => p.defaultInOttKeep).map((p) => p.pkg)
+                              );
+                            }
+                          }}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            cleanTvProfile === prof.id
+                              ? 'bg-[#0050F5]/10 border-[#0050F5]'
+                              : 'bg-[var(--cms-bg)] border-[var(--cms-divider)]'
+                          }`}
+                        >
+                          <div className="font-bold">{prof.title}</div>
+                          <div className="text-[11px] text-[var(--cms-text-secondary)] mt-0.5">{prof.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Selectable Package Checklist */}
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto luxury-scrollbar pr-1">
+                      {GOJJA_CLEANTV_PACKAGES.map((item) => {
+                        const checked = cleanTvDisabledPackages.includes(item.pkg);
+                        return (
+                          <label
+                            key={item.pkg}
+                            className="p-2.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-start gap-2.5 cursor-pointer hover:border-[#0050F5]/50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                setCleanTvProfile('CUSTOM');
+                                if (e.target.checked) {
+                                  setCleanTvDisabledPackages([...cleanTvDisabledPackages, item.pkg]);
+                                } else {
+                                  setCleanTvDisabledPackages(cleanTvDisabledPackages.filter((p) => p !== item.pkg));
+                                }
+                              }}
+                              className="mt-0.5 rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold">{item.label}</span>
+                                <code className="text-[10px] font-mono-tabular text-[#0050F5] dark:text-[#C7B9FF] shrink-0">
+                                  {item.pkg}
+                                </code>
+                              </div>
+                              <div className="text-[11px] text-[var(--cms-text-secondary)]">{item.description}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {/* Action Buttons: Apply Takeover, Restore Stock Launcher, Download Script */}
+                    <div className="flex flex-wrap items-center gap-2.5 pt-2">
                       <button
                         type="button"
                         onClick={async () => {
                           try {
-                            const res = await apiCall('/api/branding/draft', {
+                            const res = await apiCall('/api/branding/launcher-takeover', {
                               method: 'POST',
                               body: JSON.stringify({
                                 propertyId: activeProperty.id,
-                                logoText: brandLogoText,
-                                logoSubtitle: brandLogoSubtitle,
-                                accentColor: brandAccentColor,
-                                primaryColor: brandPrimaryColor,
-                                welcomeHeadline: brandHeadline,
+                                action: 'APPLY_GOJJA_LAUNCHER',
+                                profile: cleanTvProfile,
+                                disabledPackages: cleanTvDisabledPackages,
                               }),
                             });
+                            if (res.transcript) setCleanTvTranscript(res.transcript);
+                            await fetchBootstrap();
+                            showNotice('success', res.message);
+                          } catch (err: unknown) {
+                            showNotice('error', err instanceof Error ? err.message : 'ADB takeover denied');
+                          }
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center gap-2"
+                      >
+                        <Terminal className="w-3.5 h-3.5" />
+                        <span>Apply GojjaLauncher Takeover ({propEndpoints.filter((e) => e.connection === 'Online').length} Online TVs)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await apiCall('/api/branding/launcher-takeover', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                propertyId: activeProperty.id,
+                                action: 'RESTORE_STOCK_LAUNCHER',
+                                profile: cleanTvProfile,
+                                disabledPackages: cleanTvDisabledPackages,
+                              }),
+                            });
+                            if (res.transcript) setCleanTvTranscript(res.transcript);
                             await fetchBootstrap();
                             showNotice('info', res.message);
                           } catch (err: unknown) {
-                            showNotice('error', err instanceof Error ? err.message : 'Save draft denied');
+                            showNotice('error', err instanceof Error ? err.message : 'Restore failed');
                           }
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] text-xs font-semibold"
+                        className="px-3.5 py-2.5 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] font-semibold inline-flex items-center gap-1.5"
                       >
-                        Save draft
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Restore Stock TV Launcher (`pm enable`)</span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={async () => {
-                          try {
-                            await apiCall('/api/branding/draft', {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                propertyId: activeProperty.id,
-                                logoText: brandLogoText,
-                                logoSubtitle: brandLogoSubtitle,
-                                accentColor: brandAccentColor,
-                                primaryColor: brandPrimaryColor,
-                                welcomeHeadline: brandHeadline,
-                              }),
-                            });
-                            const pubRes = await apiCall('/api/branding/publish', {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                propertyId: activeProperty.id,
-                                title: `${brandLogoText} Theme & Locale Manifest`,
-                              }),
-                            });
-                            await fetchBootstrap();
-                            showNotice('success', pubRes.message);
-                          } catch (err: unknown) {
-                            showNotice('error', err instanceof Error ? err.message : 'Publish denied by RBAC');
-                          }
-                        }}
-                        className="px-6 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center gap-2"
+                        onClick={() =>
+                          handleDownloadGojjaCleanTvScript(activeProperty, propEndpoints, cleanTvDisabledPackages)
+                        }
+                        className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5"
                       >
-                        <span>Publish changes</span>
-                        <ChevronRight className="w-4 h-4" />
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download `gojja-cleantv.sh` Script</span>
                       </button>
                     </div>
+
+                    {/* Live ADB Transcript Console */}
+                    {cleanTvTranscript.length > 0 && (
+                      <div className="p-3.5 rounded-xl bg-[#0B0F17] text-emerald-300 font-mono-tabular text-[11px] space-y-1 max-h-40 overflow-y-auto luxury-scrollbar border border-white/10">
+                        <div className="text-slate-400 font-bold mb-1">
+                          # GojjaCleanTV Non-Root ADB Execution Log ({activeProperty.name})
+                        </div>
+                        {cleanTvTranscript.map((line, idx) => (
+                          <div key={idx} className="truncate">
+                            {line}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2336,61 +3038,224 @@ export default function App() {
           {/* ===================================================================== */}
           {/* TAB 7: CAMPAIGNS & PROMOTIONS (PR-19..22)                             */}
           {/* ===================================================================== */}
+          {/* TAB 7: CAMPAIGNS & PROMOTIONS (PR-19..22 + Real Video/Image Upload)   */}
+          {/* ===================================================================== */}
           {activeTab === 'campaigns' && (
             <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold">Hotel Promotions & Signage Placements (M13)</h1>
-                <p className="text-xs text-[var(--cms-text-secondary)]">
-                  Pre-TV interstitial is off by default; promotions enforce per-stay frequency caps and never inject into third-party OTT streams or rapid channel zapping.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h1 className="text-2xl font-bold">Hotel Promotions & Video Signage Placements (M13)</h1>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Upload promotional videos (`.mp4`/`.webm`) or HD banners for the in-room TV Home Hero and 04 Promo showcase.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                  className="px-4 py-2 rounded-xl bg-[#0050F5] text-white text-xs font-semibold inline-flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Preview Promo on TV</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {data.campaigns.map((cmp) => (
-                  <div
-                    key={cmp.id}
-                    className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between gap-4 text-xs"
-                  >
-                    <div className="flex gap-4">
-                      <img
-                        src={cmp.imageUrl}
-                        alt={cmp.name}
-                        referrerPolicy="no-referrer"
-                        className="w-28 h-20 rounded-xl object-cover shrink-0"
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono-tabular font-bold text-[#0050F5] dark:text-[#C7B9FF]">{cmp.id}</span>
-                          <span>·</span>
-                          <span className="font-semibold">{cmp.status}</span>
-                        </div>
-                        <div className="text-sm font-bold">{cmp.name}</div>
-                        <div className="text-[var(--cms-text-secondary)]">
-                          Placement: <code className="font-mono-tabular">{cmp.placement}</code> · Priority: {cmp.priority} · Cap: {cmp.frequencyCapPerStay}/stay
-                        </div>
-                      </div>
-                    </div>
+              {/* Create & Upload Promotional Video / Image Campaign Card */}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    const res = await apiCall('/api/campaigns/create', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        propertyId: activeProperty.id,
+                        name: newCmpName || 'Signature Resort Experience',
+                        category: newCmpCategory,
+                        placement: newCmpPlacement,
+                        mediaType: newCmpMediaType,
+                        mediaUrl: newCmpMediaUrl,
+                        headlineEn: newCmpName || 'Signature Resort Experience',
+                        headlineId: newCmpName || 'Pengalaman Istimewa Resort',
+                        ctaLabel: newCmpCta || 'Explore Offer',
+                      }),
+                    });
+                    setNewCmpName('');
+                    await fetchBootstrap();
+                    showNotice('success', res.message);
+                  } catch (err: unknown) {
+                    showNotice('error', err instanceof Error ? err.message : 'Failed to publish campaign');
+                  }
+                }}
+                className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4 text-xs"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-base font-bold">Upload New Promotional Video or Banner Campaign</h2>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CURATED_BRAND_MEDIA_PRESETS.promoMedia.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setNewCmpMediaType(preset.type);
+                          setNewCmpMediaUrl(preset.url);
+                          setNewCmpName(preset.title);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[11px] font-medium hover:border-[#0050F5]"
+                      >
+                        {preset.type === 'video' ? '🎬 ' : '🖼️ '}
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                    <div className="grid grid-cols-4 gap-2 pt-3 border-t border-[var(--cms-divider)] font-mono-tabular">
-                      <div>
-                        <span className="text-[var(--cms-text-secondary)] block">Starts</span>
-                        <strong>{cmp.startsCount}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[var(--cms-text-secondary)] block">Completed</span>
-                        <strong>{cmp.completedCount}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[var(--cms-text-secondary)] block">Skipped</span>
-                        <strong>{cmp.skippedCount}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[var(--cms-text-secondary)] block">Played Secs</span>
-                        <strong>{cmp.totalPlaySeconds}s</strong>
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                  <div className="md:col-span-4 space-y-2">
+                    <input
+                      type="text"
+                      value={newCmpName}
+                      onChange={(e) => setNewCmpName(e.target.value)}
+                      placeholder="Campaign Title (e.g., Sunset Infinity Dining)"
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-semibold"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={newCmpCategory}
+                        onChange={(e) => setNewCmpCategory(e.target.value as Campaign['category'])}
+                        className="w-full px-2.5 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                      >
+                        <option value="Spa & Wellness">Spa & Wellness</option>
+                        <option value="Fine Dining">Fine Dining</option>
+                        <option value="Pool & Leisure">Pool & Leisure</option>
+                        <option value="Corporate Welcome">Corporate Welcome</option>
+                      </select>
+                      <select
+                        value={newCmpPlacement}
+                        onChange={(e) => setNewCmpPlacement(e.target.value as Campaign['placement'])}
+                        className="w-full px-2.5 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                      >
+                        <option value="home_hero">home_hero</option>
+                        <option value="welcome_screen">welcome_screen</option>
+                        <option value="service_detail">service_detail</option>
+                      </select>
                     </div>
                   </div>
-                ))}
+
+                  <div className="md:col-span-5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="py-2 px-3 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Video / Image</span>
+                        <input
+                          type="file"
+                          accept="video/*,image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            handleUploadFileToDataUrl(file, 22, (dataUrl, detectedType, fileName) => {
+                              setNewCmpMediaType(detectedType);
+                              setNewCmpMediaUrl(dataUrl);
+                              if (!newCmpName) setNewCmpName(fileName.replace(/\.[^.]+$/, ''));
+                            });
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={newCmpMediaUrl}
+                        onChange={(e) => setNewCmpMediaUrl(e.target.value)}
+                        placeholder="Or paste MP4 video / image URL..."
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={newCmpCta}
+                      onChange={(e) => setNewCmpCta(e.target.value)}
+                      placeholder="CTA Button Label (e.g., Book via Concierge)"
+                      className="w-full px-3 py-1.5 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                    />
+                  </div>
+
+                  <div className="md:col-span-3 flex items-center gap-3">
+                    <div className="w-24 h-16 rounded-xl overflow-hidden bg-slate-900 border border-[var(--cms-divider)] shrink-0">
+                      {newCmpMediaType === 'video' ? (
+                        <video src={newCmpMediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={newCmpMediaUrl} alt="Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                    >
+                      Publish Promo
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {data.campaigns.map((cmp) => {
+                  const isVideo =
+                    cmp.mediaType === 'video' ||
+                    cmp.mediaUrl?.endsWith('.mp4') ||
+                    cmp.mediaUrl?.startsWith('data:video/');
+                  return (
+                    <div
+                      key={cmp.id}
+                      className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between gap-4 text-xs"
+                    >
+                      <div className="flex gap-4">
+                        <div className="w-32 h-20 rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-[var(--cms-divider)]">
+                          {isVideo && cmp.mediaUrl ? (
+                            <video src={cmp.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                          ) : (
+                            <img
+                              src={cmp.mediaUrl || cmp.imageUrl}
+                              alt={cmp.name}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono-tabular font-bold text-[#0050F5] dark:text-[#C7B9FF]">{cmp.id}</span>
+                            <span>·</span>
+                            <span className="font-semibold">{cmp.status}</span>
+                            <span>·</span>
+                            <span className="px-2 py-0.5 rounded bg-[var(--cms-bg)] font-mono-tabular text-[10px] uppercase">
+                              {isVideo ? '🎬 VIDEO' : '🖼️ IMAGE'}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold">{cmp.name}</div>
+                          <div className="text-[var(--cms-text-secondary)]">
+                            Placement: <code className="font-mono-tabular">{cmp.placement}</code> · Priority: {cmp.priority} · Cap: {cmp.frequencyCapPerStay}/stay
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2 pt-3 border-t border-[var(--cms-divider)] font-mono-tabular">
+                        <div>
+                          <span className="text-[var(--cms-text-secondary)] block">Starts</span>
+                          <strong>{cmp.startsCount}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[var(--cms-text-secondary)] block">Completed</span>
+                          <strong>{cmp.completedCount}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[var(--cms-text-secondary)] block">Skipped</span>
+                          <strong>{cmp.skippedCount}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[var(--cms-text-secondary)] block">Played Secs</span>
+                          <strong>{cmp.totalPlaySeconds}s</strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -3070,14 +3935,514 @@ export default function App() {
           )}
 
           {/* ===================================================================== */}
+          {/* DEDICATED TAB: TENANTS & ISPs (Multi-Tenant Hierarchy & Onboarding)   */}
+          {/* ===================================================================== */}
+          {activeTab === 'tenants' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
+                    {currentRole.category === 'GOJJA_ADMIN'
+                      ? 'TIER 1 · GOJJA PLATFORM HQ GOVERNANCE'
+                      : `TIER 2 · ISP PARTNER CONSOLE (${currentUser.partnerId})`}
+                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight mt-0.5">
+                    Multi-Tenant Properties & ISP Reseller Hierarchy
+                  </h1>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    Onboard ISP Reseller Partners and Hospitality Property Tenants with automatic starter rooms, TV endpoints, and scoped login accounts.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-xs font-mono-tabular text-[var(--cms-text-secondary)]">
+                    Active Actor: <strong className="text-[var(--cms-text)]">{currentUser.name}</strong> ({currentRole.id})
+                  </span>
+                </div>
+              </div>
+
+              {/* Hierarchy KPI Summary */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">ISP Reseller Partners</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular mt-1">{data.partners.length}</div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    {currentUser.partnerId ? `Scoped to ${currentUser.partnerId}` : 'Global platform scope'}
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Tenant Properties in Scope</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular text-[var(--brand-indigo)] dark:text-[#C7B9FF] mt-1">
+                    {data.properties.length}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    {data.customers.length} Customer Organizations
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Contracted TV Seats</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular text-emerald-600 dark:text-emerald-400 mt-1">
+                    {kpis.totalContractedSeats}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    {kpis.totalAllocatedSeats} allocated · {kpis.totalAvailableSeats} available
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                  <div className="text-xs text-[var(--cms-text-secondary)]">Provisioned Login Accounts</div>
+                  <div className="text-2xl font-extrabold font-mono-tabular mt-1">
+                    {bootstrap.userAccounts.length}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
+                    Across 16 RBAC personas
+                  </div>
+                </div>
+              </div>
+
+              {/* Onboarding Forms Grid: 1) Add ISP Partner (GOJJA Admin only) + 2) Add Tenant Property (GOJJA Admin & ISP Admin) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left Form: Add New ISP Partner (Visible to GOJJA Platform Owner/Admin) */}
+                {currentRole.permissions.includes('partners.manage') && (
+                  <div className="lg:col-span-5 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
+                        STEP 1 · PLATFORM OWNER ACTION
+                      </div>
+                      <h2 className="text-base font-bold mt-0.5">Add New ISP Reseller Partner</h2>
+                      <p className="text-xs text-[var(--cms-text-secondary)]">
+                        Provisions a new ISP Partner organization and automatically creates an <code className="font-mono-tabular">R-08 ISP Partner Admin</code> login account.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block font-semibold mb-1">ISP Partner Organization Name</label>
+                        <input
+                          type="text"
+                          value={newIspName}
+                          onChange={(e) => setNewIspName(e.target.value)}
+                          placeholder="e.g., Gamma Fiber Hospitality"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-semibold mb-1">Operating Region</label>
+                          <input
+                            type="text"
+                            value={newIspRegion}
+                            onChange={(e) => setNewIspRegion(e.target.value)}
+                            placeholder="Bali & Nusa Tenggara"
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold mb-1">ISP Admin Full Name</label>
+                          <input
+                            type="text"
+                            value={newIspAdminName}
+                            onChange={(e) => setNewIspAdminName(e.target.value)}
+                            placeholder="e.g., Putu Wijaya"
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">ISP Admin Login Email</label>
+                        <input
+                          type="email"
+                          value={newIspEmail}
+                          onChange={(e) => setNewIspEmail(e.target.value)}
+                          placeholder="admin@gammafiber.net.id"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await apiCall('/api/partners/create', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                name: newIspName,
+                                region: newIspRegion,
+                                contactEmail: newIspEmail,
+                                adminName: newIspAdminName,
+                              }),
+                            });
+                            setNewIspName('');
+                            setNewIspEmail('');
+                            setNewIspAdminName('');
+                            await fetchBootstrap();
+                            if (res.partner?.id) {
+                              setNewTenantPartnerId(res.partner.id);
+                            }
+                            showNotice('success', res.message);
+                          } catch (err: unknown) {
+                            showNotice('error', err instanceof Error ? err.message : 'Failed to create ISP Partner');
+                          }
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-[var(--brand-indigo)] hover:bg-[#3B27EB] text-white font-semibold text-xs shadow-sm cursor-pointer transition-colors"
+                      >
+                        + Create ISP Partner &amp; Auto-Provision ISP Admin Login
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Right Form: Onboard New Tenant Property (Available to GOJJA Admin & ISP Partner Admin) */}
+                {currentRole.permissions.includes('properties.manage') && (
+                  <div
+                    className={`${
+                      currentRole.permissions.includes('partners.manage') ? 'lg:col-span-7' : 'lg:col-span-12'
+                    } p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4`}
+                  >
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        {currentUser.partnerId
+                          ? `STEP 2 · ISP PARTNER (${currentUser.partnerId}) DOWNSTREAM TENANT ONBOARDING`
+                          : 'STEP 2 · ONBOARD NEW TENANT PROPERTY (DIRECT OR UNDER ISP)'}
+                      </div>
+                      <h2 className="text-base font-bold mt-0.5">Onboard New Hospitality Property Tenant</h2>
+                      <p className="text-xs text-[var(--cms-text-secondary)]">
+                        Automatically provisions the Property workspace, TV seat license, <strong>3 starter rooms (101, 102, 201) with online TVs</strong>, and default <strong>Property Manager (<code className="font-mono-tabular">R-11</code>) &amp; Front Office (<code className="font-mono-tabular">R-13</code>)</strong> login accounts.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <label className="block font-semibold mb-1">Property / Hotel Name</label>
+                        <input
+                          type="text"
+                          value={newTenantName}
+                          onChange={(e) => setNewTenantName(e.target.value)}
+                          placeholder="e.g., Resort Mandala Ubud"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">City / Destination</label>
+                        <input
+                          type="text"
+                          value={newTenantCity}
+                          onChange={(e) => setNewTenantCity(e.target.value)}
+                          placeholder="Ubud, Bali"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Managing ISP / Route</label>
+                        {currentUser.roleId === 'R-08' ? (
+                          <input
+                            type="text"
+                            disabled
+                            value={`${currentUser.partnerId} (Locked to Your ISP)`}
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] opacity-75 font-mono-tabular"
+                          />
+                        ) : (
+                          <select
+                            value={newTenantPartnerId}
+                            onChange={(e) => setNewTenantPartnerId(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                          >
+                            {data.partners.map((isp) => (
+                              <option key={isp.id} value={isp.id}>
+                                {isp.id} · {isp.name} (ISP Reseller)
+                              </option>
+                            ))}
+                            <option value="DIRECT">DIRECT · Direct to GOJJA HQ</option>
+                          </select>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Contracted TV Seats</label>
+                        <input
+                          type="number"
+                          min={3}
+                          max={500}
+                          value={newTenantSeats}
+                          onChange={(e) => setNewTenantSeats(Number(e.target.value))}
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] font-mono-tabular"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Property Manager Name</label>
+                        <input
+                          type="text"
+                          value={newTenantAdminName}
+                          onChange={(e) => setNewTenantAdminName(e.target.value)}
+                          placeholder="e.g., Dewi Lestari"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Property Manager Login Email</label>
+                        <input
+                          type="email"
+                          value={newTenantAdminEmail}
+                          onChange={(e) => setNewTenantAdminEmail(e.target.value)}
+                          placeholder="gm@mandalaubud.com"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                      <div className="text-[11px] text-[var(--cms-text-secondary)]">
+                        Guest Wi-Fi SSID auto-configured · Starter rooms <span className="font-mono-tabular font-semibold">101, 102, 201</span> &amp; TV endpoints ready on creation.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await apiCall('/api/tenants/create', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                propertyName: newTenantName,
+                                city: newTenantCity,
+                                partnerId: currentUser.roleId === 'R-08' ? currentUser.partnerId : newTenantPartnerId,
+                                seats: newTenantSeats,
+                                wifiSsid: newTenantWifi || undefined,
+                                adminName: newTenantAdminName,
+                                adminEmail: newTenantAdminEmail,
+                              }),
+                            });
+                            setNewTenantName('');
+                            setNewTenantAdminName('');
+                            setNewTenantAdminEmail('');
+                            await fetchBootstrap();
+                            if (res.property?.id) {
+                              setSelectedPropertyId(res.property.id);
+                            }
+                            showNotice('success', res.message);
+                          } catch (err: unknown) {
+                            showNotice('error', err instanceof Error ? err.message : 'Failed to onboard tenant property');
+                          }
+                        }}
+                        className="py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm cursor-pointer transition-colors shrink-0"
+                      >
+                        + Onboard Property Tenant &amp; Provision Login
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Multi-Tenant Hierarchy Tree: ISP Partners -> Tenant Properties -> Scoped Logins */}
+              <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-bold">End-to-End Multi-Tenant Hierarchy &amp; One-Click Tenant Login</h2>
+                    <p className="text-xs text-[var(--cms-text-secondary)]">
+                      Inspect every ISP Partner and downstream Property Tenant. Click any <strong>Login as...</strong> button to immediately enter that ISP or Property workspace with its scoped RBAC menu.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {data.partners.map((isp) => {
+                    const ispProps = data.properties.filter((p) => p.partnerId === isp.id);
+                    const ispUsers = bootstrap.userAccounts.filter(
+                      (u) => u.partnerId === isp.id && (u.roleId === 'R-08' || u.roleId === 'R-09')
+                    );
+                    return (
+                      <div
+                        key={isp.id}
+                        className="p-4 rounded-2xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-4"
+                      >
+                        {/* ISP Header Row */}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-[var(--cms-divider)]">
+                          <div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-mono-tabular font-extrabold text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
+                                {isp.id}
+                              </span>
+                              <span>·</span>
+                              <span className="font-bold text-sm">{isp.name}</span>
+                              <span>·</span>
+                              <span className="text-emerald-700 dark:text-emerald-300 font-semibold">{isp.status}</span>
+                            </div>
+                            <div className="text-xs text-[var(--cms-text-secondary)] mt-0.5">
+                              Region: {isp.region} · SLA: {isp.supportTier} · Contact: {isp.contactEmail} · Downstream Properties: {ispProps.length}
+                            </div>
+                          </div>
+
+                          {/* Switch into ISP Admin / Installer */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {ispUsers.map((u) => (
+                              <button
+                                key={u.id}
+                                onClick={async () => {
+                                  await handleLoginSuccess(u, environmentId);
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                                  u.alias === personaAlias
+                                    ? 'bg-[var(--brand-indigo)] text-white border-[var(--brand-indigo)]'
+                                    : 'bg-[var(--cms-surface)] text-[var(--cms-text)] border-[var(--cms-divider)] hover:border-[var(--brand-indigo)]'
+                                }`}
+                              >
+                                Login as {u.roleId} · {u.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Downstream Properties under this ISP */}
+                        {ispProps.length === 0 ? (
+                          <div className="text-xs text-[var(--cms-text-secondary)] py-2">
+                            No downstream properties onboarded under {isp.name} yet. Use the form above to add a property under {isp.id}.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {ispProps.map((prop) => {
+                              const sub = data.subscriptions.find((s) => s.propertyId === prop.id);
+                              const pRooms = data.rooms.filter((r) => r.propertyId === prop.id);
+                              const pEps = data.endpoints.filter((e) => e.propertyId === prop.id);
+                              const propAccounts = bootstrap.userAccounts.filter(
+                                (u) =>
+                                  u.propertyIds.length === 1 &&
+                                  u.propertyIds[0] === prop.id &&
+                                  u.organizationId !== 'GOJJA-HQ' &&
+                                  u.roleId !== 'R-08' &&
+                                  u.roleId !== 'R-09'
+                              );
+                              return (
+                                <div
+                                  key={prop.id}
+                                  className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between gap-3"
+                                >
+                                  <div>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="font-mono-tabular font-bold text-xs text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
+                                        {prop.id} · {prop.city}
+                                      </span>
+                                      <span className="text-[11px] font-mono-tabular text-[var(--cms-text-secondary)]">
+                                        {pRooms.length} Rooms · {pEps.length}/{sub?.seats ?? 12} TVs
+                                      </span>
+                                    </div>
+                                    <div className="font-bold text-sm mt-0.5">{prop.name}</div>
+                                    <div className="text-[11px] text-[var(--cms-text-secondary)] mt-0.5">
+                                      Wi-Fi: <span className="font-mono-tabular">{prop.wifiSsid}</span> · Plan: {sub?.planName || 'Active'}
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2 border-t border-[var(--cms-divider)] space-y-2">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                                      Property-Scoped Login Accounts:
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      {propAccounts.map((pa) => (
+                                        <button
+                                          key={pa.id}
+                                          onClick={async () => {
+                                            await handleLoginSuccess(pa, environmentId);
+                                          }}
+                                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                                            pa.alias === personaAlias
+                                              ? 'bg-emerald-600 text-white border-emerald-600'
+                                              : 'bg-[var(--cms-bg)] text-[var(--cms-text)] border-[var(--cms-divider)] hover:border-emerald-500'
+                                          }`}
+                                          title={`Login as ${pa.email} (Scoped only to ${prop.name})`}
+                                        >
+                                          Login {pa.roleId} · {pa.name.split(' (')[0]}
+                                        </button>
+                                      ))}
+                                      <button
+                                        onClick={() => {
+                                          setSelectedPropertyId(prop.id);
+                                          setActiveTab('rooms');
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[var(--brand-indigo)]/10 text-[var(--brand-indigo)] dark:text-[#C7B9FF] hover:bg-[var(--brand-indigo)]/20 cursor-pointer"
+                                      >
+                                        Manage Rooms →
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Direct Customer Properties (Managed directly by GOJJA HQ without ISP Reseller) */}
+                  {data.properties.some((p) => !p.partnerId) && (
+                    <div className="p-4 rounded-2xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-3">
+                      <div className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
+                        DIRECT ENTERPRISE TENANTS (Managed Directly by GOJJA HQ · No ISP Intermediary)
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {data.properties
+                          .filter((p) => !p.partnerId)
+                          .map((prop) => {
+                            const sub = data.subscriptions.find((s) => s.propertyId === prop.id);
+                            const pRooms = data.rooms.filter((r) => r.propertyId === prop.id);
+                            const pEps = data.endpoints.filter((e) => e.propertyId === prop.id);
+                            const propAccounts = bootstrap.userAccounts.filter(
+                              (u) =>
+                                u.propertyIds.length === 1 &&
+                                u.propertyIds[0] === prop.id &&
+                                u.organizationId !== 'GOJJA-HQ'
+                            );
+                            return (
+                              <div
+                                key={prop.id}
+                                className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between gap-3"
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-mono-tabular font-bold text-xs text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
+                                      {prop.id} · DIRECT · {prop.city}
+                                    </span>
+                                    <span className="text-[11px] font-mono-tabular text-[var(--cms-text-secondary)]">
+                                      {pRooms.length} Rooms · {pEps.length}/{sub?.seats ?? 6} TVs
+                                    </span>
+                                  </div>
+                                  <div className="font-bold text-sm mt-0.5">{prop.name}</div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[var(--cms-divider)]">
+                                  {propAccounts.map((pa) => (
+                                    <button
+                                      key={pa.id}
+                                      onClick={async () => {
+                                        await handleLoginSuccess(pa, environmentId);
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[var(--cms-bg)] border border-[var(--cms-divider)] hover:border-emerald-500 cursor-pointer"
+                                    >
+                                      Login {pa.roleId} · {pa.name.split(' (')[0]}
+                                    </button>
+                                  ))}
+                                  <button
+                                    onClick={() => {
+                                      setSelectedPropertyId(prop.id);
+                                      setActiveTab('rooms');
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[var(--brand-indigo)]/10 text-[var(--brand-indigo)] dark:text-[#C7B9FF] cursor-pointer"
+                                  >
+                                    Manage Rooms →
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
           {/* DEDICATED TAB: USERS & ACCESS (16-Role RBAC Matrix & Active Persona)  */}
           {/* ===================================================================== */}
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Users & Role-Based Access Control (RBAC)</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Users &amp; Role-Based Access Control (RBAC)</h1>
                 <p className="text-xs text-[var(--cms-text-secondary)]">
-                  Switch active session role across all 16 hospitality & platform personas to verify server-side authorization gates.
+                  Switch active session role across all 16 hospitality &amp; platform personas (including newly onboarded ISP &amp; Property accounts). Sidebar menus filter dynamically per role.
                 </p>
               </div>
 
@@ -3088,6 +4453,9 @@ export default function App() {
                       Active Session Persona: {currentUser.name} ({currentRole.id} · {currentRole.name})
                     </h2>
                     <p className="text-xs text-[var(--cms-text-secondary)]">{currentRole.description}</p>
+                    <p className="text-[11px] text-[var(--brand-indigo)] dark:text-[#C7B9FF] font-mono-tabular mt-1">
+                      Visible Sidebar Menus ({allowedTabs.length}): {allowedTabs.join(' · ')}
+                    </p>
                   </div>
                   <span className="px-3 py-1 rounded-full bg-[var(--nav-selected-bg)] text-[var(--nav-selected-fg)] font-mono-tabular font-bold text-xs self-start">
                     Category: {currentRole.category}
@@ -3098,27 +4466,35 @@ export default function App() {
                   {bootstrap.userAccounts.map((acc) => {
                     const roleDef = bootstrap.rolesCatalog.find((r) => r.id === acc.roleId);
                     const isSelected = acc.alias === personaAlias;
+                    const accMenus = getAllowedTabsForRole(acc.roleId);
                     return (
                       <button
                         key={acc.id}
                         onClick={async () => {
-                          setPersonaAlias(acc.alias);
-                          await fetchBootstrap(acc.alias, environmentId);
-                          showNotice('info', `Switched active RBAC persona to ${acc.name} (${acc.roleId}).`);
+                          await handleLoginSuccess(acc, environmentId);
                         }}
-                        className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
                           isSelected
                             ? 'border-[var(--brand-indigo)] bg-[var(--nav-selected-bg)] shadow-xs'
                             : 'border-[var(--cms-divider)] bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)]/50'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-xs font-bold">
-                          <span className="font-mono-tabular text-[var(--brand-indigo)] dark:text-[#C7B9FF]">{acc.roleId}</span>
-                          <span className="text-[10px] text-[var(--cms-text-secondary)]">{acc.badgeLabel}</span>
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="font-mono-tabular text-[var(--brand-indigo)] dark:text-[#C7B9FF]">{acc.roleId}</span>
+                            <span className="text-[10px] text-[var(--cms-text-secondary)]">{acc.badgeLabel}</span>
+                          </div>
+                          <div className="font-bold text-xs mt-1">{acc.name}</div>
+                          <div className="text-[10px] font-mono-tabular text-[var(--cms-text-secondary)] mt-0.5">
+                            {acc.email} · Scope: {acc.propertyIds.join(', ') || acc.partnerId || 'GLOBAL'}
+                          </div>
+                          <div className="text-[11px] text-[var(--cms-text-secondary)] line-clamp-2 mt-1">
+                            {roleDef?.description || acc.email}
+                          </div>
                         </div>
-                        <div className="font-bold text-xs mt-1">{acc.name}</div>
-                        <div className="text-[11px] text-[var(--cms-text-secondary)] line-clamp-2 mt-1">
-                          {roleDef?.description || acc.email}
+                        <div className="pt-1.5 border-t border-[var(--cms-divider)] text-[10px] font-mono-tabular text-[var(--cms-text-secondary)]">
+                          Menus ({accMenus.length}): {accMenus.slice(0, 4).join(', ')}
+                          {accMenus.length > 4 ? ` +${accMenus.length - 4}` : ''}
                         </div>
                       </button>
                     );
