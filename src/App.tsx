@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import {
   EnvironmentId,
+  CmsLocale,
   GuestLocale,
   RoleId,
   RoleDefinition,
@@ -83,6 +84,204 @@ import { GojjaWordmark, RollingKpiValue } from './components/GojjaWordmark';
 import { TvGuestAppView } from './components/TvGuestAppModal';
 import { DeviceDiscoveryView } from './components/DeviceDiscoveryView';
 import { LoginLandingView } from './components/LoginLandingView';
+
+const CMS_UI_STRINGS: Record<
+  CmsLocale,
+  {
+    navOverview: string;
+    navTenants: string;
+    navRooms: string;
+    navDevices: string;
+    navDiscovery: string;
+    navBranding: string;
+    navTvServices: string;
+    navCampaigns: string;
+    navChannels: string;
+    navUpdates: string;
+    navAnalytics: string;
+    navUsers: string;
+    navBilling: string;
+    navSupport: string;
+    navSettings: string;
+    groupWorkspace: string;
+    groupAdmin: string;
+    needHelp: string;
+    searchPlaceholder: string;
+    propOverviewTitle: string;
+    propOverviewSub: string;
+    scanDevicesBtn: string;
+    connectorReqNote: string;
+    openTvPreviewBtn: string;
+    kpiLicensedTvs: string;
+    kpiTvsOnline: string;
+    kpiOccupiedRooms: string;
+    kpiActiveCampaigns: string;
+    kpiUpdatesPending: string;
+    kpiMonthlyPlan: string;
+    deviceRoomHealthTitle: string;
+    viewAllDevices: string;
+    playbackInsightsTitle: string;
+    playbackInsightsSub: string;
+    brandWelcomeCard: string;
+    openBrandStudioBtn: string;
+    updateApprovalsCard: string;
+    reviewScheduleBtn: string;
+    recentActivityCard: string;
+    roomsHeaderTitle: string;
+    roomsHeaderSub: string;
+    addRoomBtn: string;
+    roomTvLocaleLabel: string;
+    brandStudioTitle: string;
+    brandStudioSub: string;
+    brandStep1: string;
+    brandStep2: string;
+    brandStep3: string;
+    brandStep4: string;
+    tvLocaleControlTitle: string;
+    tvLocaleControlSub: string;
+    applyTvLocaleBtn: string;
+    tvPreviewHeader: string;
+    tvPreviewSub: string;
+    fullScreenTvBtn: string;
+    saveDraftBtn: string;
+    publishToTvsBtn: string;
+    settingsTitle: string;
+    settingsSub: string;
+  }
+> = {
+  id: {
+    navOverview: 'Ringkasan',
+    navTenants: 'Tenant & Mitra ISP',
+    navRooms: 'Kamar & Tamu',
+    navDevices: 'Perangkat TV',
+    navDiscovery: 'Pindai & Deploy',
+    navBranding: 'Brand Studio & TV',
+    navTvServices: 'Pustaka Konten',
+    navCampaigns: 'Kampanye Promo',
+    navChannels: 'Saluran & Paket TV',
+    navUpdates: 'Pembaruan OTA',
+    navAnalytics: 'Analitik Tayangan',
+    navUsers: 'Pengguna & RBAC',
+    navBilling: 'Langganan & Tagihan',
+    navSupport: 'Dukungan & QA',
+    navSettings: 'Pengaturan',
+    groupWorkspace: 'RUANG KERJA',
+    groupAdmin: 'ADMINISTRASI',
+    needHelp: 'Butuh bantuan?',
+    searchPlaceholder: 'Cari kamar, perangkat TV, atau konten...',
+    propOverviewTitle: 'Ringkasan Properti',
+    propOverviewSub: 'Setiap layar. Setiap masa menginap. Satu pengalaman terhubung.',
+    scanDevicesBtn: 'Pindai perangkat',
+    connectorReqNote: 'ⓘ Membutuhkan konektor lokal',
+    openTvPreviewBtn: 'Buka Pratinjau TV (4 Bahasa)',
+    kpiLicensedTvs: 'Lisensi TV',
+    kpiTvsOnline: 'TV Online',
+    kpiOccupiedRooms: 'Kamar Terisi',
+    kpiActiveCampaigns: 'Kampanye Aktif',
+    kpiUpdatesPending: 'Update Tertunda',
+    kpiMonthlyPlan: 'Paket Bulanan',
+    deviceRoomHealthTitle: 'Kesehatan Perangkat & Kamar',
+    viewAllDevices: 'Lihat semua kamar & TV',
+    playbackInsightsTitle: 'Analitik Pemutaran TV',
+    playbackInsightsSub: 'Sesi tayangan harian di seluruh layar kamar',
+    brandWelcomeCard: 'Brand & Sambutan TV (4 Bahasa)',
+    openBrandStudioBtn: 'Buka Brand Studio',
+    updateApprovalsCard: 'Persetujuan Pembaruan',
+    reviewScheduleBtn: 'Tinjau jadwal OTA',
+    recentActivityCard: 'Aktivitas Terbaru',
+    roomsHeaderTitle: 'Kamar, Tamu & Bahasa Layar TV',
+    roomsHeaderSub:
+      'Atur okupansi tamu, kesiapan Housekeeping, dan ubah Bahasa Antarmuka TV Kamar secara langsung (4 Bahasa: EN, ID, 中文, 日本語).',
+    addRoomBtn: 'Tambah Kamar',
+    roomTvLocaleLabel: 'Bahasa TV Kamar (4 Bahasa)',
+    brandStudioTitle: 'Brand Studio, Bahasa TV (4 Bahasa) & GojjaLauncher',
+    brandStudioSub:
+      'Unggah logo hotel, video/foto background TV, video promosi, atur 4 bahasa layar TV (EN, ID, 中文, 日本語), dan ganti launcher bawaan SmartTV via ADB.',
+    brandStep1: '1. Logo Brand Hotel (Unggah / Preset / Teks)',
+    brandStep2: '2. Background Beranda TV (Foto 4K atau Video Loop)',
+    brandStep3: '3. Video / Gambar Promosi (Layar 04 Promo)',
+    brandStep4: '4. Warna Tema & Pengaturan 4 Bahasa Layar TV (EN, ID, 中文, 日本語)',
+    tvLocaleControlTitle: 'Pengaturan Bahasa: Login/CMS (2 Bahasa) vs Antarmuka SmartTV (4 Bahasa)',
+    tvLocaleControlSub:
+      'Login & CMS menggunakan 2 bahasa (Indonesia & Inggris), sedangkan antarmuka SmartTV kamar mendukung 4 bahasa (Inggris, Indonesia, Cina 中文, dan Jepang 日本語) yang dapat diubah langsung dari sini.',
+    applyTvLocaleBtn: 'Terapkan Bahasa TV ke Semua Kamar',
+    tvPreviewHeader: 'Pratinjau Beranda TV (Kanvas Interaktif 4 Bahasa)',
+    tvPreviewSub:
+      'Klik tombol bahasa EN / ID / 中文 / 日本語 atau tab 06 Bahasa (4) di layar TV untuk menguji perubahan bahasa secara real-time.',
+    fullScreenTvBtn: 'Pratinjau TV Layar Penuh',
+    saveDraftBtn: 'Simpan Draf',
+    publishToTvsBtn: 'Publikasikan ke Seluruh TV',
+    settingsTitle: 'Pengaturan Properti, Bahasa & Lingkungan Kerja',
+    settingsSub:
+      'Kelola bahasa Dashboard CMS (2 Bahasa: ID / EN), bahasa default layar SmartTV Tamu (4 Bahasa: EN / ID / 中文 / 日本語), Wi-Fi, dan mode runtime.',
+  },
+  en: {
+    navOverview: 'Overview',
+    navTenants: 'Tenants & ISPs',
+    navRooms: 'Rooms & Guests',
+    navDevices: 'Devices',
+    navDiscovery: 'Discovery & Deploy',
+    navBranding: 'Brand Studio',
+    navTvServices: 'Content Library',
+    navCampaigns: 'Campaigns',
+    navChannels: 'Channels & Packages',
+    navUpdates: 'Updates',
+    navAnalytics: 'Analytics',
+    navUsers: 'Users & Access',
+    navBilling: 'Subscription',
+    navSupport: 'Support',
+    navSettings: 'Settings',
+    groupWorkspace: 'WORKSPACE',
+    groupAdmin: 'ADMINISTRATION',
+    needHelp: 'Need help?',
+    searchPlaceholder: 'Search rooms, devices or content...',
+    propOverviewTitle: 'Property Overview',
+    propOverviewSub: 'Every screen. Every stay. One connected experience.',
+    scanDevicesBtn: 'Scan devices',
+    connectorReqNote: 'ⓘ Local connector required',
+    openTvPreviewBtn: 'Open TV preview (4 Languages)',
+    kpiLicensedTvs: 'Licensed TVs',
+    kpiTvsOnline: 'TVs online',
+    kpiOccupiedRooms: 'Occupied rooms',
+    kpiActiveCampaigns: 'Active campaigns',
+    kpiUpdatesPending: 'Updates pending',
+    kpiMonthlyPlan: 'Monthly plan',
+    deviceRoomHealthTitle: 'Device & Room Health',
+    viewAllDevices: 'View all devices',
+    playbackInsightsTitle: 'Playback Insights',
+    playbackInsightsSub: 'Daily playback sessions across all endpoints',
+    brandWelcomeCard: 'Brand & Welcome (4 Languages)',
+    openBrandStudioBtn: 'Open Brand Studio',
+    updateApprovalsCard: 'Update Approvals',
+    reviewScheduleBtn: 'Review schedule',
+    recentActivityCard: 'Recent Activity',
+    roomsHeaderTitle: 'Rooms, Guests & TV Interface Language',
+    roomsHeaderSub:
+      'Manage guest occupancy, Housekeeping readiness, and switch in-room SmartTV language directly from the dashboard (4 Languages: EN, ID, 中文, 日本語).',
+    addRoomBtn: 'Add Room',
+    roomTvLocaleLabel: 'Room TV Language (4 Locales)',
+    brandStudioTitle: 'Brand Studio, TV Languages (4) & SmartTV Launcher',
+    brandStudioSub:
+      'Upload real hotel logos, looping background videos/photos, promotional videos, configure 4 TV guest languages (EN, ID, 中文, 日本語), and replace stock SmartTV launchers via ADB.',
+    brandStep1: '1. Hotel Brand Logo (Upload / Preset / Text)',
+    brandStep2: '2. TV Home Background (Photo or Video Loop)',
+    brandStep3: '3. Promotional Video / Image (04 Promo Screen)',
+    brandStep4: '4. Theme Colors & 4-Language SmartTV Setup (EN, ID, 中文, 日本語)',
+    tvLocaleControlTitle: 'Language Architecture: Login/CMS (2 Languages) vs. SmartTV Interface (4 Languages)',
+    tvLocaleControlSub:
+      'Login & CMS Dashboard use 2 operational languages (Indonesian & English), while the in-room SmartTV Guest Interface supports 4 full languages (English, Indonesian, Chinese 中文, and Japanese 日本語) controllable directly from the dashboard.',
+    applyTvLocaleBtn: 'Push TV Language to All Rooms',
+    tvPreviewHeader: 'TV Home Preview (Live Interactive 4-Language Canvas)',
+    tvPreviewSub:
+      'Click EN / ID / 中文 / 日本語 or tab 06 Language (4) inside the TV preview below to test live language switching.',
+    fullScreenTvBtn: 'Full-Screen TV Preview',
+    saveDraftBtn: 'Save draft',
+    publishToTvsBtn: 'Publish changes to TVs',
+    settingsTitle: 'Property, Language & Workspace Settings',
+    settingsSub:
+      'Configure CMS Dashboard language (2 options: ID / EN), default SmartTV Guest Interface language (4 options: EN / ID / 中文 / 日本語), Wi-Fi, and runtime mode.',
+  },
+};
 
 type NavTabId =
   | 'overview'
@@ -236,6 +435,16 @@ export default function App() {
     const saved = localStorage.getItem('gojja_cms_theme');
     return saved === 'dark' ? 'dark' : 'light';
   });
+  const [cmsLocale, setCmsLocale] = useState<CmsLocale>(() => {
+    const saved = localStorage.getItem('gojja_cms_locale');
+    return saved === 'en' ? 'en' : 'id';
+  });
+  const handleChangeCmsLocale = useCallback((nextLoc: CmsLocale) => {
+    setCmsLocale(nextLoc);
+    localStorage.setItem('gojja_cms_locale', nextLoc);
+  }, []);
+  const ct = CMS_UI_STRINGS[cmsLocale];
+
   const [viewMode, setViewMode] = useState<'landing' | 'dashboard'>('landing');
   const [personaAlias, setPersonaAlias] = useState<string>('property-manager');
   const [environmentId, setEnvironmentId] = useState<EnvironmentId>('DEMO');
@@ -681,6 +890,8 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           userAccounts={bootstrap.userAccounts}
           rolesCatalog={bootstrap.rolesCatalog}
           theme={theme}
+          cmsLocale={cmsLocale}
+          onChangeCmsLocale={handleChangeCmsLocale}
           onToggleTheme={handleToggleTheme}
           onLoginSuccess={handleLoginSuccess}
           onOpenTvShowcase={() => setTvModalEndpointId('E-01')}
@@ -694,6 +905,23 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             corporateGroup={modalGroup}
             channels={data.channels}
             campaigns={data.campaigns}
+            onSelectLocale={async (nextTvLoc) => {
+              setBrandLocaleTab(nextTvLoc);
+              try {
+                await apiCall('/api/stays/locale', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    propertyId: activeProperty.id,
+                    roomId: modalRoom.id,
+                    stayId: modalStay?.id,
+                    locale: nextTvLoc,
+                  }),
+                });
+                await fetchBootstrap();
+              } catch {
+                // ignore if guest read-only
+              }
+            }}
             onClose={() => setTvModalEndpointId(null)}
             onOpenChannelCheck={async (epId, chId) => {
               try {
@@ -714,24 +942,24 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
   const allowedTabs = getAllowedTabsForRole(currentRole.id);
 
   const allWorkspaceNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'tenants', label: 'Tenants & ISPs', icon: Building2 },
-    { id: 'rooms', label: 'Rooms & Guests', icon: Bed },
-    { id: 'devices', label: 'Devices', icon: Tv },
-    { id: 'discovery', label: 'Discovery & Deploy', icon: Radar },
-    { id: 'branding', label: 'Brand Studio', icon: Palette },
-    { id: 'tv-services', label: 'Content Library', icon: Radio },
-    { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
-    { id: 'channels', label: 'Channels & Packages', icon: Layers },
-    { id: 'updates', label: 'Updates', icon: Download },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'overview', label: ct.navOverview, icon: LayoutDashboard },
+    { id: 'tenants', label: ct.navTenants, icon: Building2 },
+    { id: 'rooms', label: ct.navRooms, icon: Bed },
+    { id: 'devices', label: ct.navDevices, icon: Tv },
+    { id: 'discovery', label: ct.navDiscovery, icon: Radar },
+    { id: 'branding', label: ct.navBranding, icon: Palette },
+    { id: 'tv-services', label: ct.navTvServices, icon: Radio },
+    { id: 'campaigns', label: ct.navCampaigns, icon: Megaphone },
+    { id: 'channels', label: ct.navChannels, icon: Layers },
+    { id: 'updates', label: ct.navUpdates, icon: Download },
+    { id: 'analytics', label: ct.navAnalytics, icon: BarChart3 },
   ];
 
   const allAdminNav: Array<{ id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { id: 'users', label: 'Users & Access', icon: ShieldCheck },
-    { id: 'billing', label: 'Subscription', icon: CreditCard },
-    { id: 'support-qa', label: 'Support', icon: LifeBuoy },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'users', label: ct.navUsers, icon: ShieldCheck },
+    { id: 'billing', label: ct.navBilling, icon: CreditCard },
+    { id: 'support-qa', label: ct.navSupport, icon: LifeBuoy },
+    { id: 'settings', label: ct.navSettings, icon: Settings },
   ];
 
   // Filter sidebar items strictly by role permissions (Confirmed Decision 1)
@@ -789,6 +1017,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   setBrandAccentColor(p.accentColor);
                   setBrandPrimaryColor(p.primaryColor);
                   setBrandHeadline(p.welcomeHeadline);
+                  setBrandLocaleTab(p.defaultLocale || 'id');
                   if (p.launcherConfig?.disabledPackages?.length) {
                     setCleanTvDisabledPackages(p.launcherConfig.disabledPackages);
                   }
@@ -820,19 +1049,46 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search rooms, devices or content..."
+              placeholder={ct.searchPlaceholder}
               className="w-full pl-9 pr-4 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs text-[var(--cms-text)] placeholder:text-[var(--cms-text-secondary)] focus:outline-2 focus:outline-[var(--brand-indigo)] transition-all"
             />
           </div>
         </div>
 
-        {/* Right: Actions (Theme Toggle, Notifications, User Avatar, Logout) */}
+        {/* Right: Actions (2-Language CMS Toggle ID/EN, Theme Toggle, Notifications, User Avatar, Logout) */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Locale Dropdown (Desktop) */}
-          <div className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-semibold cursor-pointer">
-            <Globe className="w-3.5 h-3.5 text-[var(--cms-text-secondary)]" />
-            <span>EN</span>
-            <ChevronDown className="w-3 h-3 text-[var(--cms-text-secondary)]" />
+          {/* Interactive 2-Language CMS Switcher (Strictly ID & EN for Login & CMS Dashboard) */}
+          <div
+            className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-[11px] font-bold"
+            title={
+              cmsLocale === 'id'
+                ? 'Bahasa Dashboard CMS (2 Bahasa: ID / EN). Untuk 4 Bahasa Layar TV, buka Brand Studio atau Kamar & Tamu.'
+                : 'CMS Dashboard Language (2 options: ID / EN). For 4 SmartTV Guest Languages, open Brand Studio or Rooms & Guests.'
+            }
+          >
+            <Globe className="w-3.5 h-3.5 text-[var(--cms-text-secondary)] ml-1.5 mr-0.5 hidden xs:inline" />
+            <button
+              type="button"
+              onClick={() => handleChangeCmsLocale('id')}
+              className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                cmsLocale === 'id'
+                  ? 'bg-[var(--brand-indigo)] text-white shadow-xs'
+                  : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+              }`}
+            >
+              ID
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChangeCmsLocale('en')}
+              className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                cmsLocale === 'en'
+                  ? 'bg-[var(--brand-indigo)] text-white shadow-xs'
+                  : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+              }`}
+            >
+              EN
+            </button>
           </div>
 
           {/* Mobile Compact Single Icon Theme Toggle (Saves 40px on mobile screens) */}
@@ -918,7 +1174,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
         </div>
       </header>
 
-      {/* Mobile Slide-Out Drawer Navigation (User clarified: Slide-out drawer with full workspace menu) */}
+      {/* Mobile Slide-Out Drawer Navigation */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex" role="dialog" aria-modal="true">
           {/* Backdrop */}
@@ -928,7 +1184,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             aria-hidden="true"
           />
 
-          {/* Slide-out Drawer Panel (Pinned Header + Scrollable Nav + Pinned Footer Image) */}
+          {/* Slide-out Drawer Panel */}
           <aside className="relative z-10 w-72 max-w-[85vw] h-full bg-[var(--cms-sidebar)] border-r border-[var(--cms-divider)] p-4 flex flex-col justify-between overflow-hidden shadow-2xl">
             {/* Fixed Top Header with Logo + Close button */}
             <div className="shrink-0 flex items-center justify-between pb-3 border-b border-[var(--cms-divider)]">
@@ -953,7 +1209,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
               {/* Group 1: WORKSPACE */}
               <div className="space-y-1">
                 <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                  WORKSPACE
+                  {ct.groupWorkspace}
                 </div>
                 <nav className="space-y-0.5 pt-1">
                   {workspaceNav.map((item) => {
@@ -980,11 +1236,11 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 </nav>
               </div>
 
-              {/* Group 2: ADMINISTRATION (Rendered only if role has admin tabs) */}
+              {/* Group 2: ADMINISTRATION */}
               {adminNav.length > 0 && (
                 <div className="space-y-1">
                   <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                    ADMINISTRATION
+                    {ct.groupAdmin}
                   </div>
                   <nav className="space-y-0.5 pt-1">
                     {adminNav.map((item) => {
@@ -1025,7 +1281,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
-                    <span>Need help?</span>
+                    <span>{ct.needHelp}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
@@ -1089,7 +1345,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             {/* Group 1: WORKSPACE */}
             <div className="space-y-1">
               <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                WORKSPACE
+                {ct.groupWorkspace}
               </div>
               <nav className="space-y-0.5 pt-1">
                 {workspaceNav.map((item) => {
@@ -1113,11 +1369,11 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
               </nav>
             </div>
 
-            {/* Group 2: ADMINISTRATION (Rendered only if role has admin tabs) */}
+            {/* Group 2: ADMINISTRATION */}
             {adminNav.length > 0 && (
               <div className="space-y-1">
                 <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                  ADMINISTRATION
+                  {ct.groupAdmin}
                 </div>
                 <nav className="space-y-0.5 pt-1">
                   {adminNav.map((item) => {
@@ -1154,14 +1410,14 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   className="inline-flex items-center gap-1.5 text-xs text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] font-medium"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Need help?</span>
+                  <span>{ct.needHelp}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             )}
           </div>
 
-          {/* 3. Pinned Bottom Resort Photo Card Footer (Always stays anchored at bottom of sidebar) */}
+          {/* 3. Pinned Bottom Resort Photo Card Footer */}
           <div className="shrink-0 pt-3 border-t border-[var(--cms-divider)] space-y-2.5 bg-[var(--cms-sidebar)]">
             <div className="relative rounded-2xl overflow-hidden h-28 border border-white/20 shadow-md group">
               <img
@@ -1199,7 +1455,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           </div>
         </aside>
 
-        {/* Main Viewport Content (Independently Scrollable with Ultra-Thin Luxury Scrollbar) */}
+        {/* Main Viewport Content */}
         <main className="flex-1 h-full overflow-y-auto overflow-x-hidden luxury-scrollbar p-4 sm:p-6 md:p-8">
           <div className="max-w-[1440px] w-full mx-auto space-y-6 pb-8">
           {/* Global Status Toast */}
@@ -1240,52 +1496,51 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   referrerPolicy="no-referrer"
                   className="absolute inset-0 w-full h-full object-cover object-center"
                 />
-                {/* Scrim tuned for flawless text contrast */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/40 dark:from-black/90 dark:via-black/75 dark:to-black/50" />
 
                 <div className="relative z-10 space-y-1.5 max-w-xl">
                   <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--brand-indigo)] dark:text-[#C7B9FF]">
-                    HOTEL ARUNIKA · YOGYAKARTA
+                    {activeProperty.logoText} · {activeProperty.logoSubtitle}
                   </div>
                   <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--cms-text)]">
-                    Property Overview
+                    {ct.propOverviewTitle}
                   </h1>
                   <p className="text-xs sm:text-sm text-[var(--cms-text-secondary)]">
-                    Every screen. Every stay. One connected experience.
+                    {ct.propOverviewSub}
                   </p>
                 </div>
 
-                {/* Right Hero CTA Buttons (Scan devices & Open TV preview) */}
+                {/* Right Hero CTA Buttons */}
                 <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="flex flex-col items-center sm:items-end">
                     <button
                       onClick={() => setActiveTab('discovery')}
-                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl btn-luxury-indigo text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-all"
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl btn-luxury-indigo text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-all cursor-pointer"
                     >
                       <Radar className="w-4 h-4" />
-                      <span>Scan devices</span>
+                      <span>{ct.scanDevicesBtn}</span>
                     </button>
                     <span className="text-[10px] text-[var(--cms-text-secondary)] mt-1">
-                      ⓘ Local connector required
+                      {ct.connectorReqNote}
                     </span>
                   </div>
 
                   <button
                     onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 backdrop-blur-md border border-[var(--cms-divider)] text-[var(--cms-text)] text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm transition-all"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 backdrop-blur-md border border-[var(--cms-divider)] text-[var(--cms-text)] text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                   >
                     <Play className="w-4 h-4 text-[var(--brand-indigo)] fill-[var(--brand-indigo)]" />
-                    <span>Open TV preview</span>
+                    <span>{ct.openTvPreviewBtn}</span>
                   </button>
                 </div>
               </div>
 
-              {/* 6 Rolling KPI Cards in a Row (Exact V-12 Metrics & Icons) */}
+              {/* 6 Rolling KPI Cards in a Row */}
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
                 {/* 1. Licensed TVs */}
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                    <span className="font-medium">Licensed TVs</span>
+                    <span className="font-medium">{ct.kpiLicensedTvs}</span>
                     <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-[#0050F5] flex items-center justify-center">
                       <Tv className="w-4 h-4" />
                     </div>
@@ -1301,7 +1556,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 {/* 2. TVs online */}
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                    <span className="font-medium">TVs online</span>
+                    <span className="font-medium">{ct.kpiTvsOnline}</span>
                     <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
                       <Wifi className="w-4 h-4" />
                     </div>
@@ -1317,7 +1572,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 {/* 3. Occupied rooms */}
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                    <span className="font-medium">Occupied rooms</span>
+                    <span className="font-medium">{ct.kpiOccupiedRooms}</span>
                     <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-[#7C35E0] flex items-center justify-center">
                       <Bed className="w-4 h-4" />
                     </div>
@@ -1333,7 +1588,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 {/* 4. Active campaigns */}
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                    <span className="font-medium">Active campaigns</span>
+                    <span className="font-medium">{ct.kpiActiveCampaigns}</span>
                     <div className="w-7 h-7 rounded-lg bg-pink-500/10 text-[#CA3596] flex items-center justify-center">
                       <Megaphone className="w-4 h-4" />
                     </div>
@@ -1349,7 +1604,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 {/* 5. Updates pending */}
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                    <span className="font-medium">Updates pending</span>
+                    <span className="font-medium">{ct.kpiUpdatesPending}</span>
                     <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
                       <Download className="w-4 h-4" />
                     </div>
@@ -1365,7 +1620,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 {/* 6. Monthly plan */}
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-xs text-[var(--cms-text-secondary)]">
-                    <span className="font-medium">Monthly plan</span>
+                    <span className="font-medium">{ct.kpiMonthlyPlan}</span>
                     <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-[var(--brand-indigo)] flex items-center justify-center">
                       <Award className="w-4 h-4" />
                     </div>
@@ -1379,18 +1634,18 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 </div>
               </div>
 
-              {/* 60:40 Operational Split (Left: Device & Room Health / Right: Playback Insights Dual-Line SVG) */}
+              {/* 60:40 Operational Split */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                 {/* Left (60%): Device & Room Health Table */}
                 <div className="lg:col-span-7 p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-base font-bold text-[var(--cms-text)]">Device & Room Health</h2>
+                      <h2 className="text-base font-bold text-[var(--cms-text)]">{ct.deviceRoomHealthTitle}</h2>
                       <button
                         onClick={() => setActiveTab('rooms')}
-                        className="text-xs font-semibold text-[var(--cms-link)] hover:underline inline-flex items-center gap-1"
+                        className="text-xs font-semibold text-[var(--cms-link)] hover:underline inline-flex items-center gap-1 cursor-pointer"
                       >
-                        <span>View all devices</span>
+                        <span>{ct.viewAllDevices}</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1493,9 +1748,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 <div className="lg:col-span-5 p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-base font-bold text-[var(--cms-text)]">Playback Insights</h2>
+                      <h2 className="text-base font-bold text-[var(--cms-text)]">{ct.playbackInsightsTitle}</h2>
                       <p className="text-[11px] text-[var(--cms-text-secondary)]">
-                        Daily playback sessions across all endpoints
+                        {ct.playbackInsightsSub}
                       </p>
                     </div>
                     <span className="px-3 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs font-medium cursor-pointer">
@@ -1529,7 +1784,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         </g>
                       ))}
 
-                      {/* Line 1: Hotel Content (Purple #4F3FE5) Area & Stroke */}
+                      {/* Line 1: Hotel Content */}
                       <path
                         d="M 50 120 L 125 95 L 200 68 L 275 80 L 350 50 L 425 25 L 500 42 L 500 135 L 50 135 Z"
                         fill="url(#hotelGrad)"
@@ -1544,7 +1799,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         className="animate-chart-line"
                       />
 
-                      {/* Line 2: Live TV (Coral #FF5E70) Stroke */}
+                      {/* Line 2: Live TV */}
                       <path
                         d="M 50 130 L 125 120 L 200 105 L 275 108 L 350 98 L 425 90 L 500 95"
                         fill="none"
@@ -1601,13 +1856,13 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 </div>
               </div>
 
-              {/* Supporting Row: 3 Equal Cards (Brand & Welcome, Update Approvals, Recent Activity) */}
+              {/* Supporting Row: 3 Equal Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 1. Brand & Welcome */}
                 <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
                   <div className="space-y-3">
                     <div className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                      Brand & Welcome
+                      {ct.brandWelcomeCard}
                     </div>
                     <div className="relative rounded-xl overflow-hidden h-28 border border-[var(--cms-divider)] group">
                       <img
@@ -1619,7 +1874,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       <div className="absolute inset-0 bg-black/45 p-3 flex flex-col justify-between text-white">
                         <GojjaWordmark size="sm" showDescriptor={false} variant="reverse" />
                         <div>
-                          <div className="text-xs font-bold">Welcome to Hotel Arunika</div>
+                          <div className="text-xs font-bold">Welcome to {activeProperty.name}</div>
                           <div className="text-[10px] text-slate-300">ID · EN · 中文 · 日本語</div>
                         </div>
                       </div>
@@ -1634,9 +1889,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
 
                   <button
                     onClick={() => setActiveTab('branding')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)] border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)] border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <span>Open Brand Studio</span>
+                    <span>{ct.openBrandStudioBtn}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1645,7 +1900,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between shadow-xs space-y-4">
                   <div className="space-y-3">
                     <div className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                      Update Approvals
+                      {ct.updateApprovalsCard}
                     </div>
                     <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-[#7C35E0] flex items-center justify-center shrink-0">
@@ -1665,9 +1920,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
 
                   <button
                     onClick={() => setActiveTab('updates')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)] border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:border-[var(--brand-indigo)] border border-[var(--cms-divider)] text-xs font-semibold text-[var(--cms-text)] inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <span>Review schedule</span>
+                    <span>{ct.reviewScheduleBtn}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1677,7 +1932,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-wider text-[var(--cms-text-secondary)]">
-                        Recent Activity
+                        {ct.recentActivityCard}
                       </span>
                       <button
                         onClick={() => setActiveTab('support-qa')}
@@ -1750,9 +2005,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-2xl font-bold">Rooms & TV Endpoints — {activeProperty.name}</h1>
+                  <h1 className="text-2xl font-bold">{ct.roomsHeaderTitle} — {activeProperty.name}</h1>
                   <p className="text-xs text-[var(--cms-text-secondary)]">
-                    Occupancy, Housekeeping readiness, Maintenance authorization, and Endpoint online state are tracked as 4 separate facts.
+                    {ct.roomsHeaderSub}
                   </p>
                 </div>
 
@@ -1801,7 +2056,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     className="px-4 py-2 rounded-xl bg-[#0050F5] text-white font-semibold inline-flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Add Room</span>
+                    <span>{ct.addRoomBtn}</span>
                   </button>
                 </form>
               </div>
@@ -1813,6 +2068,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       <th className="py-2.5 pr-3">Room</th>
                       <th className="py-2.5 px-3">Class</th>
                       <th className="py-2.5 px-3">Occupancy (Stay)</th>
+                      <th className="py-2.5 px-3">{ct.roomTvLocaleLabel}</th>
                       <th className="py-2.5 px-3">Housekeeping Readiness</th>
                       <th className="py-2.5 px-3">Bound TV Endpoints</th>
                       <th className="py-2.5 pl-3 text-right">Actions</th>
@@ -1829,6 +2085,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       .map((room) => {
                         const stay = propStays.find((s) => s.roomId === room.id && s.status === 'InHouse');
                         const eps = propEndpoints.filter((e) => e.roomId === room.id);
+                        const activeRoomLocale: GuestLocale = stay?.locale || activeProperty.defaultLocale || 'id';
                         return (
                           <tr key={room.id} className="hover:bg-black/5 dark:hover:bg-white/5">
                             <td className="py-3 pr-3 font-mono-tabular font-bold text-sm">Room {room.code}</td>
@@ -1841,6 +2098,50 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                               ) : (
                                 <span className="text-[var(--cms-text-secondary)]">Vacant</span>
                               )}
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="inline-flex items-center gap-1 rounded-xl bg-[var(--cms-bg)] p-1 border border-[var(--cms-divider)]">
+                                {(
+                                  [
+                                    { code: 'en', short: 'EN' },
+                                    { code: 'id', short: 'ID' },
+                                    { code: 'zh-CN', short: '中文' },
+                                    { code: 'ja-JP', short: '日本語' },
+                                  ] as Array<{ code: GuestLocale; short: string }>
+                                ).map((loc) => (
+                                  <button
+                                    key={loc.code}
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const res = await apiCall('/api/stays/locale', {
+                                          method: 'POST',
+                                          body: JSON.stringify({
+                                            propertyId: activeProperty.id,
+                                            roomId: room.id,
+                                            stayId: stay?.id,
+                                            locale: loc.code,
+                                            updatePropertyDefault: !stay,
+                                          }),
+                                        });
+                                        setBrandLocaleTab(loc.code);
+                                        await fetchBootstrap();
+                                        showNotice('success', res.message || `Room ${room.code} TV language set to ${loc.short} (${loc.code}).`);
+                                      } catch (err: unknown) {
+                                        showNotice('error', err instanceof Error ? err.message : 'Failed to update TV language');
+                                      }
+                                    }}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                                      activeRoomLocale === loc.code
+                                        ? 'bg-[#0050F5] text-white shadow-xs'
+                                        : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                                    }`}
+                                    title={`Set Room ${room.code} SmartTV Language to ${loc.short} (${loc.code})`}
+                                  >
+                                    {loc.short}
+                                  </button>
+                                ))}
+                              </div>
                             </td>
                             <td className="py-3 px-3">
                               <button
@@ -1901,7 +2202,10 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                               {eps.map((ep) => (
                                 <button
                                   key={ep.id}
-                                  onClick={() => setTvModalEndpointId(ep.id)}
+                                  onClick={() => {
+                                    setBrandLocaleTab(activeRoomLocale);
+                                    setTvModalEndpointId(ep.id);
+                                  }}
                                   className="ml-1.5 px-2.5 py-1 rounded-lg bg-[#0050F5] text-white font-semibold hover:bg-[#0040C8]"
                                 >
                                   Preview {ep.id}
@@ -1986,9 +2290,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       onChange={(e) => setCheckInLocale(e.target.value as GuestLocale)}
                       className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
                     >
-                      <option value="id">Bahasa Indonesia (id)</option>
                       <option value="en">English (en)</option>
-                      <option value="zh-CN">简体中文 Mandarin (zh-CN)</option>
+                      <option value="id">Bahasa Indonesia (id)</option>
+                      <option value="zh-CN">简体中文 Chinese (zh-CN)</option>
                       <option value="ja-JP">日本語 Japanese (ja-JP)</option>
                     </select>
                   </div>
@@ -2032,7 +2336,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                           <th className="py-2 pr-3">Stay ID</th>
                           <th className="py-2 px-3">Room</th>
                           <th className="py-2 px-3">Display Name</th>
-                          <th className="py-2 px-3">Locale</th>
+                          <th className="py-2 px-3">TV Language (4)</th>
                           <th className="py-2 px-3">Group</th>
                           <th className="py-2 px-3">Context Ver</th>
                           <th className="py-2 px-3">Status</th>
@@ -2049,7 +2353,36 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                               <td className="py-3 px-3 font-medium">
                                 {st.displayName || <span className="text-[var(--cms-text-secondary)]">Generic Greeting</span>}
                               </td>
-                              <td className="py-3 px-3 font-mono-tabular uppercase">{st.locale}</td>
+                              <td className="py-3 px-3">
+                                <select
+                                  value={st.locale}
+                                  onChange={async (e) => {
+                                    const nextLoc = e.target.value as GuestLocale;
+                                    try {
+                                      const res = await apiCall('/api/stays/locale', {
+                                        method: 'POST',
+                                        body: JSON.stringify({
+                                          propertyId: activeProperty.id,
+                                          roomId: st.roomId,
+                                          stayId: st.id,
+                                          locale: nextLoc,
+                                        }),
+                                      });
+                                      setBrandLocaleTab(nextLoc);
+                                      await fetchBootstrap();
+                                      showNotice('success', res.message || `Updated stay ${st.id} TV locale to ${nextLoc}.`);
+                                    } catch (err: unknown) {
+                                      showNotice('error', err instanceof Error ? err.message : 'Locale update failed');
+                                    }
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-control-border)] font-mono-tabular text-xs font-bold"
+                                >
+                                  <option value="en">EN (English)</option>
+                                  <option value="id">ID (Indonesia)</option>
+                                  <option value="zh-CN">中文 (zh-CN)</option>
+                                  <option value="ja-JP">日本語 (ja-JP)</option>
+                                </select>
+                              </td>
                               <td className="py-3 px-3">{st.groupId || '—'}</td>
                               <td className="py-3 px-3 font-mono-tabular">v{st.contextVersion}</td>
                               <td className="py-3 px-3 font-semibold">
@@ -2104,9 +2437,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Brand Studio & SmartTV Launcher</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{ct.brandStudioTitle}</h1>
                   <p className="text-sm text-[var(--cms-text-secondary)]">
-                    Upload real hotel logos, looping background videos/photos, promotional videos, and replace stock SmartTV launchers via non-root ADB (`GojjaCleanTV`).
+                    {ct.brandStudioSub}
                   </p>
                 </div>
                 <div className="text-xs font-mono-tabular text-[var(--cms-text-secondary)]">
@@ -2121,7 +2454,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   {/* 1. REAL HOTEL LOGO UPLOAD + PRESETS + WORDMARK */}
                   <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase tracking-wider">1. Hotel Brand Logo (Upload / Preset / Text)</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep1}</label>
                       {brandLogoImageUrl && (
                         <button
                           type="button"
@@ -2217,7 +2550,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   {/* 2. HERO WELCOME BACKGROUND: IMAGE OR LOOPING VIDEO UPLOAD */}
                   <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase tracking-wider">2. TV Home Background (Photo or Video)</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep2}</label>
                       <div className="inline-flex rounded-lg bg-[var(--cms-bg)] p-0.5 border border-[var(--cms-divider)] text-[11px]">
                         <button
                           type="button"
@@ -2312,7 +2645,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   {/* 3. PROMOTIONAL VIDEO OR IMAGE SHOWCASE UPLOAD (Syncs with 04 Promo Screen) */}
                   <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase tracking-wider">3. Promotional Video / Image (04 Promo)</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep3}</label>
                       <div className="inline-flex rounded-lg bg-[var(--cms-bg)] p-0.5 border border-[var(--cms-divider)] text-[11px]">
                         <button
                           type="button"
@@ -2402,9 +2735,12 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     </div>
                   </div>
 
-                  {/* 4. Theme Colors & 4-Locale Guest Copy */}
+                  {/* 4. Theme Colors & 4-Locale SmartTV Guest Setup */}
                   <div className="space-y-3">
-                    <label className="block text-xs font-bold uppercase tracking-wider">4. Theme Colors & 4-Locale Copy</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep4}</label>
+                    <p className="text-[11px] text-[var(--cms-text-secondary)] leading-relaxed">
+                      {ct.tvLocaleControlSub}
+                    </p>
                     <div className="flex items-center gap-3">
                       {[
                         { primary: '#1E3A2F', accent: '#DCC6A1', name: 'Javanese Sanctuary' },
@@ -2438,20 +2774,20 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     <div className="grid grid-cols-4 gap-1.5 pt-1">
                       {(
                         [
-                          { code: 'en', label: 'EN' },
-                          { code: 'id', label: 'ID' },
-                          { code: 'zh-CN', label: '中文' },
-                          { code: 'ja-JP', label: '日本語' },
+                          { code: 'en', label: 'EN · English' },
+                          { code: 'id', label: 'ID · Indonesia' },
+                          { code: 'zh-CN', label: '中文 · Chinese' },
+                          { code: 'ja-JP', label: '日本語 · Japanese' },
                         ] as Array<{ code: GuestLocale; label: string }>
                       ).map((loc) => (
                         <button
                           key={loc.code}
                           type="button"
                           onClick={() => setBrandLocaleTab(loc.code)}
-                          className={`py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                          className={`py-2 px-1.5 rounded-xl text-[11px] font-bold border transition-colors cursor-pointer ${
                             brandLocaleTab === loc.code
-                              ? 'bg-[#0050F5] text-white border-[#0050F5]'
-                              : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] text-[var(--cms-text-secondary)]'
+                              ? 'bg-[#0050F5] text-white border-[#0050F5] shadow-xs'
+                              : 'bg-[var(--cms-bg)] border-[var(--cms-divider)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
                           }`}
                         >
                           {loc.label}
@@ -2472,6 +2808,31 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs"
                       />
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const res = await apiCall('/api/stays/locale', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              propertyId: activeProperty.id,
+                              locale: brandLocaleTab,
+                              updatePropertyDefault: true,
+                              applyToAllRooms: true,
+                            }),
+                          });
+                          await fetchBootstrap();
+                          showNotice('success', res.message || `Applied TV language (${brandLocaleTab}) across ${activeProperty.name}.`);
+                        } catch (err: unknown) {
+                          showNotice('error', err instanceof Error ? err.message : 'Failed to push TV language');
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>{ct.applyTvLocaleBtn}: {brandLocaleTab.toUpperCase()}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2480,9 +2841,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <h2 className="text-base font-bold">TV Home Preview (Live Interactive Canvas)</h2>
+                        <h2 className="text-base font-bold">{ct.tvPreviewHeader}</h2>
                         <p className="text-xs text-[var(--cms-text-secondary)]">
-                          Click <strong>04 Promo</strong> inside the preview bar below to test your uploaded Promo Video, or toggle between <strong>GojjaLauncher</strong> and <strong>Stock TV Launcher</strong>.
+                          {ct.tvPreviewSub}
                         </p>
                       </div>
                       <button
@@ -2491,14 +2852,34 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         className="px-3.5 py-1.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-control-border)] text-xs font-semibold hover:bg-[#0050F5] hover:text-white transition-colors inline-flex items-center gap-1.5"
                       >
                         <Play className="w-3.5 h-3.5" />
-                        <span>Full-Screen TV Preview</span>
+                        <span>{ct.fullScreenTvBtn}</span>
                       </button>
                     </div>
 
                     <TvGuestAppView
                       embedded={true}
+                      forcedLocale={brandLocaleTab}
+                      onSelectLocale={async (loc) => {
+                        setBrandLocaleTab(loc);
+                        try {
+                          await apiCall('/api/stays/locale', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              propertyId: activeProperty.id,
+                              roomId: modalRoom?.id,
+                              stayId: modalStay?.id,
+                              locale: loc,
+                              updatePropertyDefault: true,
+                            }),
+                          });
+                          await fetchBootstrap();
+                        } catch {
+                          // non-fatal preview sync
+                        }
+                      }}
                       property={{
                         ...activeProperty,
+                        defaultLocale: brandLocaleTab,
                         logoText: brandLogoText,
                         logoSubtitle: brandLogoSubtitle,
                         logoImageUrl: brandLogoImageUrl || undefined,
@@ -2514,7 +2895,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       }}
                       room={modalRoom}
                       endpoint={modalEndpoint}
-                      stay={modalStay}
+                      stay={modalStay ? { ...modalStay, locale: brandLocaleTab } : undefined}
                       corporateGroup={modalGroup}
                       channels={data.channels}
                       campaigns={data.campaigns}
@@ -2568,7 +2949,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                           }}
                           className="px-5 py-2.5 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] text-xs font-semibold"
                         >
-                          Save draft
+                          {ct.saveDraftBtn}
                         </button>
 
                         <button
@@ -2608,7 +2989,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                           }}
                           className="px-6 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center gap-2"
                         >
-                          <span>Publish changes to TVs</span>
+                          <span>{ct.publishToTvsBtn}</span>
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -4512,8 +4893,115 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Property & Workspace Settings — {activeProperty.name}</h1>
                 <p className="text-xs text-[var(--cms-text-secondary)]">
-                  Configure property network parameters, guest Wi-Fi onboarding, default locale, and runtime environment mode.
+                  Configure property network parameters, guest Wi-Fi onboarding, 2-language CMS vs. 4-language SmartTV localization, and runtime environment mode.
                 </p>
+              </div>
+
+              {/* Language Architecture Control Card (2-Locale CMS vs 4-Locale SmartTV) */}
+              <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--cms-divider)] pb-3">
+                  <div>
+                    <h2 className="text-base font-bold flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-[#0050F5]" />
+                      <span>{ct.tvLocaleControlTitle}</span>
+                    </h2>
+                    <p className="text-xs text-[var(--cms-text-secondary)] mt-0.5">
+                      {ct.tvLocaleControlSub}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                  {/* Left: 2-Language Login & CMS Dashboard UI */}
+                  <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm">1. Login & CMS Dashboard UI (2 Languages)</span>
+                      <span className="px-2 py-0.5 rounded-md bg-[#0050F5]/10 text-[#0050F5] dark:text-[#C7B9FF] font-mono-tabular font-bold text-[10px]">
+                        Active: {cmsLocale.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--cms-text-secondary)]">
+                      Halaman Login dan Dashboard Admin hanya menggunakan 2 bahasa operasional: <strong>Bahasa Indonesia (ID)</strong> dan <strong>English (EN)</strong>.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleChangeCmsLocale('id')}
+                        className={`py-2.5 px-3 rounded-xl font-bold border transition-all cursor-pointer ${
+                          cmsLocale === 'id'
+                            ? 'bg-[#0050F5] text-white border-[#0050F5] shadow-xs'
+                            : 'bg-[var(--cms-surface)] text-[var(--cms-text)] border-[var(--cms-divider)]'
+                        }`}
+                      >
+                        🇮🇩 Bahasa Indonesia (ID)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChangeCmsLocale('en')}
+                        className={`py-2.5 px-3 rounded-xl font-bold border transition-all cursor-pointer ${
+                          cmsLocale === 'en'
+                            ? 'bg-[#0050F5] text-white border-[#0050F5] shadow-xs'
+                            : 'bg-[var(--cms-surface)] text-[var(--cms-text)] border-[var(--cms-divider)]'
+                        }`}
+                      >
+                        🇬🇧 English (EN)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right: 4-Language SmartTV Guest Interface Setup */}
+                  <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm">2. SmartTV Guest Interface (4 Languages)</span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-mono-tabular font-bold text-[10px]">
+                        TV Default: {(activeProperty.defaultLocale || brandLocaleTab).toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--cms-text-secondary)]">
+                      Tampilan layar TV tamu di kamar mendukung 4 bahasa penuh: <strong>English (EN)</strong>, <strong>Indonesia (ID)</strong>, <strong>Chinese (中文)</strong>, dan <strong>Japanese (日本語)</strong>.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                      {(
+                        [
+                          { code: 'en', label: 'EN · English' },
+                          { code: 'id', label: 'ID · Indonesia' },
+                          { code: 'zh-CN', label: '中文 · Chinese' },
+                          { code: 'ja-JP', label: '日本語 · Japanese' },
+                        ] as Array<{ code: GuestLocale; label: string }>
+                      ).map((loc) => (
+                        <button
+                          key={loc.code}
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              setBrandLocaleTab(loc.code);
+                              const res = await apiCall('/api/stays/locale', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                  propertyId: activeProperty.id,
+                                  locale: loc.code,
+                                  updatePropertyDefault: true,
+                                  applyToAllRooms: true,
+                                }),
+                              });
+                              await fetchBootstrap();
+                              showNotice('success', res.message || `SmartTV language set to ${loc.label}`);
+                            } catch (err: unknown) {
+                              showNotice('error', err instanceof Error ? err.message : 'Failed to update SmartTV locale');
+                            }
+                          }}
+                          className={`py-2 px-2 rounded-xl font-bold border text-[11px] transition-all cursor-pointer ${
+                            (activeProperty.defaultLocale || brandLocaleTab) === loc.code
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-[var(--cms-surface)] text-[var(--cms-text)] border-[var(--cms-divider)]'
+                          }`}
+                        >
+                          {loc.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -4608,10 +5096,38 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
       {/* Full-Screen 16:9 TV Guest App Modal when triggered */}
       {tvModalEndpointId && modalEndpoint && (
         <TvGuestAppView
+          forcedLocale={modalStay?.locale || brandLocaleTab}
+          onSelectLocale={async (loc) => {
+            setBrandLocaleTab(loc);
+            try {
+              const res = await apiCall('/api/stays/locale', {
+                method: 'POST',
+                body: JSON.stringify({
+                  propertyId: activeProperty.id,
+                  roomId: modalRoom?.id,
+                  stayId: modalStay?.id,
+                  locale: loc,
+                  updatePropertyDefault: !modalStay,
+                }),
+              });
+              await fetchBootstrap();
+              showNotice('success', res.message || `TV language updated to ${loc}.`);
+            } catch {
+              // ignore non-fatal
+            }
+          }}
           property={{
             ...activeProperty,
+            defaultLocale: modalStay?.locale || brandLocaleTab,
             logoText: brandLogoText,
             logoSubtitle: brandLogoSubtitle,
+            logoImageUrl: brandLogoImageUrl || undefined,
+            heroMediaType: brandHeroMediaType,
+            heroImageUrl: brandHeroImageUrl || activeProperty.heroImageUrl,
+            heroVideoUrl: brandHeroVideoUrl || undefined,
+            promoMediaType: brandPromoMediaType,
+            promoMediaUrl: brandPromoMediaUrl || undefined,
+            promoTitle: brandPromoTitle || undefined,
             accentColor: brandAccentColor,
             primaryColor: brandPrimaryColor,
             welcomeHeadline: brandHeadline,

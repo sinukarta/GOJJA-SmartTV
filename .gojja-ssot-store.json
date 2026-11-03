@@ -396,7 +396,7 @@
         },
         "wifiSsid": "Arunika-Sanctuary-5G",
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
-        "resourceVersion": 5,
+        "resourceVersion": 7,
         "heroMediaType": "video",
         "promoMediaType": "video",
         "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
@@ -1761,6 +1761,32 @@
       }
     ],
     "auditEvents": [
+      {
+        "id": "AUD-1793673968216-861",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "R-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'id' (0 active stay(s), property default updated)."
+      },
+      {
+        "id": "AUD-1793673968199-820",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "R-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'ja-JP' (0 active stay(s), property default updated)."
+      },
       {
         "id": "AUD-1793629097422-304",
         "environmentId": "DEMO",

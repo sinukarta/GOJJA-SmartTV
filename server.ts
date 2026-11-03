@@ -1516,6 +1516,86 @@ async function startServer() {
     return res.json({ ok: true, stay: newStay });
   });
 
+  // 7B. Update Guest TV Language (4 Locales: id, en, zh-CN, ja-JP) per Room/Stay or Property Default from CMS Dashboard
+  app.post('/api/stays/locale', (req: Request, res: Response) => {
+    const { propertyId, roomId, stayId, locale, updatePropertyDefault = false, applyToAllRooms = false } = req.body;
+    const validLocales: GuestLocale[] = ['id', 'en', 'zh-CN', 'ja-JP'];
+    if (!validLocales.includes(locale)) {
+      return res.status(422).json({
+        code: 'VALIDATION_FAILED',
+        message: `Invalid TV locale '${locale}'. Allowed TV interface languages: id, en, zh-CN, ja-JP.`,
+      });
+    }
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const targetPropId =
+      propertyId ||
+      workspace.stays.find((s) => s.id === stayId)?.propertyId ||
+      workspace.rooms.find((r) => r.id === roomId)?.propertyId ||
+      'P-01';
+
+    // Allow either stays.manage or branding.edit to configure TV language from dashboard
+    const stayAuth = authorizeAction(req, 'stays.manage', targetPropId);
+    const brandAuth = authorizeAction(req, 'branding.edit', targetPropId);
+    if (!stayAuth.allowed && !brandAuth.allowed) {
+      return res.status(403).json({ code: stayAuth.reasonCode, message: stayAuth.message });
+    }
+
+    const prop = workspace.properties.find((p) => p.id === targetPropId);
+    if (prop && updatePropertyDefault) {
+      prop.defaultLocale = locale as GuestLocale;
+      prop.resourceVersion += 1;
+    }
+
+    let updatedCount = 0;
+    if (applyToAllRooms && prop) {
+      workspace.stays
+        .filter((s) => s.propertyId === prop.id && s.status === 'InHouse')
+        .forEach((s) => {
+          s.locale = locale as GuestLocale;
+          s.contextVersion += 1;
+          updatedCount += 1;
+        });
+    } else if (stayId) {
+      const st = workspace.stays.find((s) => s.id === stayId);
+      if (st) {
+        st.locale = locale as GuestLocale;
+        st.contextVersion += 1;
+        updatedCount += 1;
+      }
+    } else if (roomId) {
+      const st = workspace.stays.find((s) => s.roomId === roomId && s.status === 'InHouse');
+      if (st) {
+        st.locale = locale as GuestLocale;
+        st.contextVersion += 1;
+        updatedCount += 1;
+      } else if (prop) {
+        prop.defaultLocale = locale as GuestLocale;
+      }
+    }
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'stays.manage',
+      roomId || stayId || targetPropId,
+      targetPropId,
+      'ALLOW',
+      'TV_LOCALE_UPDATED',
+      `Updated SmartTV Guest Interface language to '${locale}' (${updatedCount} active stay(s)${updatePropertyDefault ? ', property default updated' : ''}).`
+    );
+
+    return res.json({
+      ok: true,
+      locale,
+      updatedCount,
+      defaultLocale: prop?.defaultLocale,
+      message: `SmartTV language set to ${locale.toUpperCase()} (${updatedCount} active room session(s) updated).`,
+    });
+  });
+
   app.post('/api/stays/checkout', (req: Request, res: Response) => {
     const { stayId, expectedContextVersion } = req.body;
     const { user, role, environmentId, workspace } = getRequestContext(req);
