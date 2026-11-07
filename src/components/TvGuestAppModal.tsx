@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Tv,
   Utensils,
@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   X,
   Gamepad2,
+  Lock,
 } from 'lucide-react';
 import {
   Property,
@@ -28,6 +29,10 @@ import {
   Channel,
   Campaign,
   GuestLocale,
+  ProviderContract,
+  MarketplaceItem,
+  resolveEffectiveLineup,
+  DenialReason,
 } from '../data/mockData';
 import { GojjaWordmark } from './GojjaWordmark';
 
@@ -48,11 +53,15 @@ interface TvGuestAppProps {
   stay: Stay | undefined;
   corporateGroup: CorporateGroup | undefined;
   channels: Channel[];
+  contracts?: ProviderContract[];
   campaigns: Campaign[];
+  marketplaceItems?: MarketplaceItem[];
+  onRequestServiceOrder?: (itemId: string, itemTitle: string) => Promise<void> | void;
   forcedLocale?: GuestLocale;
   onSelectLocale?: (locale: GuestLocale) => void;
   onClose?: () => void;
   embedded?: boolean;
+  onRecordPlayback?: (campaignId: string, eventType: string, outcome: string, seconds: number) => void;
   onOpenChannelCheck: (endpointId: string, channelId: string) => Promise<{ allowed: boolean; message?: string; code?: string }>;
 }
 
@@ -338,11 +347,15 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
   stay,
   corporateGroup,
   channels,
+  contracts,
   campaigns,
+  marketplaceItems,
+  onRequestServiceOrder,
   forcedLocale,
   onSelectLocale,
   onClose,
   embedded = false,
+  onRecordPlayback,
   onOpenChannelCheck,
 }) => {
   const [activeScreen, setActiveScreen] = useState<TvScreenId>('TV-03-HOME');
@@ -361,6 +374,27 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
   const [simulateStockLauncher, setSimulateStockLauncher] = useState<boolean>(
     property.launcherConfig?.mode === 'STOCK_TV_LAUNCHER'
   );
+
+  const effectiveLineup = useMemo(() => {
+    return resolveEffectiveLineup(
+      property.id,
+      room?.roomClass || 'Standard',
+      !room,
+      contracts || [],
+      channels
+    );
+  }, [property.id, room, contracts, channels]);
+
+  const effectiveMap = useMemo(() => {
+    const map = new Map<string, { allowed: boolean; source?: string; denial?: DenialReason }>();
+    for (const ech of effectiveLineup.channels) {
+      map.set(ech.id, { allowed: true, source: ech.entitlementSource });
+    }
+    for (const d of effectiveLineup.deniedChannels) {
+      map.set(d.channelId, { allowed: false, denial: d });
+    }
+    return map;
+  }, [effectiveLineup]);
 
   useEffect(() => {
     setSimulateStockLauncher(property.launcherConfig?.mode === 'STOCK_TV_LAUNCHER');
@@ -919,6 +953,8 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                         <div className="space-y-1 sm:space-y-1.5 max-h-40 md:max-h-none overflow-y-auto">
                           {channels.map((ch, idx) => {
                             const isFocused = focusIndex === idx;
+                            const ent = effectiveMap.get(ch.id);
+                            const isAllowed = ent ? ent.allowed : true;
                             return (
                               <button
                                 key={ch.id}
@@ -930,14 +966,27 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                                 className={`tv-focusable w-full flex items-center justify-between px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-left text-xs transition-all cursor-pointer ${
                                   isFocused
                                     ? 'bg-[#2B2620] border border-[#DCC6A1] text-white'
-                                    : 'bg-white/5 text-[#CDD3DD] hover:bg-white/10'
+                                    : isAllowed
+                                    ? 'bg-white/5 text-[#CDD3DD] hover:bg-white/10'
+                                    : 'bg-white/[0.02] text-slate-500 hover:bg-white/5 border border-dashed border-white/10'
                                 }`}
                               >
                                 <div className="flex items-center gap-2 truncate">
                                   <span className="font-mono-tabular text-[#DCC6A1] font-semibold text-xs">{ch.number}</span>
-                                  <span className="font-semibold truncate text-xs">{ch.name}</span>
+                                  <span className={`font-semibold truncate text-xs ${!isAllowed ? 'line-through text-slate-400' : ''}`}>
+                                    {ch.name}
+                                  </span>
                                 </div>
-                                <span className="text-[10px] text-slate-400 shrink-0 ml-1.5">{ch.category}</span>
+                                <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+                                  {!isAllowed ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-medium border border-amber-500/30">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      <span>Locked</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">{ch.category}</span>
+                                  )}
+                                </div>
                               </button>
                             );
                           })}
@@ -1008,7 +1057,12 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                       <div className="flex items-center gap-2 sm:gap-3 pt-2">
                         <button
                           data-focused={focusIndex === 0 ? 'true' : 'false'}
-                          onClick={() => setActiveScreen('TV-06-SERVICES')}
+                          onClick={() => {
+                            if (onRecordPlayback && activePromo) {
+                              onRecordPlayback(activePromo.id, 'COMPLETED', 'CTA_CLICKED', 15);
+                            }
+                            setActiveScreen('TV-06-SERVICES');
+                          }}
                           className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#2A241E] border border-[#DCC6A1] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2 cursor-pointer"
                         >
                           <span>{activePromo.ctaLabel[guestLocale]}</span>
@@ -1016,7 +1070,12 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                         </button>
                         <button
                           data-focused={focusIndex === 1 ? 'true' : 'false'}
-                          onClick={() => setActiveScreen('TV-03-HOME')}
+                          onClick={() => {
+                            if (onRecordPlayback && activePromo) {
+                              onRecordPlayback(activePromo.id, 'SKIPPED', 'USER_DISMISSED', 5);
+                            }
+                            setActiveScreen('TV-03-HOME');
+                          }}
                           className="tv-focusable px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-black/55 border border-white/20 text-slate-200 text-xs sm:text-sm font-medium cursor-pointer"
                         >
                           {t.skipBtn}
@@ -1054,28 +1113,45 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
                 {/* SCREEN 05: DINING & GUEST SERVICES + QR */}
                 {activeScreen === 'TV-06-SERVICES' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-2.5 sm:gap-4 items-stretch my-auto max-h-[340px] sm:max-h-none overflow-y-auto md:overflow-visible">
-                    {[
-                      {
-                        title: t.svc1Title,
-                        sub: t.svc1Sub,
-                        action: t.svc1Action,
-                      },
-                      {
-                        title: t.svc2Title,
-                        sub: t.svc2Sub,
-                        action: t.svc2Action,
-                      },
-                      {
-                        title: t.svc3Title,
-                        sub: `${t.svc3SubPrefix} ${room.code} • Ext. ${property.frontDeskExt}`,
-                        action: t.svc3Action,
-                      },
-                    ].map((svc, idx) => (
+                    {(marketplaceItems && marketplaceItems.length > 0
+                      ? marketplaceItems.slice(0, 3).map((item) => {
+                          const localized = item.localeContent[guestLocale] || item.localeContent.en;
+                          return {
+                            id: item.id,
+                            title: localized.title,
+                            sub: `${localized.description.slice(0, 60)}... • ${item.priceHint || item.availabilitySchedule}`,
+                            action: localized.actionLabel,
+                          };
+                        })
+                      : [
+                          {
+                            id: 'default-1',
+                            title: t.svc1Title,
+                            sub: t.svc1Sub,
+                            action: t.svc1Action,
+                          },
+                          {
+                            id: 'default-2',
+                            title: t.svc2Title,
+                            sub: t.svc2Sub,
+                            action: t.svc2Action,
+                          },
+                          {
+                            id: 'default-3',
+                            title: t.svc3Title,
+                            sub: `${t.svc3SubPrefix} ${room.code} • Ext. ${property.frontDeskExt}`,
+                            action: t.svc3Action,
+                          },
+                        ]
+                    ).map((svc, idx) => (
                       <div
                         key={idx}
                         data-focused={focusIndex === idx ? 'true' : 'false'}
                         onClick={() => {
                           setFocusIndex(idx);
+                          if (onRequestServiceOrder) {
+                            onRequestServiceOrder(svc.id, svc.title);
+                          }
                           setServiceToast(t.requestSent);
                           setTimeout(() => setServiceToast(null), 4000);
                         }}

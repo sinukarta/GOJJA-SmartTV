@@ -26,6 +26,8 @@ import {
   DiscoveryCandidate,
   DiscoveryRun,
   ScenarioDefinition,
+  runDevicePreflight,
+  PreflightCheckItem,
 } from '../data/mockData';
 
 interface DeviceDiscoveryViewProps {
@@ -700,6 +702,73 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                 Binding requires <code className="font-mono-tabular">DeviceVerified</code> state and checks available subscription seats atomically (BR01 / BR03).
               </p>
 
+              {/* M10 / Area 5: Hardware Preflight & Limitation Inspection Report */}
+              {(() => {
+                const preflight = runDevicePreflight(selectedCandidate);
+                return (
+                  <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-semibold text-xs text-[var(--cms-text)]">
+                        <ShieldCheck className="w-4 h-4 text-[#0050F5]" />
+                        <span>Preflight & Limitation Inspection</span>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          preflight.criticalPassed
+                            ? preflight.items.some((i) => i.status === 'Unsupported')
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {preflight.criticalPassed
+                          ? preflight.items.some((i) => i.status === 'Unsupported')
+                            ? 'Limited'
+                            : 'Supported'
+                          : 'Preflight Blocked'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-[var(--cms-text-secondary)] italic leading-relaxed">
+                      {preflight.summary}
+                    </p>
+
+                    <div className="space-y-1.5 pt-1">
+                      {preflight.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-2 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)] text-[11px] space-y-0.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-[var(--cms-text)]">{item.name}</span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                                item.status === 'Supported'
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : item.status === 'Limited'
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-rose-600 dark:text-rose-400'
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-[var(--cms-text-secondary)] flex items-center justify-between">
+                            <span>{item.observedValue}</span>
+                            {item.isCritical && <span className="text-rose-500 font-bold uppercase text-[9px]">Critical</span>}
+                          </div>
+                          {item.requiredAction && (
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pt-0.5">
+                              Action: {item.requiredAction}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-3 text-xs">
                 <div>
                   <label className="block font-medium mb-1">Selected Candidate</label>
@@ -734,25 +803,39 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                   />
                 </div>
 
-                <button
-                  disabled={busyAction !== null}
-                  onClick={() =>
-                    wrapBusy('assign', () =>
-                      onAssignDevice({
-                        candidateId: selectedCandidate.id,
-                        propertyId: selectedPropertyId,
-                        roomId: targetRoomId,
-                        endpointLabel,
-                      })
-                    )
-                  }
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center justify-center gap-2 transition-all"
-                >
-                  <span>
-                    {busyAction === 'assign' ? 'Binding Endpoint & Seat...' : 'Bind Verified Device to Room'}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                {(() => {
+                  const preflight = runDevicePreflight(selectedCandidate);
+                  const canBind = preflight.criticalPassed && busyAction === null;
+                  return (
+                    <button
+                      disabled={!canBind}
+                      onClick={() =>
+                        wrapBusy('assign', () =>
+                          onAssignDevice({
+                            candidateId: selectedCandidate.id,
+                            propertyId: selectedPropertyId,
+                            roomId: targetRoomId,
+                            endpointLabel,
+                          })
+                        )
+                      }
+                      className={`w-full py-2.5 px-4 rounded-xl font-semibold inline-flex items-center justify-center gap-2 transition-all ${
+                        canBind
+                          ? 'bg-[#0050F5] hover:bg-[#0040C8] text-white shadow-sm'
+                          : 'bg-gray-300 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      <span>
+                        {busyAction === 'assign'
+                          ? 'Binding Endpoint & Seat...'
+                          : canBind
+                          ? 'Bind Verified Device to Room'
+                          : 'Binding Blocked (Resolve Critical Preflight)'}
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 

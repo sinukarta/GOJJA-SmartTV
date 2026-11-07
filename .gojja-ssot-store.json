@@ -1,5 +1,5 @@
 {
-  "seedVersion": "gojja-functional-demo-3",
+  "seedVersion": "gojja-functional-demo-6",
   "DEMO": {
     "userAccounts": [
       {
@@ -396,8 +396,8 @@
         },
         "wifiSsid": "Arunika-Sanctuary-5G",
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
-        "resourceVersion": 7,
-        "heroMediaType": "video",
+        "resourceVersion": 4,
+        "heroMediaType": "image",
         "promoMediaType": "video",
         "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
         "promoTitle": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
@@ -406,44 +406,13 @@
           "profile": "CLEAN_WITH_OTT",
           "disabledPackages": [
             "com.google.android.tvlauncher",
-            "com.google.android.leanbacklauncher"
+            "com.google.android.leanbacklauncher",
+            "com.google.android.leanbacklauncher.recommendations",
+            "com.google.android.tungsten.setupwraith"
           ],
-          "lastAppliedAt": "2026-11-02T14:18:17.421Z",
-          "launcherVersion": "GojjaLauncher v4.2.0-hospitality",
-          "lastAdbTranscript": [
-            "$ adb connect 192.168.10.101:5555  # [E-01 · BRAVIA 4K VH21]",
-            "$ adb -s 192.168.10.101:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
-            "$ adb -s 192.168.10.101:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
-            "$ adb -s 192.168.10.101:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
-            "$ adb -s 192.168.10.101:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
-            "$ adb -s 192.168.10.101:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
-            "$ adb connect 192.168.10.102:5555  # [E-02 · BRAVIA 4K VH21]",
-            "$ adb -s 192.168.10.102:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
-            "$ adb -s 192.168.10.102:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
-            "$ adb -s 192.168.10.102:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
-            "$ adb -s 192.168.10.102:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
-            "$ adb -s 192.168.10.102:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
-            "$ adb connect 192.168.10.103:5555  # [E-03 · BRAVIA 4K VH21]",
-            "$ adb -s 192.168.10.103:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
-            "$ adb -s 192.168.10.103:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
-            "$ adb -s 192.168.10.103:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
-            "$ adb -s 192.168.10.103:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
-            "$ adb -s 192.168.10.103:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
-            "$ adb connect 192.168.10.201:5555  # [E-04 · BRAVIA 4K VH21]",
-            "$ adb -s 192.168.10.201:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
-            "$ adb -s 192.168.10.201:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
-            "$ adb -s 192.168.10.201:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
-            "$ adb -s 192.168.10.201:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
-            "$ adb -s 192.168.10.201:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME",
-            "$ adb connect 192.168.10.231:5555  # [E-06 · BRAVIA XR 65]",
-            "$ adb -s 192.168.10.231:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk",
-            "$ adb -s 192.168.10.231:5555 shell pm disable-user --user 0 com.google.android.tvlauncher",
-            "$ adb -s 192.168.10.231:5555 shell pm disable-user --user 0 com.google.android.leanbacklauncher",
-            "$ adb -s 192.168.10.231:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity",
-            "$ adb -s 192.168.10.231:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME"
-          ]
-        },
-        "heroVideoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
+          "lastAppliedAt": "2026-11-02T05:30:00Z",
+          "launcherVersion": "GojjaLauncher v4.2.0-hospitality"
+        }
       },
       {
         "id": "P-02",
@@ -518,9 +487,15 @@
         "planName": "Hospitality Core Wholesale (H)",
         "planVersion": "2026.10-W1",
         "seats": 12,
+        "committedQuantity": 12,
+        "allocatedQuantity": 7,
+        "reservedQuantity": 1,
+        "billedQuantityCurrentPeriod": 12,
         "unitPriceIdr": 15000,
         "status": "Active",
-        "effectiveDate": "2026-10-01"
+        "suspensionStatus": "None",
+        "effectiveDate": "2026-10-01",
+        "version": 4
       },
       {
         "id": "SUB-02",
@@ -531,9 +506,15 @@
         "planName": "Hospitality Core Wholesale (H)",
         "planVersion": "2026.10-W1",
         "seats": 8,
+        "committedQuantity": 8,
+        "allocatedQuantity": 5,
+        "reservedQuantity": 0,
+        "billedQuantityCurrentPeriod": 8,
         "unitPriceIdr": 15000,
         "status": "Active",
-        "effectiveDate": "2026-10-01"
+        "suspensionStatus": "None",
+        "effectiveDate": "2026-10-01",
+        "version": 2
       },
       {
         "id": "SUB-03",
@@ -544,9 +525,142 @@
         "planName": "Hospitality Core Direct (Demo)",
         "planVersion": "2026.10-D1",
         "seats": 10,
+        "committedQuantity": 10,
+        "allocatedQuantity": 2,
+        "reservedQuantity": 0,
+        "billedQuantityCurrentPeriod": 10,
         "unitPriceIdr": 25000,
         "status": "Active",
-        "effectiveDate": "2026-10-15"
+        "suspensionStatus": "None",
+        "effectiveDate": "2026-10-15",
+        "version": 1
+      }
+    ],
+    "seatLedger": [
+      {
+        "id": "LED-001",
+        "subscriptionId": "SUB-01",
+        "propertyId": "P-01",
+        "type": "COMMITTED",
+        "quantityDelta": 10,
+        "effectiveFrom": "2026-10-01T00:00:00Z",
+        "reasonCode": "INITIAL_CONTRACT_COMMISSION",
+        "createdBy": "Finance Wholesale Ops",
+        "createdAtUtc": "2026-10-01T00:00:00Z",
+        "version": 1
+      },
+      {
+        "id": "LED-002",
+        "subscriptionId": "SUB-01",
+        "propertyId": "P-01",
+        "type": "ALLOCATED",
+        "quantityDelta": 5,
+        "effectiveFrom": "2026-10-05T08:00:00Z",
+        "reasonCode": "BATCH_DEPLOY_PHASE_1",
+        "createdBy": "Bima Sakti (Tech Admin)",
+        "createdAtUtc": "2026-10-05T08:00:00Z",
+        "version": 2
+      },
+      {
+        "id": "LED-003",
+        "subscriptionId": "SUB-01",
+        "propertyId": "P-01",
+        "type": "COMMITTED",
+        "quantityDelta": 2,
+        "effectiveFrom": "2026-10-20T00:00:00Z",
+        "reasonCode": "CHANGE_ORDER_EXPANSION",
+        "changeOrderId": "CO-01",
+        "createdBy": "Putri Maharani (Property Mgr)",
+        "createdAtUtc": "2026-10-20T10:15:00Z",
+        "version": 3
+      },
+      {
+        "id": "LED-004",
+        "subscriptionId": "SUB-01",
+        "propertyId": "P-01",
+        "type": "ALLOCATED",
+        "quantityDelta": 2,
+        "effectiveFrom": "2026-10-22T09:00:00Z",
+        "reasonCode": "SUITE_EXPANSION_E06_E07",
+        "createdBy": "Bima Sakti (Tech Admin)",
+        "createdAtUtc": "2026-10-22T09:00:00Z",
+        "version": 4
+      },
+      {
+        "id": "LED-005",
+        "subscriptionId": "SUB-01",
+        "propertyId": "P-01",
+        "type": "RESERVED",
+        "quantityDelta": 1,
+        "effectiveFrom": "2026-11-01T00:00:00Z",
+        "reasonCode": "STAGED_ROOM104_EXPANSION",
+        "createdBy": "Bima Sakti (Tech Admin)",
+        "createdAtUtc": "2026-11-01T08:30:00Z",
+        "version": 4
+      },
+      {
+        "id": "LED-006",
+        "subscriptionId": "SUB-02",
+        "propertyId": "P-02",
+        "type": "COMMITTED",
+        "quantityDelta": 8,
+        "effectiveFrom": "2026-10-01T00:00:00Z",
+        "reasonCode": "INITIAL_CONTRACT_COMMISSION",
+        "createdBy": "Finance Wholesale Ops",
+        "createdAtUtc": "2026-10-01T00:00:00Z",
+        "version": 1
+      },
+      {
+        "id": "LED-007",
+        "subscriptionId": "SUB-02",
+        "propertyId": "P-02",
+        "type": "ALLOCATED",
+        "quantityDelta": 5,
+        "effectiveFrom": "2026-10-10T11:00:00Z",
+        "reasonCode": "VILLA_DEPLOYMENT",
+        "createdBy": "Wayan Sudira (Property Mgr)",
+        "createdAtUtc": "2026-10-10T11:00:00Z",
+        "version": 2
+      },
+      {
+        "id": "LED-008",
+        "subscriptionId": "SUB-03",
+        "propertyId": "P-03",
+        "type": "COMMITTED",
+        "quantityDelta": 10,
+        "effectiveFrom": "2026-10-15T00:00:00Z",
+        "reasonCode": "DIRECT_DEMO_POOL",
+        "createdBy": "Siti Rahma (Direct Sales)",
+        "createdAtUtc": "2026-10-15T00:00:00Z",
+        "version": 1
+      },
+      {
+        "id": "LED-009",
+        "subscriptionId": "SUB-03",
+        "propertyId": "P-03",
+        "type": "ALLOCATED",
+        "quantityDelta": 2,
+        "effectiveFrom": "2026-10-20T14:00:00Z",
+        "reasonCode": "PILOT_STUDIOS",
+        "createdBy": "Aris Munandar (Operations)",
+        "createdAtUtc": "2026-10-20T14:00:00Z",
+        "version": 1
+      }
+    ],
+    "changeOrders": [
+      {
+        "id": "CO-01",
+        "subscriptionId": "SUB-01",
+        "propertyId": "P-01",
+        "requestedDelta": 2,
+        "effectiveDate": "2026-10-20",
+        "status": "Applied",
+        "prorataAmountIdr": 11000,
+        "reason": "Royal Suite 301 expansion requiring 2 additional dedicated TV seats",
+        "requestedBy": "Putri Maharani (Property Mgr P-01)",
+        "approvedBy": "Finance Wholesale Director",
+        "appliedAtUtc": "2026-10-20T10:15:00Z",
+        "createdAtUtc": "2026-10-19T14:20:00Z"
       }
     ],
     "rooms": [
@@ -675,9 +789,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "GojjaLauncher-4.2.0",
+        "appVersion": "2.4.1",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 5,
+        "appliedConfigVersion": 4,
         "lastSeenUtc": "2026-11-02T06:59:00Z",
         "ipHint": "192.168.10.101",
         "portHint": 5555,
@@ -698,9 +812,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "GojjaLauncher-4.2.0",
+        "appVersion": "2.4.1",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 5,
+        "appliedConfigVersion": 4,
         "lastSeenUtc": "2026-11-02T06:59:10Z",
         "ipHint": "192.168.10.102",
         "portHint": 5555,
@@ -721,9 +835,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "GojjaLauncher-4.2.0",
+        "appVersion": "2.4.1",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 5,
+        "appliedConfigVersion": 4,
         "lastSeenUtc": "2026-11-02T06:59:20Z",
         "ipHint": "192.168.10.103",
         "portHint": 5555,
@@ -744,9 +858,9 @@
         "manufacturer": "Sony",
         "androidVersion": "11",
         "sdkInt": 30,
-        "appVersion": "GojjaLauncher-4.2.0",
+        "appVersion": "2.4.0",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 5,
+        "appliedConfigVersion": 4,
         "lastSeenUtc": "2026-11-02T06:59:05Z",
         "ipHint": "192.168.10.201",
         "portHint": 5555,
@@ -790,9 +904,9 @@
         "manufacturer": "Sony",
         "androidVersion": "12",
         "sdkInt": 31,
-        "appVersion": "GojjaLauncher-4.2.0",
+        "appVersion": "2.4.1",
         "desiredVersion": "2.4.1",
-        "appliedConfigVersion": 5,
+        "appliedConfigVersion": 4,
         "lastSeenUtc": "2026-11-02T06:59:30Z",
         "ipHint": "192.168.10.231",
         "portHint": 5555,
@@ -1105,17 +1219,37 @@
         "propertyId": "P-01",
         "holderName": "PT Arunika Hospitality Indonesia (via ISP-A)",
         "providerId": "F-A",
-        "providerName": "Nusantara Vision Hospitality (F-A)",
+        "providerName": "Nusantara Vision Core (F-A)",
         "basis": "room",
         "quantity": 6,
         "status": "Active",
         "packages": [
           "PKG-BASIC",
-          "PKG-INTL",
-          "PKG-SPORTS"
+          "PKG-INTL"
         ],
         "allowedRoomClasses": [
           "Standard",
+          "Deluxe",
+          "Suite"
+        ],
+        "multiTvIncluded": true,
+        "publicAreaAllowed": false,
+        "validUntilUtc": "2027-06-30T23:59:59Z",
+        "connectionStatus": "Ready"
+      },
+      {
+        "id": "CT-01B",
+        "propertyId": "P-01",
+        "holderName": "PT Arunika Hospitality Indonesia (via ISP-A)",
+        "providerId": "F-A",
+        "providerName": "Nusantara Vision Sports Tier (F-A)",
+        "basis": "room",
+        "quantity": 3,
+        "status": "Active",
+        "packages": [
+          "PKG-SPORTS"
+        ],
+        "allowedRoomClasses": [
           "Deluxe",
           "Suite"
         ],
@@ -1261,9 +1395,50 @@
     ],
     "campaigns": [
       {
+        "id": "CMP-EXT-4995",
+        "propertyId": "P-01",
+        "name": "BCA Solitaire Curated Privileges & Dining Rebate (External Offer)",
+        "category": "External Offer",
+        "externalPaid": true,
+        "adOfferId": "OFFER-02",
+        "offerVersion": 1,
+        "advertiserName": "BCA Solitaire & Prioritas",
+        "placement": "welcome_screen",
+        "status": "Active",
+        "priority": 88,
+        "frequencyCapPerStay": 1,
+        "durationSeconds": 15,
+        "skippableAfterSeconds": 5,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-12-15T23:59:59Z",
+        "imageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+        "headline": {
+          "id": "BCA Solitaire Curated Privileges",
+          "en": "BCA Solitaire Curated Privileges",
+          "zh-CN": "BCA Solitaire Curated Privileges",
+          "ja-JP": "BCA Solitaire Curated Privileges"
+        },
+        "ctaLabel": {
+          "id": "View Privileges",
+          "en": "View Privileges",
+          "zh-CN": "View Privileges",
+          "ja-JP": "View Privileges"
+        },
+        "creativeVersion": 1,
+        "startsCount": 0,
+        "completedCount": 0,
+        "skippedCount": 0,
+        "interruptedCount": 0,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 0,
+        "targetAudience": {
+          "isPublicAreaAllowed": true
+        }
+      },
+      {
         "id": "CMP-01",
         "propertyId": "P-01",
-        "name": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
+        "name": "Spa experience — Royal Javanese Ritual",
         "category": "Spa & Wellness",
         "placement": "home_hero",
         "status": "Active",
@@ -1275,8 +1450,8 @@
         "endUtc": "2026-11-30T23:59:59Z",
         "imageUrl": "/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png",
         "headline": {
-          "id": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
-          "en": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
+          "id": "Waktu untuk Bersantai — Royal Javanese Spa",
+          "en": "Time to Unwind — Royal Javanese Spa Ritual",
           "zh-CN": "放松时刻 — 皇家爪哇水疗体验",
           "ja-JP": "癒しのひととき — ロイヤルジャワニーズスパ"
         },
@@ -1286,15 +1461,16 @@
           "zh-CN": "查看水疗服务",
           "ja-JP": "スパメニューを見る"
         },
-        "creativeVersion": 3,
+        "creativeVersion": 2,
         "startsCount": 10,
         "completedCount": 6,
         "skippedCount": 2,
         "interruptedCount": 1,
         "failedAfterStartCount": 1,
         "totalPlaySeconds": 212,
-        "mediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "mediaType": "video"
+        "targetAudience": {
+          "isPublicAreaAllowed": true
+        }
       },
       {
         "id": "CMP-02",
@@ -1308,7 +1484,7 @@
         "durationSeconds": 15,
         "skippableAfterSeconds": 0,
         "startUtc": "2026-11-01T00:00:00Z",
-        "endUtc": "2026-11-03T12:00:00Z",
+        "endUtc": "2026-11-30T12:00:00Z",
         "imageUrl": "/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png",
         "headline": {
           "id": "Selamat Datang Delegasi Nusantara Summit di Ballroom Pukul 19.00",
@@ -1328,7 +1504,13 @@
         "skippedCount": 0,
         "interruptedCount": 0,
         "failedAfterStartCount": 0,
-        "totalPlaySeconds": 60
+        "totalPlaySeconds": 60,
+        "targetAudience": {
+          "groupIds": [
+            "GRP-01"
+          ],
+          "stayRequired": true
+        }
       },
       {
         "id": "CMP-03",
@@ -1397,6 +1579,84 @@
         "interruptedCount": 0,
         "failedAfterStartCount": 0,
         "totalPlaySeconds": 370
+      },
+      {
+        "id": "CMP-05",
+        "propertyId": "P-01",
+        "name": "Executive Suite Sunset Aperitif",
+        "category": "Fine Dining",
+        "placement": "pre_live_tv",
+        "status": "Active",
+        "priority": 85,
+        "frequencyCapPerStay": 2,
+        "durationSeconds": 15,
+        "skippableAfterSeconds": 5,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-11-30T23:59:59Z",
+        "imageUrl": "/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png",
+        "headline": {
+          "id": "Aperitif Eksklusif Tamu Suite di Rooftop Lounge",
+          "en": "Complimentary Sunset Aperitif at Suite Rooftop Lounge",
+          "zh-CN": "套房贵宾专属日落餐前酒会",
+          "ja-JP": "スイート限定 ルーフトップ・サンセットアペリティフ"
+        },
+        "ctaLabel": {
+          "id": "Lihat Detail",
+          "en": "View Lounge Details",
+          "zh-CN": "查看酒廊详情",
+          "ja-JP": "詳細を見る"
+        },
+        "creativeVersion": 1,
+        "startsCount": 8,
+        "completedCount": 5,
+        "skippedCount": 3,
+        "interruptedCount": 0,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 95,
+        "targetAudience": {
+          "roomClasses": [
+            "Suite",
+            "Deluxe"
+          ],
+          "stayRequired": true
+        }
+      },
+      {
+        "id": "CMP-06",
+        "propertyId": "P-01",
+        "name": "Heritage Facilities & Cultural Garden Walk",
+        "category": "Pool & Leisure",
+        "placement": "shared_signage",
+        "status": "Active",
+        "priority": 60,
+        "frequencyCapPerStay": 99,
+        "durationSeconds": 20,
+        "skippableAfterSeconds": 0,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-11-30T23:59:59Z",
+        "imageUrl": "/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png",
+        "headline": {
+          "id": "Jelajahi Fasilitas Sanctuary & Kebun Budaya Arunika",
+          "en": "Discover Sanctuary Facilities & Arunika Cultural Garden",
+          "zh-CN": "探索酒店静谧设施与文化花园",
+          "ja-JP": "サンクチュアリ施設と文化庭園の散策"
+        },
+        "ctaLabel": {
+          "id": "Panduan Resor",
+          "en": "Resort Guide",
+          "zh-CN": "度假村指南",
+          "ja-JP": "リゾート案内"
+        },
+        "creativeVersion": 1,
+        "startsCount": 42,
+        "completedCount": 38,
+        "skippedCount": 2,
+        "interruptedCount": 2,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 780,
+        "targetAudience": {
+          "isPublicAreaAllowed": true
+        }
       }
     ],
     "publications": [
@@ -1438,7 +1698,7 @@
         "value": "#DCC6A1",
         "updatedBy": "property-manager",
         "updatedAtUtc": "2026-11-01T08:00:00Z",
-        "version": 5
+        "version": 4
       },
       {
         "id": "OVR-03",
@@ -1450,6 +1710,28 @@
         "updatedBy": "property-manager",
         "updatedAtUtc": "2026-11-01T08:30:00Z",
         "version": 2
+      },
+      {
+        "id": "OVR-04",
+        "propertyId": "P-01",
+        "layer": "ROOM_CLASS",
+        "targetId": "Suite",
+        "field": "accentColor",
+        "value": "#E5C185",
+        "updatedBy": "property-manager",
+        "updatedAtUtc": "2026-11-01T08:30:00Z",
+        "version": 1
+      },
+      {
+        "id": "OVR-05",
+        "propertyId": "P-01",
+        "layer": "CUSTOMER",
+        "targetId": "C-01",
+        "field": "logoSubtitle",
+        "value": "A Heritage Luxury Hotel",
+        "updatedBy": "brand-director",
+        "updatedAtUtc": "2026-10-15T00:00:00Z",
+        "version": 1
       }
     ],
     "invoices": [
@@ -1468,7 +1750,26 @@
         "unitPriceIdr": 15000,
         "totalIdr": 180000,
         "paidIdr": 0,
+        "remainingBalanceIdr": 180000,
         "lineDescription": "GOJJA Hospitality Core Wholesale — 12 Contracted Seats × Rp15,000",
+        "lines": [
+          {
+            "id": "INVL-01-A",
+            "description": "Base Seat Allocation — 10 Contracted Units (Full Month November 2026)",
+            "seatDays": 300,
+            "unitPriceIdr": 15000,
+            "amountIdr": 150000,
+            "lineType": "BASE"
+          },
+          {
+            "id": "INVL-01-B",
+            "description": "True-up Change Order CO-01 — 2 Units Royal Suite 301 expansion (Effective 20 Oct prorata)",
+            "seatDays": 60,
+            "unitPriceIdr": 15000,
+            "amountIdr": 30000,
+            "lineType": "TRUE_UP"
+          }
+        ],
         "receiptRefs": []
       },
       {
@@ -1486,7 +1787,18 @@
         "unitPriceIdr": 15000,
         "totalIdr": 120000,
         "paidIdr": 120000,
+        "remainingBalanceIdr": 0,
         "lineDescription": "GOJJA Hospitality Core Wholesale — 8 Contracted Seats × Rp15,000",
+        "lines": [
+          {
+            "id": "INVL-02-A",
+            "description": "Base Seat Allocation — 8 Villa Units (Full Month November 2026)",
+            "seatDays": 240,
+            "unitPriceIdr": 15000,
+            "amountIdr": 120000,
+            "lineType": "BASE"
+          }
+        ],
         "receiptRefs": [
           "RCP-01"
         ]
@@ -1506,7 +1818,18 @@
         "unitPriceIdr": 25000,
         "totalIdr": 250000,
         "paidIdr": 0,
+        "remainingBalanceIdr": 250000,
         "lineDescription": "GOJJA Hospitality Core Direct — 10 Contracted Seats × Rp25,000",
+        "lines": [
+          {
+            "id": "INVL-03-A",
+            "description": "Base Studio Direct Pool — 10 Demo Seats (Full Month November 2026)",
+            "seatDays": 300,
+            "unitPriceIdr": 25000,
+            "amountIdr": 250000,
+            "lineType": "BASE"
+          }
+        ],
         "receiptRefs": []
       }
     ],
@@ -1762,56 +2085,30 @@
     ],
     "auditEvents": [
       {
-        "id": "AUD-1793673968216-861",
+        "id": "AUD-1794051334999-925",
         "environmentId": "DEMO",
         "timestampUtc": "2026-11-02T07:00:00Z",
         "actorAlias": "property-manager",
         "actorRole": "R-11",
-        "action": "stays.manage",
-        "targetRef": "R-101",
+        "action": "marketplace.accept_offer",
+        "targetRef": "OFFER-02",
         "propertyId": "P-01",
         "outcome": "ALLOW",
-        "reasonCode": "TV_LOCALE_UPDATED",
-        "details": "Updated SmartTV Guest Interface language to 'id' (0 active stay(s), property default updated)."
+        "reasonCode": "OFFER_OPTED_IN",
+        "details": "Property P-01 opted-in to AdOffer 'OFFER-02' (v1) from BCA Solitaire & Prioritas. Terms: AGR-P-01-ADV-BCA-2026Q4."
       },
       {
-        "id": "AUD-1793673968199-820",
+        "id": "AUD-1794051210655-328",
         "environmentId": "DEMO",
         "timestampUtc": "2026-11-02T07:00:00Z",
         "actorAlias": "property-manager",
         "actorRole": "R-11",
-        "action": "stays.manage",
-        "targetRef": "R-101",
-        "propertyId": "P-01",
+        "action": "demo.reset",
+        "targetRef": "DEMO_WORKSPACE",
+        "propertyId": null,
         "outcome": "ALLOW",
-        "reasonCode": "TV_LOCALE_UPDATED",
-        "details": "Updated SmartTV Guest Interface language to 'ja-JP' (0 active stay(s), property default updated)."
-      },
-      {
-        "id": "AUD-1793629097422-304",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "branding.publish",
-        "targetRef": "GojjaCleanTV@P-01",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "GOJJA_LAUNCHER_APPLIED",
-        "details": "Applied GojjaCleanTV non-root ADB takeover (disabled 2 stock/ad packages & locked GojjaLauncher Home) on 5 online TV(s) in Hotel Arunika Yogyakarta."
-      },
-      {
-        "id": "AUD-1793629097391-962",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "branding.edit",
-        "targetRef": "P-01",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "DRAFT_SAVED",
-        "details": "Saved branding & media draft v5 for Hotel Arunika Yogyakarta."
+        "reasonCode": "SEED_RESTORED",
+        "details": "Restored DEMO workspace to clean seed (30 seats, 14 allocated, 16 available, 12 rooms, 11 online / 3 offline) without modifying LIVE_LAB."
       },
       {
         "id": "AUD-001",
@@ -1840,7 +2137,393 @@
         "details": "Verified wholesale payment Rp120,000 for SUB-02 (ISP-B)."
       }
     ],
-    "clockUtc": "2026-11-02T07:00:00Z"
+    "playbackFacts": [
+      {
+        "id": "FACT-01",
+        "campaignId": "CMP-01",
+        "endpointId": "E-01",
+        "stayId": "S-01",
+        "eventType": "complete",
+        "occurredAt": "2026-11-02T10:15:30Z",
+        "playSeconds": 30,
+        "creativeVersion": 2,
+        "sessionId": "SESS-E01-001",
+        "locale": "id",
+        "outcome": "completed"
+      },
+      {
+        "id": "FACT-02",
+        "campaignId": "CMP-01",
+        "endpointId": "E-01",
+        "stayId": "S-01",
+        "eventType": "skip",
+        "occurredAt": "2026-11-02T14:20:10Z",
+        "playSeconds": 6,
+        "creativeVersion": 2,
+        "sessionId": "SESS-E01-002",
+        "locale": "id",
+        "outcome": "skipped"
+      },
+      {
+        "id": "FACT-03",
+        "campaignId": "CMP-02",
+        "endpointId": "E-06",
+        "stayId": "S-03",
+        "eventType": "complete",
+        "occurredAt": "2026-11-02T16:00:00Z",
+        "playSeconds": 15,
+        "creativeVersion": 1,
+        "sessionId": "SESS-E06-001",
+        "locale": "en",
+        "outcome": "completed"
+      }
+    ],
+    "clockUtc": "2026-11-02T07:00:00Z",
+    "adOffers": [
+      {
+        "id": "OFFER-01",
+        "advertiserOrgId": "ADV-GARUDA",
+        "advertiserName": "Garuda Indonesia",
+        "title": "Garuda Priority Executive Miles & In-Flight Upgrade",
+        "category": "AIRLINE",
+        "currentVersion": 1,
+        "creativeVersions": [
+          {
+            "version": 1,
+            "headline": "Fly the Skies of Indonesia with Double Miles",
+            "subline": "Exclusive GarudaMiles bonus and complimentary lounge access for hotel guests.",
+            "mediaUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
+            "mediaType": "image",
+            "targetPlacement": "home_hero",
+            "callToAction": "Scan QR for Member Upgrade",
+            "advertiserBrand": "Garuda Indonesia",
+            "updatedAtUtc": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "requestedPlacements": [
+          "home_hero",
+          "service_detail"
+        ],
+        "proposedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-31T23:59:59Z"
+        },
+        "proposedCapPerStay": 2,
+        "pricingModel": "CPM",
+        "proposedRateIdr": 350000,
+        "exclusions": [
+          "Standard Room"
+        ],
+        "targetingNotes": "Focus on Suite & Villa guests; executive leisure profile. Zero guest PII exposed.",
+        "status": "Active",
+        "createdAtUtc": "2026-11-01T00:00:00Z"
+      },
+      {
+        "id": "OFFER-02",
+        "advertiserOrgId": "ADV-BCA",
+        "advertiserName": "BCA Solitaire & Prioritas",
+        "title": "BCA Solitaire Curated Privileges & Dining Rebate",
+        "category": "FINTECH",
+        "currentVersion": 1,
+        "creativeVersions": [
+          {
+            "version": 1,
+            "headline": "BCA Solitaire Curated Privileges",
+            "subline": "Enjoy up to 25% dining rebate at Arunika Heritage with BCA Prioritas card.",
+            "mediaUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+            "mediaType": "image",
+            "targetPlacement": "welcome_screen",
+            "callToAction": "View Privileges",
+            "advertiserBrand": "Bank Central Asia",
+            "updatedAtUtc": "2026-11-02T00:00:00Z"
+          }
+        ],
+        "requestedPlacements": [
+          "welcome_screen",
+          "home_hero"
+        ],
+        "proposedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-15T23:59:59Z"
+        },
+        "proposedCapPerStay": 1,
+        "pricingModel": "Flat",
+        "proposedRateIdr": 12500000,
+        "exclusions": [],
+        "targetingNotes": "High-net-worth welcome interstitial proposal. Awaiting Property Manager opt-in review.",
+        "status": "Active",
+        "createdAtUtc": "2026-11-02T00:00:00Z"
+      },
+      {
+        "id": "OFFER-03",
+        "advertiserOrgId": "ADV-LEXUS",
+        "advertiserName": "Lexus Indonesia",
+        "title": "Lexus Electrified Chauffeur Experience",
+        "category": "AUTOMOTIVE",
+        "currentVersion": 1,
+        "creativeVersions": [
+          {
+            "version": 1,
+            "headline": "Lexus LM 350h Luxury Mover Chauffeur",
+            "subline": "Complimentary private airport transfer for Presidential Suite stays.",
+            "mediaUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+            "mediaType": "image",
+            "targetPlacement": "pre_live_tv",
+            "callToAction": "Book Test Drive",
+            "advertiserBrand": "Lexus Indonesia",
+            "updatedAtUtc": "2026-11-03T00:00:00Z"
+          }
+        ],
+        "requestedPlacements": [
+          "pre_live_tv",
+          "service_detail"
+        ],
+        "proposedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-11-30T23:59:59Z"
+        },
+        "proposedCapPerStay": 1,
+        "pricingModel": "CPA",
+        "proposedRateIdr": 500000,
+        "exclusions": [
+          "Deluxe Garden",
+          "Superior"
+        ],
+        "targetingNotes": "Requires pre_live_tv interstitial consent and Suite guest target only.",
+        "status": "Submitted",
+        "createdAtUtc": "2026-11-03T00:00:00Z"
+      }
+    ],
+    "propertyAdAcceptances": [
+      {
+        "id": "PAC-01",
+        "offerId": "OFFER-01",
+        "offerVersion": 1,
+        "propertyId": "P-01",
+        "acceptedPlacements": [
+          "home_hero",
+          "service_detail"
+        ],
+        "acceptedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-31T23:59:59Z"
+        },
+        "acceptedCapPerStay": 2,
+        "commercialTermsRef": "AGR-ARUNIKA-GARUDA-2026Q4",
+        "acceptedBy": "pm_arunika",
+        "acceptedAtUtc": "2026-11-02T08:30:00Z",
+        "status": "Accepted"
+      },
+      {
+        "id": "PAC-4995",
+        "offerId": "OFFER-02",
+        "offerVersion": 1,
+        "propertyId": "P-01",
+        "acceptedPlacements": [
+          "welcome_screen",
+          "home_hero"
+        ],
+        "acceptedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-15T23:59:59Z"
+        },
+        "acceptedCapPerStay": 1,
+        "commercialTermsRef": "AGR-P-01-ADV-BCA-2026Q4",
+        "acceptedBy": "property-manager",
+        "acceptedAtUtc": "2026-11-02T07:00:00Z",
+        "status": "Accepted"
+      }
+    ],
+    "marketplaceItems": [
+      {
+        "id": "MKT-01",
+        "propertyId": "P-01",
+        "type": "F&B",
+        "title": "Kayumanis Signature Indonesian Rijsttafel",
+        "description": "A royal multi-dish tasting presentation reflecting royal Javanese gastronomic traditions, served in-room or at the courtyard.",
+        "localeContent": {
+          "id": {
+            "title": "Kayumanis Rijsttafel Nusantara",
+            "description": "Sajian hidangan istana dengan rempah autentik Nusantara disajikan di kamar atau teras.",
+            "actionLabel": "Pesan Meja / Menu"
+          },
+          "en": {
+            "title": "Kayumanis Indonesian Rijsttafel",
+            "description": "Royal heritage banquet featuring curated regional dishes delivered to your suite.",
+            "actionLabel": "Request Table / Menu"
+          },
+          "zh-CN": {
+            "title": "肉桂印尼皇家飨宴",
+            "description": "为您呈献精心调配的传统印尼特色菜肴，可送至套房或庭院享用。",
+            "actionLabel": "预订餐桌 / 菜单"
+          },
+          "ja-JP": {
+            "title": "カユマニス・インドネシア宮廷料理",
+            "description": "厳選された伝統スパイス料理をお部屋またはテラスにてご堪能ください。",
+            "actionLabel": "テーブル／メニュー予約"
+          }
+        },
+        "priceHint": "Rp 450.000 / person",
+        "availabilitySchedule": "11:00 – 22:30",
+        "fulfilmentType": "STAFF_TICKET",
+        "status": "Active",
+        "featured": true
+      },
+      {
+        "id": "MKT-02",
+        "propertyId": "P-01",
+        "type": "Wellness",
+        "title": "Royal Javanese Boreh & Herbal Compress",
+        "description": "Ancient warming spice therapy with clove, ginger, and sandalwood to soothe travel fatigue and improve circulation.",
+        "localeContent": {
+          "id": {
+            "title": "Spa Boreh Keraton & Kompres Herbal",
+            "description": "Terapi rempah hangat cengkeh, jahe, dan cendana untuk meredakan kelelahan.",
+            "actionLabel": "Reservasi Slot Spa"
+          },
+          "en": {
+            "title": "Royal Boreh Spice & Herbal Compress",
+            "description": "Traditional warming herbal therapy with sandalwood and clove to restore vital energy.",
+            "actionLabel": "Request Spa Slot"
+          },
+          "zh-CN": {
+            "title": "爪哇皇家草药热敷水疗",
+            "description": "丁香、生姜和檀香暖身草本疗法，舒缓旅途疲劳。",
+            "actionLabel": "预约水疗时段"
+          },
+          "ja-JP": {
+            "title": "ロイヤル・ボレ＆ハーブ温熱スパ",
+            "description": "生姜や白檀の伝統ハーブを用いた温熱療法で旅の疲れを癒します。",
+            "actionLabel": "スパのご予約"
+          }
+        },
+        "priceHint": "Rp 650.000 / 90 min",
+        "availabilitySchedule": "09:00 – 22:00",
+        "fulfilmentType": "STAFF_TICKET",
+        "status": "Active",
+        "featured": true
+      },
+      {
+        "id": "MKT-03",
+        "propertyId": "P-01",
+        "partnerId": "PARTNER-TRANS",
+        "partnerName": "Bluebird Golden Bird Luxury Limousine",
+        "type": "Transport",
+        "title": "VIP Airport Limousine Transfer (Toyota Alphard HEV)",
+        "description": "Executive meet-and-greet curbside service with dedicated baggage escort and cold towel refreshment.",
+        "localeContent": {
+          "id": {
+            "title": "Antar Jemput Bandara VIP Alphard",
+            "description": "Layanan penjemputan eksekutif langsung dari pintu kedatangan dengan pengawalan bagasi.",
+            "actionLabel": "Pesan Transport VIP"
+          },
+          "en": {
+            "title": "VIP Airport Limousine (Alphard HEV)",
+            "description": "Curbside VIP meet-and-greet airport transfer with dedicated luggage handling.",
+            "actionLabel": "Request VIP Limousine"
+          },
+          "zh-CN": {
+            "title": "VIP豪华机场接送服务 (埃尔法)",
+            "description": "专职人员机场贵宾迎接与行李协助，尊享无忧出行。",
+            "actionLabel": "预约接送"
+          },
+          "ja-JP": {
+            "title": "VIP 空港送迎リムジン (アルファード)",
+            "description": "空港到着ロビーでのお出迎えとお荷物エスコート付き専用送迎。",
+            "actionLabel": "送迎予約"
+          }
+        },
+        "priceHint": "Rp 750.000 / one-way",
+        "availabilitySchedule": "24 Hours",
+        "fulfilmentType": "PARTNER_API",
+        "status": "Active",
+        "featured": false
+      },
+      {
+        "id": "MKT-04",
+        "propertyId": "P-01",
+        "partnerId": "PARTNER-TOUR",
+        "partnerName": "Borobudur Sunrise & Heritage Curator",
+        "type": "ThirdPartyExperience",
+        "title": "Private Sunrise Meditation at Punthuk Setumbu",
+        "description": "Exclusive pre-dawn scenic view of Borobudur emerging from morning mist with hot Javanese herbal tea.",
+        "localeContent": {
+          "id": {
+            "title": "Meditasi Sunrise Punthuk Setumbu Borobudur",
+            "description": "Pemandangan magis fajar Borobudur di atas kabut pagi dipandu pemandu budaya lokal.",
+            "actionLabel": "Jadwalkan Tur"
+          },
+          "en": {
+            "title": "Private Borobudur Sunrise Meditation",
+            "description": "Pre-dawn private vantage point to witness morning mist lifting over ancient temples.",
+            "actionLabel": "Schedule Tour"
+          },
+          "zh-CN": {
+            "title": "婆罗浮屠日出冥想私享之旅",
+            "description": "晨曦破晓时分俯瞰云海中的婆罗浮屠古刹，享用热爪哇药草茶。",
+            "actionLabel": "预约体验"
+          },
+          "ja-JP": {
+            "title": "ボロブドゥール朝日と静寂の瞑想ツアー",
+            "description": "朝霧に包まれる古代寺院を望む特別な夜明けのプライベートツアー。",
+            "actionLabel": "ツアー予約"
+          }
+        },
+        "priceHint": "Rp 850.000 / person",
+        "availabilitySchedule": "04:30 Departure",
+        "fulfilmentType": "QR_HANDOFF",
+        "status": "Active",
+        "featured": false
+      }
+    ],
+    "serviceOrders": [
+      {
+        "id": "ORD-2026-001",
+        "itemId": "MKT-01",
+        "itemTitle": "Kayumanis Signature Indonesian Rijsttafel",
+        "propertyId": "P-01",
+        "roomId": "R-01-201",
+        "stayId": "S-01",
+        "guestDisplayRef": "Room 201 · Guest B*** S***",
+        "rawGuestName": "Bambang Soediro",
+        "status": "Confirmed",
+        "requestedAtUtc": "2026-11-02T11:15:00Z",
+        "confirmedAtUtc": "2026-11-02T11:18:20Z",
+        "notes": "Serve at courtyard veranda for 2 pax at 19:30.",
+        "assignedTo": "Front Office Duty Manager (fo_arunika)",
+        "fulfilmentType": "STAFF_TICKET"
+      },
+      {
+        "id": "ORD-2026-002",
+        "itemId": "MKT-02",
+        "itemTitle": "Royal Javanese Boreh & Herbal Compress",
+        "propertyId": "P-01",
+        "roomId": "R-01-301",
+        "stayId": "S-02",
+        "guestDisplayRef": "Room 301 · Guest C*** L***",
+        "rawGuestName": "Chen Lin",
+        "status": "InFulfilment",
+        "requestedAtUtc": "2026-11-02T14:00:00Z",
+        "confirmedAtUtc": "2026-11-02T14:05:00Z",
+        "notes": "Prefers warm clove herbal compress at 16:00.",
+        "assignedTo": "Royal Spa Lead Therapist",
+        "fulfilmentType": "STAFF_TICKET"
+      },
+      {
+        "id": "ORD-2026-003",
+        "itemId": "MKT-03",
+        "itemTitle": "VIP Airport Limousine Transfer (Toyota Alphard HEV)",
+        "propertyId": "P-01",
+        "roomId": "R-01-502",
+        "stayId": "S-04",
+        "guestDisplayRef": "Room 502 · Guest D*** W***",
+        "rawGuestName": "Dr. Dian Wulandari",
+        "status": "Requested",
+        "requestedAtUtc": "2026-11-02T15:30:00Z",
+        "notes": "Flight GA-204 departure tomorrow at 09:40 AM.",
+        "fulfilmentType": "PARTNER_API"
+      }
+    ]
   },
   "LIVE_LAB": {
     "userAccounts": [
@@ -2941,6 +3624,32 @@
     "discoveryRuns": [],
     "auditEvents": [
       {
+        "id": "AUD-1794043927402-737",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-07T09:32:07.402Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "P-01",
+        "propertyId": "P-01",
+        "outcome": "DENY",
+        "reasonCode": "PERMISSION_DENIED",
+        "details": "Role R-11 (Property Manager) lacks permission 'network.scan'."
+      },
+      {
+        "id": "AUD-1794043418858-803",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-07T09:23:38.858Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "P-01",
+        "propertyId": "P-01",
+        "outcome": "DENY",
+        "reasonCode": "PERMISSION_DENIED",
+        "details": "Role R-11 (Property Manager) lacks permission 'network.scan'."
+      },
+      {
         "id": "AUD-LIVE-001",
         "environmentId": "LIVE_LAB",
         "timestampUtc": "2026-11-02T14:17:54.697Z",
@@ -2954,6 +3663,268 @@
         "details": "LIVE_LAB initialized with zero synthetic candidates or fake verified endpoints."
       }
     ],
-    "clockUtc": "2026-11-02T14:17:54.698Z"
+    "clockUtc": "2026-11-02T14:17:54.698Z",
+    "seatLedger": [],
+    "changeOrders": [],
+    "playbackFacts": [],
+    "adOffers": [
+      {
+        "id": "OFFER-01",
+        "advertiserOrgId": "ADV-GARUDA",
+        "advertiserName": "Garuda Indonesia",
+        "title": "Garuda Priority Executive Miles & In-Flight Upgrade",
+        "category": "AIRLINE",
+        "currentVersion": 1,
+        "creativeVersions": [
+          {
+            "version": 1,
+            "headline": "Fly the Skies of Indonesia with Double Miles",
+            "subline": "Exclusive GarudaMiles bonus and complimentary lounge access for hotel guests.",
+            "mediaUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
+            "mediaType": "image",
+            "targetPlacement": "home_hero",
+            "callToAction": "Scan QR for Member Upgrade",
+            "advertiserBrand": "Garuda Indonesia",
+            "updatedAtUtc": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "requestedPlacements": [
+          "home_hero",
+          "service_detail"
+        ],
+        "proposedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-31T23:59:59Z"
+        },
+        "proposedCapPerStay": 2,
+        "pricingModel": "CPM",
+        "proposedRateIdr": 350000,
+        "exclusions": [
+          "Standard Room"
+        ],
+        "targetingNotes": "Focus on Suite & Villa guests; executive leisure profile. Zero guest PII exposed.",
+        "status": "Active",
+        "createdAtUtc": "2026-11-01T00:00:00Z"
+      },
+      {
+        "id": "OFFER-02",
+        "advertiserOrgId": "ADV-BCA",
+        "advertiserName": "BCA Solitaire & Prioritas",
+        "title": "BCA Solitaire Curated Privileges & Dining Rebate",
+        "category": "FINTECH",
+        "currentVersion": 1,
+        "creativeVersions": [
+          {
+            "version": 1,
+            "headline": "BCA Solitaire Curated Privileges",
+            "subline": "Enjoy up to 25% dining rebate at Arunika Heritage with BCA Prioritas card.",
+            "mediaUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+            "mediaType": "image",
+            "targetPlacement": "welcome_screen",
+            "callToAction": "View Privileges",
+            "advertiserBrand": "Bank Central Asia",
+            "updatedAtUtc": "2026-11-02T00:00:00Z"
+          }
+        ],
+        "requestedPlacements": [
+          "welcome_screen",
+          "home_hero"
+        ],
+        "proposedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-15T23:59:59Z"
+        },
+        "proposedCapPerStay": 1,
+        "pricingModel": "Flat",
+        "proposedRateIdr": 12500000,
+        "exclusions": [],
+        "targetingNotes": "High-net-worth welcome interstitial proposal. Awaiting Property Manager opt-in review.",
+        "status": "Submitted",
+        "createdAtUtc": "2026-11-02T00:00:00Z"
+      },
+      {
+        "id": "OFFER-03",
+        "advertiserOrgId": "ADV-LEXUS",
+        "advertiserName": "Lexus Indonesia",
+        "title": "Lexus Electrified Chauffeur Experience",
+        "category": "AUTOMOTIVE",
+        "currentVersion": 1,
+        "creativeVersions": [
+          {
+            "version": 1,
+            "headline": "Lexus LM 350h Luxury Mover Chauffeur",
+            "subline": "Complimentary private airport transfer for Presidential Suite stays.",
+            "mediaUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+            "mediaType": "image",
+            "targetPlacement": "pre_live_tv",
+            "callToAction": "Book Test Drive",
+            "advertiserBrand": "Lexus Indonesia",
+            "updatedAtUtc": "2026-11-03T00:00:00Z"
+          }
+        ],
+        "requestedPlacements": [
+          "pre_live_tv",
+          "service_detail"
+        ],
+        "proposedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-11-30T23:59:59Z"
+        },
+        "proposedCapPerStay": 1,
+        "pricingModel": "CPA",
+        "proposedRateIdr": 500000,
+        "exclusions": [
+          "Deluxe Garden",
+          "Superior"
+        ],
+        "targetingNotes": "Requires pre_live_tv interstitial consent and Suite guest target only.",
+        "status": "Submitted",
+        "createdAtUtc": "2026-11-03T00:00:00Z"
+      }
+    ],
+    "propertyAdAcceptances": [],
+    "marketplaceItems": [
+      {
+        "id": "MKT-01",
+        "propertyId": "P-01",
+        "type": "F&B",
+        "title": "Kayumanis Signature Indonesian Rijsttafel",
+        "description": "A royal multi-dish tasting presentation reflecting royal Javanese gastronomic traditions, served in-room or at the courtyard.",
+        "localeContent": {
+          "id": {
+            "title": "Kayumanis Rijsttafel Nusantara",
+            "description": "Sajian hidangan istana dengan rempah autentik Nusantara disajikan di kamar atau teras.",
+            "actionLabel": "Pesan Meja / Menu"
+          },
+          "en": {
+            "title": "Kayumanis Indonesian Rijsttafel",
+            "description": "Royal heritage banquet featuring curated regional dishes delivered to your suite.",
+            "actionLabel": "Request Table / Menu"
+          },
+          "zh-CN": {
+            "title": "肉桂印尼皇家飨宴",
+            "description": "为您呈献精心调配的传统印尼特色菜肴，可送至套房或庭院享用。",
+            "actionLabel": "预订餐桌 / 菜单"
+          },
+          "ja-JP": {
+            "title": "カユマニス・インドネシア宮廷料理",
+            "description": "厳選された伝統スパイス料理をお部屋またはテラスにてご堪能ください。",
+            "actionLabel": "テーブル／メニュー予約"
+          }
+        },
+        "priceHint": "Rp 450.000 / person",
+        "availabilitySchedule": "11:00 – 22:30",
+        "fulfilmentType": "STAFF_TICKET",
+        "status": "Active",
+        "featured": true
+      },
+      {
+        "id": "MKT-02",
+        "propertyId": "P-01",
+        "type": "Wellness",
+        "title": "Royal Javanese Boreh & Herbal Compress",
+        "description": "Ancient warming spice therapy with clove, ginger, and sandalwood to soothe travel fatigue and improve circulation.",
+        "localeContent": {
+          "id": {
+            "title": "Spa Boreh Keraton & Kompres Herbal",
+            "description": "Terapi rempah hangat cengkeh, jahe, dan cendana untuk meredakan kelelahan.",
+            "actionLabel": "Reservasi Slot Spa"
+          },
+          "en": {
+            "title": "Royal Boreh Spice & Herbal Compress",
+            "description": "Traditional warming herbal therapy with sandalwood and clove to restore vital energy.",
+            "actionLabel": "Request Spa Slot"
+          },
+          "zh-CN": {
+            "title": "爪哇皇家草药热敷水疗",
+            "description": "丁香、生姜和檀香暖身草本疗法，舒缓旅途疲劳。",
+            "actionLabel": "预约水疗时段"
+          },
+          "ja-JP": {
+            "title": "ロイヤル・ボレ＆ハーブ温熱スパ",
+            "description": "生姜や白檀の伝統ハーブを用いた温熱療法で旅の疲れを癒します。",
+            "actionLabel": "スパのご予約"
+          }
+        },
+        "priceHint": "Rp 650.000 / 90 min",
+        "availabilitySchedule": "09:00 – 22:00",
+        "fulfilmentType": "STAFF_TICKET",
+        "status": "Active",
+        "featured": true
+      },
+      {
+        "id": "MKT-03",
+        "propertyId": "P-01",
+        "partnerId": "PARTNER-TRANS",
+        "partnerName": "Bluebird Golden Bird Luxury Limousine",
+        "type": "Transport",
+        "title": "VIP Airport Limousine Transfer (Toyota Alphard HEV)",
+        "description": "Executive meet-and-greet curbside service with dedicated baggage escort and cold towel refreshment.",
+        "localeContent": {
+          "id": {
+            "title": "Antar Jemput Bandara VIP Alphard",
+            "description": "Layanan penjemputan eksekutif langsung dari pintu kedatangan dengan pengawalan bagasi.",
+            "actionLabel": "Pesan Transport VIP"
+          },
+          "en": {
+            "title": "VIP Airport Limousine (Alphard HEV)",
+            "description": "Curbside VIP meet-and-greet airport transfer with dedicated luggage handling.",
+            "actionLabel": "Request VIP Limousine"
+          },
+          "zh-CN": {
+            "title": "VIP豪华机场接送服务 (埃尔法)",
+            "description": "专职人员机场贵宾迎接与行李协助，尊享无忧出行。",
+            "actionLabel": "预约接送"
+          },
+          "ja-JP": {
+            "title": "VIP 空港送迎リムジン (アルファード)",
+            "description": "空港到着ロビーでのお出迎えとお荷物エスコート付き専用送迎。",
+            "actionLabel": "送迎予約"
+          }
+        },
+        "priceHint": "Rp 750.000 / one-way",
+        "availabilitySchedule": "24 Hours",
+        "fulfilmentType": "PARTNER_API",
+        "status": "Active",
+        "featured": false
+      },
+      {
+        "id": "MKT-04",
+        "propertyId": "P-01",
+        "partnerId": "PARTNER-TOUR",
+        "partnerName": "Borobudur Sunrise & Heritage Curator",
+        "type": "ThirdPartyExperience",
+        "title": "Private Sunrise Meditation at Punthuk Setumbu",
+        "description": "Exclusive pre-dawn scenic view of Borobudur emerging from morning mist with hot Javanese herbal tea.",
+        "localeContent": {
+          "id": {
+            "title": "Meditasi Sunrise Punthuk Setumbu Borobudur",
+            "description": "Pemandangan magis fajar Borobudur di atas kabut pagi dipandu pemandu budaya lokal.",
+            "actionLabel": "Jadwalkan Tur"
+          },
+          "en": {
+            "title": "Private Borobudur Sunrise Meditation",
+            "description": "Pre-dawn private vantage point to witness morning mist lifting over ancient temples.",
+            "actionLabel": "Schedule Tour"
+          },
+          "zh-CN": {
+            "title": "婆罗浮屠日出冥想私享之旅",
+            "description": "晨曦破晓时分俯瞰云海中的婆罗浮屠古刹，享用热爪哇药草茶。",
+            "actionLabel": "预约体验"
+          },
+          "ja-JP": {
+            "title": "ボロブドゥール朝日と静寂の瞑想ツアー",
+            "description": "朝霧に包まれる古代寺院を望む特別な夜明けのプライベートツアー。",
+            "actionLabel": "ツアー予約"
+          }
+        },
+        "priceHint": "Rp 850.000 / person",
+        "availabilitySchedule": "04:30 Departure",
+        "fulfilmentType": "QR_HANDOFF",
+        "status": "Active",
+        "featured": false
+      }
+    ],
+    "serviceOrders": []
   }
 }

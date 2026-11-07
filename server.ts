@@ -33,12 +33,18 @@ import {
   INITIAL_TICKETS,
   INITIAL_DEMO_CANDIDATES,
   INITIAL_CONNECTORS,
+  INITIAL_SEAT_LEDGER,
+  INITIAL_CHANGE_ORDERS,
   SCENARIOS_CATALOG,
   ANALYTICS_FIXTURE,
   Partner,
   Customer,
   Property,
   Subscription,
+  SeatLedgerEntry,
+  ChangeOrder,
+  InvoiceLine,
+  SubscriptionSuspensionStatus,
   Room,
   Endpoint,
   Stay,
@@ -59,6 +65,35 @@ import {
   DiscoveryRun,
   AuditEvent,
   GuestLocale,
+  CapabilityKey,
+  resolveEndpointCapabilities,
+  checkCapability,
+  runDevicePreflight,
+  resolveEffectiveLineup,
+  EffectiveChannel,
+  DenialReason,
+  EffectiveLineupResult,
+  evaluateEndpointUpdateEligibility,
+  EndpointEligibilityEvaluation,
+  resolveBranding,
+  ResolvedBrandingProfile,
+  BrandingLayer,
+  BrandingFieldKey,
+  evaluateCampaignEligibility,
+  CampaignEligibilityResult,
+  PlaybackFact,
+  PlaybackEventType,
+  INITIAL_PLAYBACK_FACTS,
+  AdOffer,
+  AdOfferCreative,
+  PropertyAdAcceptance,
+  MarketplaceItem,
+  ServiceOrder,
+  maskGuestName,
+  INITIAL_AD_OFFERS,
+  INITIAL_PROPERTY_AD_ACCEPTANCES,
+  INITIAL_MARKETPLACE_ITEMS,
+  INITIAL_SERVICE_ORDERS,
 } from './src/data/mockData.ts';
 
 const execFileAsync = promisify(execFile);
@@ -70,6 +105,8 @@ interface WorkspaceData {
   customers: Customer[];
   properties: Property[];
   subscriptions: Subscription[];
+  seatLedger: SeatLedgerEntry[];
+  changeOrders: ChangeOrder[];
   rooms: Room[];
   endpoints: Endpoint[];
   stays: Stay[];
@@ -89,6 +126,11 @@ interface WorkspaceData {
   candidates: DiscoveryCandidate[];
   discoveryRuns: DiscoveryRun[];
   auditEvents: AuditEvent[];
+  playbackFacts: PlaybackFact[];
+  adOffers: AdOffer[];
+  propertyAdAcceptances: PropertyAdAcceptance[];
+  marketplaceItems: MarketplaceItem[];
+  serviceOrders: ServiceOrder[];
   clockUtc: string;
 }
 
@@ -109,6 +151,8 @@ function createInitialDemoWorkspace(): WorkspaceData {
     customers: clone(INITIAL_CUSTOMERS),
     properties: clone(INITIAL_PROPERTIES),
     subscriptions: clone(INITIAL_SUBSCRIPTIONS),
+    seatLedger: clone(INITIAL_SEAT_LEDGER),
+    changeOrders: clone(INITIAL_CHANGE_ORDERS),
     rooms: clone(INITIAL_ROOMS),
     endpoints: clone(INITIAL_ENDPOINTS),
     stays: clone(INITIAL_STAYS),
@@ -172,6 +216,11 @@ function createInitialDemoWorkspace(): WorkspaceData {
         details: 'Verified wholesale payment Rp120,000 for SUB-02 (ISP-B).',
       },
     ],
+    playbackFacts: clone(INITIAL_PLAYBACK_FACTS),
+    adOffers: clone(INITIAL_AD_OFFERS),
+    propertyAdAcceptances: clone(INITIAL_PROPERTY_AD_ACCEPTANCES),
+    marketplaceItems: clone(INITIAL_MARKETPLACE_ITEMS),
+    serviceOrders: clone(INITIAL_SERVICE_ORDERS),
     clockUtc: '2026-11-02T07:00:00Z',
   };
 }
@@ -184,6 +233,8 @@ function createInitialLiveLabWorkspace(): WorkspaceData {
     customers: clone(INITIAL_CUSTOMERS),
     properties: clone(INITIAL_PROPERTIES),
     subscriptions: clone(INITIAL_SUBSCRIPTIONS),
+    seatLedger: [],
+    changeOrders: [],
     rooms: clone(INITIAL_ROOMS),
     endpoints: [],
     stays: [],
@@ -217,6 +268,11 @@ function createInitialLiveLabWorkspace(): WorkspaceData {
         details: 'LIVE_LAB initialized with zero synthetic candidates or fake verified endpoints.',
       },
     ],
+    playbackFacts: [],
+    adOffers: clone(INITIAL_AD_OFFERS),
+    propertyAdAcceptances: [],
+    marketplaceItems: clone(INITIAL_MARKETPLACE_ITEMS),
+    serviceOrders: [],
     clockUtc: new Date().toISOString(),
   };
 }
@@ -226,7 +282,41 @@ function loadStore(): SSOTStore {
     if (fs.existsSync(STORE_FILE)) {
       const raw = fs.readFileSync(STORE_FILE, 'utf-8');
       const parsed = JSON.parse(raw) as SSOTStore;
-      if (parsed && parsed.seedVersion === 'gojja-functional-demo-3' && parsed.DEMO && parsed.LIVE_LAB) {
+      if (
+        parsed &&
+        (parsed.seedVersion === 'gojja-functional-demo-6' ||
+          parsed.seedVersion === 'gojja-functional-demo-5' ||
+          parsed.seedVersion === 'gojja-functional-demo-4' ||
+          parsed.seedVersion === 'gojja-functional-demo-3') &&
+        parsed.DEMO &&
+        parsed.LIVE_LAB
+      ) {
+        if (!parsed.DEMO.seatLedger) parsed.DEMO.seatLedger = clone(INITIAL_SEAT_LEDGER);
+        if (!parsed.DEMO.changeOrders) parsed.DEMO.changeOrders = clone(INITIAL_CHANGE_ORDERS);
+        if (!parsed.LIVE_LAB.seatLedger) parsed.LIVE_LAB.seatLedger = [];
+        if (!parsed.LIVE_LAB.changeOrders) parsed.LIVE_LAB.changeOrders = [];
+        if (!parsed.DEMO.playbackFacts) parsed.DEMO.playbackFacts = clone(INITIAL_PLAYBACK_FACTS);
+        if (!parsed.LIVE_LAB.playbackFacts) parsed.LIVE_LAB.playbackFacts = [];
+        if (!parsed.DEMO.adOffers) parsed.DEMO.adOffers = clone(INITIAL_AD_OFFERS);
+        if (!parsed.DEMO.propertyAdAcceptances) parsed.DEMO.propertyAdAcceptances = clone(INITIAL_PROPERTY_AD_ACCEPTANCES);
+        if (!parsed.DEMO.marketplaceItems) parsed.DEMO.marketplaceItems = clone(INITIAL_MARKETPLACE_ITEMS);
+        if (!parsed.DEMO.serviceOrders) parsed.DEMO.serviceOrders = clone(INITIAL_SERVICE_ORDERS);
+        if (!parsed.LIVE_LAB.adOffers) parsed.LIVE_LAB.adOffers = clone(INITIAL_AD_OFFERS);
+        if (!parsed.LIVE_LAB.propertyAdAcceptances) parsed.LIVE_LAB.propertyAdAcceptances = [];
+        if (!parsed.LIVE_LAB.marketplaceItems) parsed.LIVE_LAB.marketplaceItems = clone(INITIAL_MARKETPLACE_ITEMS);
+        if (!parsed.LIVE_LAB.serviceOrders) parsed.LIVE_LAB.serviceOrders = [];
+
+        // Ensure subscriptions have committed/allocated fields
+        parsed.DEMO.subscriptions = parsed.DEMO.subscriptions.map((s) => ({
+          ...s,
+          committedQuantity: s.committedQuantity ?? s.seats,
+          allocatedQuantity: s.allocatedQuantity ?? (s.propertyId === 'P-01' ? 7 : s.propertyId === 'P-02' ? 5 : 2),
+          reservedQuantity: s.reservedQuantity ?? 0,
+          billedQuantityCurrentPeriod: s.billedQuantityCurrentPeriod ?? s.seats,
+          suspensionStatus: s.suspensionStatus ?? 'None',
+          version: s.version ?? 1,
+        }));
+        parsed.seedVersion = 'gojja-functional-demo-6';
         return parsed;
       }
     }
@@ -234,7 +324,7 @@ function loadStore(): SSOTStore {
     console.warn('Could not load existing SSOT store, initializing fresh store:', e);
   }
   const fresh: SSOTStore = {
-    seedVersion: 'gojja-functional-demo-3',
+    seedVersion: 'gojja-functional-demo-6',
     DEMO: createInitialDemoWorkspace(),
     LIVE_LAB: createInitialLiveLabWorkspace(),
   };
@@ -488,6 +578,8 @@ async function startServer() {
 
     const scopedCustomers = workspace.customers.filter((c) => scopedPropertyIds.has(c.propertyId));
     const scopedSubscriptions = workspace.subscriptions.filter((s) => scopedPropertyIds.has(s.propertyId));
+    const scopedSeatLedger = (workspace.seatLedger || []).filter((l) => scopedPropertyIds.has(l.propertyId));
+    const scopedChangeOrders = (workspace.changeOrders || []).filter((c) => scopedPropertyIds.has(c.propertyId));
     const scopedRooms = workspace.rooms.filter((r) => scopedPropertyIds.has(r.propertyId));
     const scopedEndpoints = workspace.endpoints.filter((e) => scopedPropertyIds.has(e.propertyId));
 
@@ -514,9 +606,10 @@ async function startServer() {
     const scopedDiscoveryRuns = workspace.discoveryRuns.filter((r) => scopedPropertyIds.has(r.propertyId));
 
     // Derived authoritative metrics (never hardcoded!)
-    const totalContractedSeats = scopedSubscriptions.reduce((acc, s) => acc + s.seats, 0);
-    const totalAllocatedSeats = scopedEndpoints.length;
-    const totalAvailableSeats = Math.max(0, totalContractedSeats - totalAllocatedSeats);
+    const totalContractedSeats = scopedSubscriptions.reduce((acc, s) => acc + (s.committedQuantity ?? s.seats), 0);
+    const totalAllocatedSeats = scopedSubscriptions.reduce((acc, s) => acc + (s.allocatedQuantity ?? scopedEndpoints.length), 0);
+    const totalReservedSeats = scopedSubscriptions.reduce((acc, s) => acc + (s.reservedQuantity ?? 0), 0);
+    const totalAvailableSeats = Math.max(0, totalContractedSeats - totalAllocatedSeats - totalReservedSeats);
     const onlineEndpointsCount = scopedEndpoints.filter((e) => e.connection === 'Online').length;
     const offlineEndpointsCount = scopedEndpoints.filter((e) => e.connection === 'Offline').length;
     const occupiedRoomIds = new Set(scopedStays.filter((s) => s.status === 'InHouse').map((s) => s.roomId));
@@ -547,6 +640,7 @@ async function startServer() {
       kpis: {
         totalContractedSeats,
         totalAllocatedSeats,
+        totalReservedSeats,
         totalAvailableSeats,
         totalRooms: scopedRooms.length,
         onlineEndpointsCount,
@@ -562,6 +656,8 @@ async function startServer() {
         customers: scopedCustomers,
         properties: scopedProperties,
         subscriptions: scopedSubscriptions,
+        seatLedger: scopedSeatLedger,
+        changeOrders: scopedChangeOrders,
         rooms: scopedRooms,
         endpoints: scopedEndpoints,
         stays: scopedStays,
@@ -583,6 +679,20 @@ async function startServer() {
         auditEvents: workspace.auditEvents.filter(
           (a) => !a.propertyId || scopedPropertyIds.has(a.propertyId) || user.organizationId === 'GOJJA-HQ'
         ),
+        playbackFacts: workspace.playbackFacts || [],
+        adOffers: workspace.adOffers || [],
+        propertyAdAcceptances: (workspace.propertyAdAcceptances || []).filter(
+          (a) => scopedPropertyIds.has(a.propertyId) || user.organizationId === 'GOJJA-HQ'
+        ),
+        marketplaceItems: (workspace.marketplaceItems || []).filter(
+          (m) => scopedPropertyIds.has(m.propertyId) || user.organizationId === 'GOJJA-HQ'
+        ),
+        serviceOrders: (workspace.serviceOrders || [])
+          .filter((o) => scopedPropertyIds.has(o.propertyId) || user.organizationId === 'GOJJA-HQ')
+          .map((o) => ({
+            ...o,
+            rawGuestName: canReadGuestNames ? o.rawGuestName : undefined,
+          })),
       },
     });
   });
@@ -801,9 +911,15 @@ async function startServer() {
       planName: effectivePartnerId ? 'Hospitality Wholesale Seat Pool' : 'Direct Enterprise Hospitality Plan',
       planVersion: '2026-Q4',
       seats: seatCount,
+      committedQuantity: seatCount,
+      allocatedQuantity: 0,
+      reservedQuantity: 0,
+      billedQuantityCurrentPeriod: seatCount,
       unitPriceIdr: effectivePartnerId ? 20000 : 25000,
       status: 'Active',
+      suspensionStatus: 'None',
       effectiveDate: '2026-11-02',
+      version: 1,
     };
     workspace.subscriptions.push(newSubscription);
 
@@ -1202,6 +1318,26 @@ async function startServer() {
     const prop = workspace.properties.find((p) => p.id === propertyId);
     if (!prop) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Property not found.' });
 
+    // Enforce Soft & Hard suspension check on publishing (Gap Closing Area 1)
+    const sub = workspace.subscriptions.find((s) => s.propertyId === propertyId);
+    if (sub && sub.suspensionStatus && sub.suspensionStatus !== 'None') {
+      recordAudit(
+        environmentId,
+        user.alias,
+        role.id,
+        'branding.publish',
+        propertyId,
+        propertyId,
+        'DENY',
+        'SUBSCRIPTION_SUSPENDED',
+        `Publishing blocked due to active ${sub.suspensionStatus} suspension on subscription ${sub.id}.`
+      );
+      return res.status(403).json({
+        code: 'SUBSCRIPTION_SUSPENDED',
+        message: `Publishing new branding manifest is blocked because property subscription ${sub.id} is under ${sub.suspensionStatus} Suspension. Clear outstanding dues or lift suspension to publish.`,
+      });
+    }
+
     const propEndpoints = workspace.endpoints.filter((e) => e.propertyId === propertyId);
     const onlineEndpoints = propEndpoints.filter((e) => e.connection === 'Online');
     const pkgList: string[] = Array.isArray(disabledPackages)
@@ -1363,6 +1499,486 @@ async function startServer() {
     return res.json({ ok: true, campaign: newCmp, message: `Promotional ${newCmp.mediaType} campaign '${newCmp.name}' published to TV Promo feed.` });
   });
 
+  // M13: Evaluate Campaign Placement Eligibility (Deterministic 10-Step Pipeline)
+  app.post('/api/campaigns/evaluate-eligibility', (req: Request, res: Response) => {
+    const {
+      propertyId = 'P-01',
+      placement = 'home_hero',
+      roomClass,
+      stayId,
+      groupId,
+      locale = 'id',
+      isPublicArea = false,
+      currentPlayCountThisStay = 0,
+    } = req.body;
+    const { workspace } = getRequestContext(req);
+
+    const result = evaluateCampaignEligibility(
+      {
+        propertyId,
+        placement,
+        roomClass,
+        stayId,
+        groupId,
+        locale,
+        isPublicArea,
+        currentPlayCountThisStay,
+        propertyAdAcceptances: workspace.propertyAdAcceptances || [],
+      },
+      workspace.campaigns
+    );
+
+    return res.json({ ok: true, ...result });
+  });
+
+  // M13 / BR19: Record Immutable Playback Fact & Atomic Technical Counter Telemetry
+  app.post('/api/campaigns/record-playback', (req: Request, res: Response) => {
+    const {
+      campaignId,
+      endpointId = 'E-01',
+      stayId,
+      eventType = 'complete',
+      playSeconds = 0,
+      creativeVersion,
+      outcome = 'completed',
+      locale = 'id',
+    } = req.body;
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const cmp = workspace.campaigns.find((c) => c.id === campaignId);
+    if (!cmp) return res.status(404).json({ code: 'NOT_FOUND', message: 'Campaign not found' });
+
+    // Strictly technical playback telemetry counters (BR19 - never presented as human audience)
+    if (eventType === 'start') cmp.startsCount += 1;
+    if (outcome === 'completed') cmp.completedCount += 1;
+    if (outcome === 'skipped') cmp.skippedCount += 1;
+    if (outcome === 'interrupted') cmp.interruptedCount += 1;
+    cmp.totalPlaySeconds += Number(playSeconds) || 0;
+
+    const fact: PlaybackFact = {
+      id: `FACT-${Date.now().toString().slice(-6)}`,
+      campaignId,
+      endpointId,
+      stayId,
+      eventType,
+      occurredAt: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+      playSeconds: Number(playSeconds) || 0,
+      creativeVersion: Number(creativeVersion) || cmp.creativeVersion,
+      sessionId: `SESS-${endpointId}-${Date.now().toString().slice(-4)}`,
+      locale,
+      outcome,
+    };
+
+    if (!workspace.playbackFacts) workspace.playbackFacts = [];
+    workspace.playbackFacts.push(fact);
+    saveStore(store);
+
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'campaigns.playback_fact',
+      fact.id,
+      cmp.propertyId,
+      'ALLOW',
+      'PLAYBACK_FACT_RECORDED',
+      `Playback Fact: campaign=${cmp.id}, event=${eventType}, outcome=${outcome}, secs=${playSeconds}s (Technical event only — BR19).`
+    );
+
+    return res.json({
+      ok: true,
+      fact,
+      updatedStats: {
+        startsCount: cmp.startsCount,
+        completedCount: cmp.completedCount,
+        skippedCount: cmp.skippedCount,
+        interruptedCount: cmp.interruptedCount,
+        totalPlaySeconds: cmp.totalPlaySeconds,
+      },
+    });
+  });
+
+  // ==========================================================================
+  // FASE D: Commercial Expansion Foundation (Poin 13: Marketplace & Ad Network)
+  // ==========================================================================
+
+  // Accept External Paid Ad Offer (Explicit Property Manager Opt-In)
+  app.post('/api/marketplace/offers/accept', (req: Request, res: Response) => {
+    const {
+      offerId,
+      propertyId = 'P-01',
+      acceptedPlacements,
+      acceptedPeriod,
+      acceptedCapPerStay,
+      commercialTermsRef,
+    } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+
+    // Permission check: Property Manager, Property Owner, Platform Admin, Business Owner
+    if (!['R-01', 'R-02', 'R-10', 'R-11'].includes(role.id)) {
+      return res.status(403).json({
+        code: 'FORBIDDEN',
+        message: 'Only Property Managers or Platform Admins can accept external advertising offers.',
+      });
+    }
+
+    const offer = workspace.adOffers.find((o) => o.id === offerId);
+    if (!offer) return res.status(404).json({ code: 'NOT_FOUND', message: `AdOffer '${offerId}' not found.` });
+
+    if (!workspace.propertyAdAcceptances) workspace.propertyAdAcceptances = [];
+
+    let acceptance = workspace.propertyAdAcceptances.find(
+      (a) => a.offerId === offerId && a.propertyId === propertyId
+    );
+
+    if (acceptance) {
+      acceptance.offerVersion = offer.currentVersion;
+      acceptance.acceptedPlacements = acceptedPlacements || offer.requestedPlacements;
+      acceptance.acceptedPeriod = acceptedPeriod || offer.proposedPeriod;
+      acceptance.acceptedCapPerStay = acceptedCapPerStay || offer.proposedCapPerStay;
+      acceptance.commercialTermsRef = commercialTermsRef || acceptance.commercialTermsRef;
+      acceptance.acceptedBy = user.alias;
+      acceptance.acceptedAtUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
+      acceptance.status = 'Accepted';
+      acceptance.supercededReason = undefined;
+      acceptance.rejectionReason = undefined;
+    } else {
+      acceptance = {
+        id: `PAC-${Date.now().toString().slice(-4)}`,
+        offerId: offer.id,
+        offerVersion: offer.currentVersion,
+        propertyId,
+        acceptedPlacements: acceptedPlacements || offer.requestedPlacements,
+        acceptedPeriod: acceptedPeriod || offer.proposedPeriod,
+        acceptedCapPerStay: acceptedCapPerStay || offer.proposedCapPerStay,
+        commercialTermsRef: commercialTermsRef || `AGR-${propertyId}-${offer.advertiserOrgId}-2026Q4`,
+        acceptedBy: user.alias,
+        acceptedAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+        status: 'Accepted',
+      };
+      workspace.propertyAdAcceptances.push(acceptance);
+    }
+
+    offer.status = 'Active';
+
+    // Synchronize or activate corresponding Campaign with externalPaid flag
+    let linkedCmp = workspace.campaigns.find((c) => c.adOfferId === offer.id && c.propertyId === propertyId);
+    const activeCreative = offer.creativeVersions[0];
+    if (linkedCmp) {
+      linkedCmp.status = 'Active';
+      linkedCmp.offerVersion = offer.currentVersion;
+      linkedCmp.creativeVersion = offer.currentVersion;
+      if (activeCreative) {
+        linkedCmp.imageUrl = activeCreative.mediaUrl;
+        linkedCmp.headline = {
+          id: activeCreative.headline,
+          en: activeCreative.headline,
+          'zh-CN': activeCreative.headline,
+          'ja-JP': activeCreative.headline,
+        };
+      }
+    } else {
+      linkedCmp = {
+        id: `CMP-EXT-${Date.now().toString().slice(-4)}`,
+        propertyId,
+        name: `${offer.title} (External Offer)`,
+        category: 'External Offer',
+        externalPaid: true,
+        adOfferId: offer.id,
+        offerVersion: offer.currentVersion,
+        advertiserName: offer.advertiserName,
+        placement: acceptance.acceptedPlacements[0] || 'home_hero',
+        status: 'Active',
+        priority: 88,
+        frequencyCapPerStay: acceptance.acceptedCapPerStay,
+        durationSeconds: 15,
+        skippableAfterSeconds: 5,
+        startUtc: acceptance.acceptedPeriod.startUtc,
+        endUtc: acceptance.acceptedPeriod.endUtc,
+        imageUrl: activeCreative?.mediaUrl || '/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png',
+        headline: {
+          id: activeCreative?.headline || offer.title,
+          en: activeCreative?.headline || offer.title,
+          'zh-CN': activeCreative?.headline || offer.title,
+          'ja-JP': activeCreative?.headline || offer.title,
+        },
+        ctaLabel: {
+          id: activeCreative?.callToAction || 'Lihat Penawaran',
+          en: activeCreative?.callToAction || 'View Offer',
+          'zh-CN': activeCreative?.callToAction || '查看特权',
+          'ja-JP': activeCreative?.callToAction || '詳細を見る',
+        },
+        creativeVersion: offer.currentVersion,
+        startsCount: 0,
+        completedCount: 0,
+        skippedCount: 0,
+        interruptedCount: 0,
+        failedAfterStartCount: 0,
+        totalPlaySeconds: 0,
+        targetAudience: { isPublicAreaAllowed: true },
+      };
+      workspace.campaigns.unshift(linkedCmp);
+    }
+
+    saveStore(store);
+
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'marketplace.accept_offer',
+      offer.id,
+      propertyId,
+      'ALLOW',
+      'OFFER_OPTED_IN',
+      `Property ${propertyId} opted-in to AdOffer '${offer.id}' (v${offer.currentVersion}) from ${offer.advertiserName}. Terms: ${acceptance.commercialTermsRef}.`
+    );
+
+    return res.json({
+      ok: true,
+      acceptance,
+      offer,
+      campaign: linkedCmp,
+      message: `Successfully accepted ad offer '${offer.title}' (v${offer.currentVersion}). Linked campaign is now Active.`,
+    });
+  });
+
+  // Reject External Ad Offer
+  app.post('/api/marketplace/offers/reject', (req: Request, res: Response) => {
+    const { offerId, propertyId = 'P-01', rejectionReason = 'Property opted out' } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+
+    if (!['R-01', 'R-02', 'R-10', 'R-11'].includes(role.id)) {
+      return res.status(403).json({
+        code: 'FORBIDDEN',
+        message: 'Only Property Managers or Platform Admins can reject external offers.',
+      });
+    }
+
+    const offer = workspace.adOffers.find((o) => o.id === offerId);
+    if (!offer) return res.status(404).json({ code: 'NOT_FOUND', message: `AdOffer '${offerId}' not found.` });
+
+    if (!workspace.propertyAdAcceptances) workspace.propertyAdAcceptances = [];
+    let acceptance = workspace.propertyAdAcceptances.find(
+      (a) => a.offerId === offerId && a.propertyId === propertyId
+    );
+
+    if (acceptance) {
+      acceptance.status = 'Rejected';
+      acceptance.rejectionReason = rejectionReason;
+    } else {
+      acceptance = {
+        id: `PAC-${Date.now().toString().slice(-4)}`,
+        offerId: offer.id,
+        offerVersion: offer.currentVersion,
+        propertyId,
+        acceptedPlacements: [],
+        acceptedPeriod: offer.proposedPeriod,
+        acceptedCapPerStay: 0,
+        commercialTermsRef: `REJ-${propertyId}-${offer.id}`,
+        acceptedBy: user.alias,
+        acceptedAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+        status: 'Rejected',
+        rejectionReason,
+      };
+      workspace.propertyAdAcceptances.push(acceptance);
+    }
+
+    // Pause linked campaigns
+    const linkedCmps = workspace.campaigns.filter((c) => c.adOfferId === offer.id && c.propertyId === propertyId);
+    linkedCmps.forEach((c) => (c.status = 'Paused'));
+
+    saveStore(store);
+
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'marketplace.reject_offer',
+      offer.id,
+      propertyId,
+      'ALLOW',
+      'OFFER_REJECTED',
+      `Property ${propertyId} rejected AdOffer '${offer.id}'. Reason: ${rejectionReason}`
+    );
+
+    return res.json({ ok: true, acceptance, message: `Ad offer '${offer.title}' rejected.` });
+  });
+
+  // Material Creative Revision (Simulates advertiser submitting updated creatives)
+  app.post('/api/marketplace/offers/update-creative', (req: Request, res: Response) => {
+    const { offerId, headline, subline, mediaUrl, callToAction } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+
+    const offer = workspace.adOffers.find((o) => o.id === offerId);
+    if (!offer) return res.status(404).json({ code: 'NOT_FOUND', message: `AdOffer '${offerId}' not found.` });
+
+    offer.currentVersion += 1;
+    const newCreative: AdOfferCreative = {
+      version: offer.currentVersion,
+      headline: headline || `${offer.title} (Revised Edition)`,
+      subline: subline || 'Updated promotional terms and creative asset.',
+      mediaUrl: mediaUrl || offer.creativeVersions[0]?.mediaUrl || '/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png',
+      mediaType: 'image',
+      targetPlacement: offer.requestedPlacements[0] || 'home_hero',
+      callToAction: callToAction || 'Claim Revised Offer',
+      advertiserBrand: offer.advertiserName,
+      updatedAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+    };
+    offer.creativeVersions.unshift(newCreative);
+
+    // CRITICAL: Any existing property acceptance with older version becomes 'Superceded'
+    let supercededCount = 0;
+    if (workspace.propertyAdAcceptances) {
+      workspace.propertyAdAcceptances.forEach((acc) => {
+        if (acc.offerId === offer.id && acc.offerVersion < offer.currentVersion) {
+          acc.status = 'Superceded';
+          acc.supercededReason = `Creative updated to v${offer.currentVersion} by ${offer.advertiserName}. Re-acceptance required before broadcast resumes.`;
+          supercededCount += 1;
+        }
+      });
+    }
+
+    // Immediately pause active campaigns pending property manager re-acceptance
+    const linkedCmps = workspace.campaigns.filter((c) => c.adOfferId === offer.id);
+    linkedCmps.forEach((c) => {
+      c.status = 'Paused';
+      c.offerVersion = offer.currentVersion;
+    });
+
+    saveStore(store);
+
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'marketplace.update_creative',
+      offer.id,
+      'GLOBAL',
+      'ALLOW',
+      'OFFER_CREATIVE_REVISED',
+      `Material revision to AdOffer '${offer.id}' (bumped to v${offer.currentVersion}). ${supercededCount} property acceptance(s) marked Superceded and campaigns paused pending re-approval.`
+    );
+
+    return res.json({
+      ok: true,
+      offer,
+      supercededCount,
+      message: `Advertiser updated creative to v${offer.currentVersion}. ${supercededCount} property acceptance(s) marked Superceded and campaigns paused.`,
+    });
+  });
+
+  // Create Guest Service Order (From SmartTV in-room app or concierge desk)
+  app.post('/api/marketplace/services/create-order', (req: Request, res: Response) => {
+    const { itemId, propertyId = 'P-01', roomId, stayId, guestName, notes } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+
+    const item = workspace.marketplaceItems.find((m) => m.id === itemId);
+    if (!item) return res.status(404).json({ code: 'NOT_FOUND', message: `MarketplaceItem '${itemId}' not found.` });
+
+    const rawGuestName =
+      guestName ||
+      (stayId ? workspace.stays.find((s) => s.id === stayId)?.displayName : undefined) ||
+      'Guest';
+
+    const masked = maskGuestName(rawGuestName);
+    const roomCode = roomId
+      ? (workspace.rooms.find((r) => r.id === roomId)?.code || roomId)
+      : '201';
+
+    const guestDisplayRef = `Room ${roomCode} · Guest ${masked}`;
+
+    const newOrder: ServiceOrder = {
+      id: `ORD-${Date.now().toString().slice(-6)}`,
+      itemId: item.id,
+      itemTitle: item.title,
+      propertyId,
+      roomId,
+      stayId,
+      guestDisplayRef,
+      rawGuestName,
+      status: 'Requested',
+      requestedAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+      notes: notes || 'Guest requested service via SmartTV in-room portal.',
+      fulfilmentType: item.fulfilmentType,
+    };
+
+    if (!workspace.serviceOrders) workspace.serviceOrders = [];
+    workspace.serviceOrders.unshift(newOrder);
+
+    saveStore(store);
+
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'marketplace.order_requested',
+      newOrder.id,
+      propertyId,
+      'ALLOW',
+      'SERVICE_REQUESTED',
+      `Guest placed service request '${item.title}' (${newOrder.id}) for ${guestDisplayRef}. Redacted guest ref generated.`
+    );
+
+    return res.json({
+      ok: true,
+      order: newOrder,
+      message: `Service request received for ${guestDisplayRef}. Front Office ticket created.`,
+    });
+  });
+
+  // Update Service Order Status (Request → Confirm → Fulfil flow)
+  app.post('/api/marketplace/services/update-order-status', (req: Request, res: Response) => {
+    const { orderId, newStatus, notes, assignedTo } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+
+    // Front office, property manager, admin can update order status
+    if (!['R-01', 'R-02', 'R-10', 'R-11', 'R-13'].includes(role.id)) {
+      return res.status(403).json({
+        code: 'FORBIDDEN',
+        message: 'Only Front Office or Property Managers can update guest service order fulfillment status.',
+      });
+    }
+
+    if (!workspace.serviceOrders) workspace.serviceOrders = [];
+    const order = workspace.serviceOrders.find((o) => o.id === orderId);
+    if (!order) return res.status(404).json({ code: 'NOT_FOUND', message: `Order '${orderId}' not found.` });
+
+    const prevStatus = order.status;
+    order.status = newStatus;
+    if (notes) order.notes = notes;
+    if (assignedTo) order.assignedTo = assignedTo;
+
+    const nowUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
+    if (newStatus === 'Confirmed' && !order.confirmedAtUtc) {
+      order.confirmedAtUtc = nowUtc;
+      if (!order.assignedTo) order.assignedTo = `${user.alias} (Front Office)`;
+    }
+    if (newStatus === 'Fulfilled' && !order.fulfilledAtUtc) {
+      order.fulfilledAtUtc = nowUtc;
+    }
+
+    saveStore(store);
+
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'marketplace.order_status_updated',
+      order.id,
+      order.propertyId,
+      'ALLOW',
+      'ORDER_STATUS_CHANGED',
+      `Order ${order.id} transitioned from ${prevStatus} to ${newStatus} by ${user.alias}.`
+    );
+
+    return res.json({
+      ok: true,
+      order,
+      message: `Order ${order.id} status updated to '${newStatus}'.`,
+    });
+  });
+
   app.post('/api/branding/publish', (req: Request, res: Response) => {
     const { propertyId, title } = req.body;
     const auth = authorizeAction(req, 'branding.publish', propertyId);
@@ -1372,6 +1988,26 @@ async function startServer() {
     const { user, role, environmentId, workspace } = getRequestContext(req);
     const prop = workspace.properties.find((p) => p.id === propertyId);
     if (!prop) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Property not found.' });
+
+    // Enforce Soft & Hard suspension check on publishing (Gap Closing Area 1)
+    const sub = workspace.subscriptions.find((s) => s.propertyId === propertyId);
+    if (sub && sub.suspensionStatus && sub.suspensionStatus !== 'None') {
+      recordAudit(
+        environmentId,
+        user.alias,
+        role.id,
+        'branding.publish',
+        propertyId,
+        propertyId,
+        'DENY',
+        'SUBSCRIPTION_SUSPENDED',
+        `Publishing blocked due to active ${sub.suspensionStatus} suspension on subscription ${sub.id}.`
+      );
+      return res.status(403).json({
+        code: 'SUBSCRIPTION_SUSPENDED',
+        message: `Publishing new branding manifest is blocked because property subscription ${sub.id} is under ${sub.suspensionStatus} Suspension. Clear outstanding dues or lift suspension to publish.`,
+      });
+    }
 
     const propEndpoints = workspace.endpoints.filter((e) => e.propertyId === propertyId);
     const onlineCount = propEndpoints.filter((e) => e.connection === 'Online').length;
@@ -1416,6 +2052,102 @@ async function startServer() {
       pub.notes
     );
     return res.json({ ok: true, publication: pub, message: pub.notes });
+  });
+
+  // M05: Resolve Multi-Layer Branding Profile with Provenance, Conflict Detection & WCAG Contrast
+  app.get('/api/branding/resolve', (req: Request, res: Response) => {
+    const propertyId = String(req.query.propertyId || 'P-01');
+    const roomId = req.query.roomId ? String(req.query.roomId) : undefined;
+    const roomClass = req.query.roomClass ? String(req.query.roomClass) : undefined;
+    const stayId = req.query.stayId ? String(req.query.stayId) : undefined;
+    const groupId = req.query.groupId ? String(req.query.groupId) : undefined;
+    const locale = (req.query.locale as GuestLocale) || 'id';
+
+    const { workspace } = getRequestContext(req);
+    const prop = workspace.properties.find((p) => p.id === propertyId);
+    if (!prop) return res.status(404).json({ code: 'NOT_FOUND', message: 'Property not found' });
+
+    const resolved = resolveBranding(
+      prop,
+      workspace.profileOverrides,
+      { propertyId, roomId, roomClass, stayId, groupId, locale },
+      workspace.corporateGroups,
+      workspace.stays
+    );
+    return res.json({ ok: true, resolved });
+  });
+
+  // M05: Upsert Layer Override (PROPERTY, ROOM_CLASS, ROOM, STAY)
+  app.post('/api/branding/override', (req: Request, res: Response) => {
+    const { propertyId, layer, targetId, field, value } = req.body;
+    const auth = authorizeAction(req, 'branding.edit', propertyId);
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    let override = workspace.profileOverrides.find(
+      (o) => o.propertyId === propertyId && o.layer === layer && o.targetId === targetId && o.field === field
+    );
+    if (override) {
+      override.value = String(value);
+      override.version += 1;
+      override.updatedBy = user.name;
+      override.updatedAtUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
+    } else {
+      override = {
+        id: `OVR-${Date.now().toString().slice(-5)}`,
+        propertyId,
+        layer: layer as BrandingLayer,
+        targetId,
+        field: field as BrandingFieldKey,
+        value: String(value),
+        updatedBy: user.name,
+        updatedAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+        version: 1,
+      };
+      workspace.profileOverrides.push(override);
+    }
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'branding.edit',
+      override.id,
+      propertyId,
+      'ALLOW',
+      'BRANDING_OVERRIDDEN',
+      `Set ${layer} override for ${field} on ${targetId}: "${value}".`
+    );
+    return res.json({ ok: true, override, message: `Updated ${layer} override for ${field}.` });
+  });
+
+  // M05: Reset Override to Inherited Parent Layer
+  app.post('/api/branding/reset-override', (req: Request, res: Response) => {
+    const { propertyId, layer, targetId, field } = req.body;
+    const auth = authorizeAction(req, 'branding.edit', propertyId);
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const idx = workspace.profileOverrides.findIndex(
+      (o) => o.propertyId === propertyId && o.layer === layer && o.targetId === targetId && o.field === field
+    );
+    if (idx !== -1) {
+      workspace.profileOverrides.splice(idx, 1);
+      saveStore(store);
+      recordAudit(
+        environmentId,
+        user.alias,
+        role.id,
+        'branding.edit',
+        `${layer}-${targetId}-${field}`,
+        propertyId,
+        'ALLOW',
+        'BRANDING_RESET',
+        `Reset ${layer} override for ${field} to inherited parent.`
+      );
+      return res.json({ ok: true, message: `Reset ${field} override to inherited parent layer.` });
+    }
+    return res.json({ ok: true, message: 'No active override found; already inheriting.' });
   });
 
   // 6. Rooms & Housekeeping / Readiness Management
@@ -1511,9 +2243,31 @@ async function startServer() {
       if (grp && !grp.stayIds.includes(newStay.id)) grp.stayIds.push(newStay.id);
     }
 
+    // M09 Critical Rule: A new guest check-in invalidates prior update eligibility!
+    // Active jobs that have not started Installing MUST be deferred to protect guest experience (BR06).
+    const pendingJobsInRoom = workspace.updateJobs.filter(
+      (j) => j.roomId === roomId && ['AwaitingApproval', 'AwaitingReadiness', 'Staged'].includes(j.stage)
+    );
+    for (const pj of pendingJobsInRoom) {
+      pj.stage = 'Deferred';
+      pj.reason = `New guest check-in detected (${newStay.id}). Disruptive OTA update deferred to preserve guest stay experience (BR06 / M09).`;
+      pj.updatedAtUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
+      recordAudit(
+        environmentId,
+        user.alias,
+        role.id,
+        'updates.reconcile',
+        pj.id,
+        propertyId,
+        'RECONCILE',
+        'UPDATE_DEFERRED_BY_CHECKIN',
+        pj.reason
+      );
+    }
+
     saveStore(store);
-    recordAudit(environmentId, user.alias, role.id, 'stays.manage', newStay.id, propertyId, 'ALLOW', 'CHECKIN_COMMITTED', `Manual check-in created for ${roomId} (locale=${locale}, contextVersion=1).`);
-    return res.json({ ok: true, stay: newStay });
+    recordAudit(environmentId, user.alias, role.id, 'stays.manage', newStay.id, propertyId, 'ALLOW', 'CHECKIN_COMMITTED', `Manual check-in created for ${roomId} (locale=${locale}, contextVersion=1). Deferred ${pendingJobsInRoom.length} pending update jobs.`);
+    return res.json({ ok: true, stay: newStay, deferredUpdateJobs: pendingJobsInRoom.map((j) => j.id) });
   });
 
   // 7B. Update Guest TV Language (4 Locales: id, en, zh-CN, ja-JP) per Room/Stay or Property Default from CMS Dashboard
@@ -1639,7 +2393,20 @@ async function startServer() {
     return res.json({ ok: true, stay });
   });
 
-  // 8. Provider Contract Verification & Channel Playback Entitlement Check
+  // 8. Provider Contract Verification & Dynamic Entitlement Resolution Engine (M07)
+  app.get('/api/channels/effective-lineup', (req: Request, res: Response) => {
+    const { propertyId = 'P-01', roomClass = 'Standard', isPublicArea = 'false' } = req.query;
+    const { workspace } = getRequestContext(req);
+    const result = resolveEffectiveLineup(
+      String(propertyId),
+      String(roomClass),
+      String(isPublicArea) === 'true',
+      workspace.contracts,
+      workspace.channels
+    );
+    return res.json({ ok: true, lineup: result });
+  });
+
   app.post('/api/contracts/verify', (req: Request, res: Response) => {
     const { contractId } = req.body;
     const { user, role, environmentId, workspace } = getRequestContext(req);
@@ -1663,40 +2430,33 @@ async function startServer() {
     const ch = workspace.channels.find((c) => c.id === channelId);
     if (!ep || !ch) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Endpoint or channel not found.' });
 
-    if (ch.packageId === 'PKG-FREE') {
-      return res.json({ allowed: true, channel: ch, reasonCode: 'HOTEL_LOCAL_CHANNEL' });
-    }
-
-    const contract = workspace.contracts.find((c) => c.propertyId === ep.propertyId);
-    if (!contract || contract.status !== 'Active') {
-      return res.status(403).json({
-        allowed: false,
-        code: 'RIGHTS_INACTIVE',
-        message: `Provider contract for ${ep.propertyId} is '${contract?.status || 'Missing'}'. Software subscription alone does not grant premium broadcast rights (BR12 / F-020).`,
-      });
-    }
-
-    if (contract.connectionStatus === 'TokenExpired') {
-      return res.status(503).json({
-        allowed: false,
-        code: 'TOKEN_EXPIRED',
-        message: `Upstream provider token for ${contract.providerName} has expired (TK-01). Please refresh provider token in TV Services.`,
-      });
-    }
-
     const room = workspace.rooms.find((r) => r.id === ep.roomId);
-    if (ch.packageId === 'PKG-SPORTS' && ep.propertyId === 'P-01' && room?.roomClass !== 'Suite') {
+    const roomClass = room?.roomClass || 'Standard';
+    const isPublicArea = !room;
+
+    // Execute dynamic M07 Entitlement Resolution Pipeline
+    const lineup = resolveEffectiveLineup(ep.propertyId, roomClass, isPublicArea, workspace.contracts, workspace.channels);
+    const deniedReason = lineup.deniedChannels.find((d) => d.channelId === ch.id);
+
+    if (deniedReason) {
       return res.status(403).json({
         allowed: false,
-        code: 'RIGHTS_INACTIVE',
-        message: `Channel '${ch.name}' requires PKG-SPORTS, which is only allocated to Suite rooms under contract CT-01 (Room ${room?.code} is ${room?.roomClass}).`,
+        code: deniedReason.code,
+        message: deniedReason.message,
+        denial: deniedReason,
       });
     }
 
-    return res.json({ allowed: true, channel: ch, reasonCode: 'ENTITLEMENT_VERIFIED' });
+    const effectiveCh = lineup.channels.find((c) => c.id === ch.id);
+    return res.json({
+      allowed: true,
+      channel: effectiveCh || ch,
+      reasonCode: 'ENTITLEMENT_VERIFIED',
+      entitlementSource: effectiveCh?.entitlementSource || 'Hospitality Headend',
+    });
   });
 
-  // 9. Release Technical Approval & Property Installation Permission (Two-Stage Gate)
+  // 9. Release Technical Approval & Property Installation Permission (Two-Stage Gate) + M09 Job State Machine
   app.post('/api/releases/technical-approve', (req: Request, res: Response) => {
     const { releaseId } = req.body;
     const auth = authorizeAction(req, 'releases.technicalapprove');
@@ -1752,6 +2512,86 @@ async function startServer() {
     return res.json({ ok: true, approval });
   });
 
+  // M09: Evaluate Update Eligibility & Progress State Machine
+  app.post('/api/updates/evaluate-eligibility', (req: Request, res: Response) => {
+    const { propertyId, releaseId } = req.body;
+    const auth = authorizeAction(req, 'updates.reconcile', propertyId);
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const rel = workspace.releases.find((r) => r.id === releaseId) || workspace.releases[0];
+    const approval = workspace.updateApprovals.find((a) => a.propertyId === propertyId && a.releaseId === rel.id);
+
+    const propEndpoints = workspace.endpoints.filter((e) => e.propertyId === propertyId);
+    const updatedJobs: UpdateJob[] = [];
+    const evaluations: EndpointEligibilityEvaluation[] = [];
+
+    for (const ep of propEndpoints) {
+      let job = workspace.updateJobs.find((j) => j.endpointId === ep.id && j.releaseId === rel.id);
+      if (!job) {
+        job = {
+          id: `JOB-UPD-${ep.id}-${Date.now().toString().slice(-4)}`,
+          propertyId,
+          endpointId: ep.id,
+          roomId: ep.roomId,
+          releaseId: rel.id,
+          stage: 'AwaitingApproval',
+          reason: 'Job initialized, evaluating 9 eligibility guards (M09).',
+          updatedAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+        };
+        workspace.updateJobs.push(job);
+      }
+
+      const room = workspace.rooms.find((r) => r.id === ep.roomId);
+      const activeStay = workspace.stays.find((s) => s.roomId === ep.roomId && s.status === 'InHouse');
+
+      const evalResult = evaluateEndpointUpdateEligibility(ep, room, activeStay, rel, approval);
+      job.stage = evalResult.resultingStage;
+      job.reason = evalResult.primaryReason;
+      job.updatedAtUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
+
+      // If eligible and staged, simulate progressing to Healthy if ready
+      if (evalResult.eligible && job.stage === 'Staged') {
+        ep.appVersion = rel.versionName;
+        job.stage = 'Healthy';
+        job.reason = `Successfully installed and verified: Step 1–9 passed. OTA binary ${rel.versionName} healthy.`;
+      }
+
+      updatedJobs.push(job);
+      evaluations.push({
+        endpointId: ep.id,
+        roomId: ep.roomId,
+        roomCode: room?.code || ep.roomId,
+        stage: job.stage,
+        eligible: evalResult.eligible,
+        primaryReason: job.reason,
+        steps: evalResult.steps,
+      });
+    }
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'updates.reconcile',
+      `${rel.id}@${propertyId}`,
+      propertyId,
+      'ALLOW',
+      'ELIGIBILITY_EVALUATED',
+      `Evaluated 9-step update eligibility for ${updatedJobs.length} endpoints in ${propertyId}.`
+    );
+
+    return res.json({
+      ok: true,
+      propertyId,
+      releaseId: rel.id,
+      jobs: updatedJobs,
+      evaluations,
+      message: `Evaluated eligibility for ${updatedJobs.length} endpoints against release ${rel.versionName}.`,
+    });
+  });
+
   app.post('/api/updates/reconcile-job', (req: Request, res: Response) => {
     const { jobId } = req.body;
     const { user, role, environmentId, workspace } = getRequestContext(req);
@@ -1761,19 +2601,36 @@ async function startServer() {
     const ep = workspace.endpoints.find((e) => e.id === job.endpointId);
     const room = workspace.rooms.find((r) => r.id === job.roomId);
     const hasStay = workspace.stays.some((s) => s.roomId === job.roomId && s.status === 'InHouse');
+    const rel = workspace.releases.find((r) => r.id === job.releaseId) || workspace.releases[0];
 
     if (hasStay) {
       job.stage = 'Deferred';
-      job.reason = 'Reconciled: Room has active guest stay InHouse. Update safely deferred.';
-    } else if (room && room.housekeeping !== 'Ready') {
+      job.reason = 'Reconciled: Room has active guest stay InHouse. Update safely deferred (BR06).';
+    } else if (room && (room.housekeeping !== 'Ready' || !room.maintenanceAuthorized)) {
       job.stage = 'AwaitingReadiness';
-      job.reason = `Reconciled: Endpoint ${ep?.id} is online on v${ep?.appVersion}, waiting for Housekeeping Ready in Room ${room.code}.`;
+      job.reason = `Reconciled: Endpoint ${ep?.id} is online, waiting for Housekeeping Ready and Maintenance Authorization in Room ${room.code}.`;
+    } else if (job.stage === 'OutcomeUnknown') {
+      if (ep && ep.connection === 'Online') {
+        if (ep.appVersion === rel.versionName) {
+          job.stage = 'Healthy';
+          job.reason = `Reconciled OutcomeUnknown: Device reconnected, app version verified as Healthy (${rel.versionName}).`;
+        } else {
+          job.stage = 'Failed';
+          job.reason = `Reconciled OutcomeUnknown: Device reconnected, but app version ${ep.appVersion} does not match target ${rel.versionName}.`;
+        }
+      } else {
+        job.reason = 'Reconcile checked: Device remains offline. Outcome still unknown until heartbeat resumes.';
+      }
     } else if (ep && ep.connection === 'Online') {
-      ep.appVersion = '2.4.1';
+      ep.appVersion = rel.versionName;
       job.stage = 'Healthy';
-      job.reason = 'Reconciled postcondition: Package v2.4.1 verified and heartbeat Healthy.';
+      job.reason = `Reconciled: Package v${rel.versionName} verified and heartbeat Healthy.`;
+    } else {
+      job.stage = 'Deferred';
+      job.reason = 'Reconciled: Endpoint is Offline. Awaiting next valid schedule window.';
     }
 
+    job.updatedAtUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
     saveStore(store);
     recordAudit(environmentId, user.alias, role.id, 'updates.reconcile', job.id, job.propertyId, 'RECONCILE', 'JOB_RECONCILED', job.reason);
     return res.json({ ok: true, job });
@@ -1819,6 +2676,7 @@ async function startServer() {
 
     const payAmount = Number(amountIdr) || inv.totalIdr - inv.paidIdr;
     inv.paidIdr = Math.min(inv.totalIdr, inv.paidIdr + payAmount);
+    inv.remainingBalanceIdr = Math.max(0, inv.totalIdr - inv.paidIdr);
     inv.status = inv.paidIdr >= inv.totalIdr ? 'Paid' : 'PartiallyPaid';
 
     const receipt: Receipt = {
@@ -1843,14 +2701,251 @@ async function startServer() {
       inv.propertyId,
       'ALLOW',
       'PAYMENT_RECONCILED',
-      `Verified Rp${payAmount.toLocaleString('id-ID')} for ${inv.id}. Invoice status=${inv.status}.`
+      `Verified Rp${payAmount.toLocaleString('id-ID')} for ${inv.id}. Remaining balance=Rp${inv.remainingBalanceIdr.toLocaleString('id-ID')}. Status=${inv.status}.`
     );
     return res.json({
       ok: true,
       idempotentDuplicate: false,
       receipt,
       invoice: inv,
-      message: `Payment of Rp${payAmount.toLocaleString('id-ID')} verified for ${inv.id}.`,
+      message: `Payment of Rp${payAmount.toLocaleString('id-ID')} verified for ${inv.id}. Remaining balance: Rp${inv.remainingBalanceIdr.toLocaleString('id-ID')}.`,
+    });
+  });
+
+  // 10B. Seat Ledger & Change Orders (M02)
+  app.post('/api/subscriptions/change-order', (req: Request, res: Response) => {
+    const { subscriptionId, requestedDelta, effectiveDate, reason } = req.body;
+    const auth = authorizeAction(req, 'billing.manage');
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const sub = workspace.subscriptions.find((s) => s.id === subscriptionId);
+    if (!sub) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Subscription not found.' });
+
+    const delta = Number(requestedDelta);
+    if (!delta || isNaN(delta)) {
+      return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Requested delta seat count must be a non-zero number.' });
+    }
+
+    if (sub.committedQuantity + delta < sub.allocatedQuantity) {
+      return res.status(422).json({
+        code: 'VALIDATION_FAILED',
+        message: `Cannot decrease committed seats to ${sub.committedQuantity + delta} because ${sub.allocatedQuantity} seats are actively allocated. Release endpoints first.`,
+      });
+    }
+
+    // Calendar-based prorata calculation (days remaining in month)
+    const effDate = new Date(effectiveDate || Date.now());
+    const totalDaysInMonth = 30; // standard commercial calendar month
+    const dayOfMonth = Math.min(30, Math.max(1, effDate.getDate()));
+    const remainingDays = Math.max(1, totalDaysInMonth - dayOfMonth + 1);
+    const unitPrice = sub.unitPriceIdr || 15000;
+    const prorataPerSeat = Math.round((unitPrice / totalDaysInMonth) * remainingDays);
+    const prorataAmountIdr = delta > 0 ? delta * prorataPerSeat : 0;
+
+    const co: ChangeOrder = {
+      id: `CO-0${(workspace.changeOrders?.length || 0) + 1}`,
+      subscriptionId: sub.id,
+      propertyId: sub.propertyId,
+      requestedDelta: delta,
+      effectiveDate: effectiveDate || new Date().toISOString().slice(0, 10),
+      status: 'Approved',
+      prorataAmountIdr,
+      reason: reason || 'Capacity adjustment requested via Billing Console',
+      requestedBy: `${user.name} (${role.name})`,
+      approvedBy: `${user.name} (${role.name})`,
+      createdAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+    };
+
+    if (!workspace.changeOrders) workspace.changeOrders = [];
+    workspace.changeOrders.push(co);
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'billing.manage',
+      `${sub.id} / ${co.id}`,
+      sub.propertyId,
+      'ALLOW',
+      'CHANGE_ORDER_CREATED',
+      `Created Change Order ${co.id} (${delta > 0 ? '+' : ''}${delta} seats, prorata: Rp${prorataAmountIdr.toLocaleString('id-ID')}).`
+    );
+
+    return res.json({
+      ok: true,
+      changeOrder: co,
+      message: `Change Order ${co.id} created with prorata calculation (Rp${prorataAmountIdr.toLocaleString('id-ID')}).`,
+    });
+  });
+
+  app.post('/api/subscriptions/apply-change-order', (req: Request, res: Response) => {
+    const { changeOrderId } = req.body;
+    const auth = authorizeAction(req, 'billing.manage');
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const co = workspace.changeOrders?.find((c) => c.id === changeOrderId);
+    if (!co) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Change Order not found.' });
+
+    if (co.status === 'Applied') {
+      return res.status(422).json({ code: 'ALREADY_APPLIED', message: 'This Change Order has already been applied.' });
+    }
+
+    const sub = workspace.subscriptions.find((s) => s.id === co.subscriptionId);
+    if (!sub) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Subscription not found.' });
+
+    // Apply delta
+    sub.committedQuantity += co.requestedDelta;
+    sub.seats = sub.committedQuantity;
+    sub.version = (sub.version || 1) + 1;
+    co.status = 'Applied';
+    co.appliedAtUtc = environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString();
+
+    // Create SeatLedgerEntry
+    const ledgerEntry: SeatLedgerEntry = {
+      id: `LED-00${(workspace.seatLedger?.length || 0) + 1}`,
+      subscriptionId: sub.id,
+      propertyId: sub.propertyId,
+      type: 'COMMITTED',
+      quantityDelta: co.requestedDelta,
+      effectiveFrom: co.effectiveDate,
+      reasonCode: 'CHANGE_ORDER_APPLIED',
+      changeOrderId: co.id,
+      createdBy: `${user.name} (${role.name})`,
+      createdAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+      version: sub.version,
+    };
+    if (!workspace.seatLedger) workspace.seatLedger = [];
+    workspace.seatLedger.push(ledgerEntry);
+
+    // If there is a positive prorata, append True-up line to active invoice or create one
+    if (co.prorataAmountIdr > 0) {
+      const activeInv = workspace.invoices.find((i) => i.subscriptionId === sub.id && i.status !== 'Paid');
+      if (activeInv) {
+        if (!activeInv.lines) activeInv.lines = [];
+        activeInv.lines.push({
+          id: `INVL-TRUEUP-${co.id}`,
+          description: `True-up Prorata for Change Order ${co.id} (${co.requestedDelta > 0 ? '+' : ''}${co.requestedDelta} seats effective ${co.effectiveDate})`,
+          seatDays: co.requestedDelta * 15,
+          unitPriceIdr: sub.unitPriceIdr,
+          amountIdr: co.prorataAmountIdr,
+          lineType: 'TRUE_UP',
+        });
+        activeInv.totalIdr += co.prorataAmountIdr;
+        activeInv.remainingBalanceIdr = Math.max(0, activeInv.totalIdr - activeInv.paidIdr);
+      }
+    }
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'billing.manage',
+      `${sub.id} / ${co.id}`,
+      sub.propertyId,
+      'ALLOW',
+      'CHANGE_ORDER_APPLIED',
+      `Applied ${co.id}. Committed pool updated to ${sub.committedQuantity}. Ledger entry ${ledgerEntry.id} recorded.`
+    );
+
+    return res.json({
+      ok: true,
+      subscription: sub,
+      changeOrder: co,
+      ledgerEntry,
+      message: `Change Order ${co.id} applied. Committed seats updated to ${sub.committedQuantity}.`,
+    });
+  });
+
+  app.post('/api/subscriptions/allocate-seats', (req: Request, res: Response) => {
+    const { subscriptionId, quantityDelta, reasonCode, clientVersion } = req.body;
+    const auth = authorizeAction(req, 'billing.manage');
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const sub = workspace.subscriptions.find((s) => s.id === subscriptionId);
+    if (!sub) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Subscription not found.' });
+
+    // Optimistic Concurrency Check (AC 1.3 #2)
+    if (clientVersion !== undefined && sub.version !== clientVersion) {
+      return res.status(409).json({
+        code: 'CONCURRENCY_CONFLICT',
+        message: `Optimistic concurrency conflict: Subscription version was modified (expected v${clientVersion}, current v${sub.version}). Please refresh.`,
+      });
+    }
+
+    const delta = Number(quantityDelta);
+    if (sub.allocatedQuantity + delta > sub.committedQuantity) {
+      return res.status(422).json({
+        code: 'QUOTA_EXCEEDED',
+        message: `Allocation request rejected: Requesting +${delta} seats would exceed committed capacity (${sub.allocatedQuantity + delta} / ${sub.committedQuantity}). Remaining pool: ${sub.committedQuantity - sub.allocatedQuantity}.`,
+      });
+    }
+
+    sub.allocatedQuantity += delta;
+    sub.version = (sub.version || 1) + 1;
+
+    const ledgerEntry: SeatLedgerEntry = {
+      id: `LED-00${(workspace.seatLedger?.length || 0) + 1}`,
+      subscriptionId: sub.id,
+      propertyId: sub.propertyId,
+      type: delta > 0 ? 'ALLOCATED' : 'RELEASED',
+      quantityDelta: delta,
+      effectiveFrom: new Date().toISOString(),
+      reasonCode: reasonCode || 'SEAT_ALLOCATION_UPDATE',
+      createdBy: `${user.name} (${role.name})`,
+      createdAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+      version: sub.version,
+    };
+    if (!workspace.seatLedger) workspace.seatLedger = [];
+    workspace.seatLedger.push(ledgerEntry);
+
+    saveStore(store);
+    return res.json({
+      ok: true,
+      subscription: sub,
+      ledgerEntry,
+      message: `Allocated seats updated to ${sub.allocatedQuantity}/${sub.committedQuantity}.`,
+    });
+  });
+
+  app.post('/api/subscriptions/suspension', (req: Request, res: Response) => {
+    const { subscriptionId, suspensionStatus, reason } = req.body;
+    const auth = authorizeAction(req, 'billing.manage');
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const sub = workspace.subscriptions.find((s) => s.id === subscriptionId);
+    if (!sub) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Subscription not found.' });
+
+    const validStatuses: SubscriptionSuspensionStatus[] = ['None', 'Soft', 'Hard'];
+    if (!validStatuses.includes(suspensionStatus)) {
+      return res.status(422).json({ code: 'VALIDATION_FAILED', message: `Invalid suspension status '${suspensionStatus}'.` });
+    }
+
+    sub.suspensionStatus = suspensionStatus;
+    sub.version = (sub.version || 1) + 1;
+
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'billing.manage',
+      sub.id,
+      sub.propertyId,
+      'ALLOW',
+      'SUSPENSION_STATUS_UPDATED',
+      `Subscription ${sub.id} suspension set to ${suspensionStatus}. Reason: ${reason || 'Manual override'}.`
+    );
+
+    return res.json({
+      ok: true,
+      subscription: sub,
+      message: `Subscription ${sub.id} suspension updated to ${suspensionStatus}.`,
     });
   });
 
@@ -2410,6 +3505,25 @@ async function startServer() {
     const sub = workspace.subscriptions.find((s) => s.propertyId === propertyId);
     if (!sub) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'No active subscription found for property.' });
 
+    // Block device binding if Hard Suspension is active (Gap Closing Area 1)
+    if (sub.suspensionStatus === 'Hard') {
+      recordAudit(
+        environmentId,
+        user.alias,
+        role.id,
+        'endpoints.bind',
+        cand.id,
+        propertyId,
+        'DENY',
+        'HARD_SUSPENSION_ACTIVE',
+        `Device enrollment blocked due to Hard Suspension on subscription ${sub.id}.`
+      );
+      return res.status(403).json({
+        code: 'SUBSCRIPTION_SUSPENDED',
+        message: `Cannot assign new devices: Property subscription ${sub.id} is under Hard Suspension. Please settle past-due invoices with Finance.`,
+      });
+    }
+
     // Idempotent check if already bound
     const existingEp = workspace.endpoints.find((e) => e.serialRef === (cand.observedSerial || cand.ip));
     if (existingEp) {
@@ -2427,11 +3541,12 @@ async function startServer() {
     }
 
     const currentAllocatedForProp = workspace.endpoints.filter((e) => e.propertyId === propertyId).length;
-    if (currentAllocatedForProp >= sub.seats) {
-      recordAudit(environmentId, user.alias, role.id, 'endpoints.bind', cand.id, propertyId, 'DENY', 'QUOTA_EXCEEDED', `Seat quota exceeded for ${propertyId} (${currentAllocatedForProp}/${sub.seats}).`);
+    const committedCap = sub.committedQuantity ?? sub.seats;
+    if (currentAllocatedForProp >= committedCap) {
+      recordAudit(environmentId, user.alias, role.id, 'endpoints.bind', cand.id, propertyId, 'DENY', 'QUOTA_EXCEEDED', `Seat quota exceeded for ${propertyId} (${currentAllocatedForProp}/${committedCap}).`);
       return res.status(409).json({
         code: 'QUOTA_EXCEEDED',
-        message: `Seat allowance exhausted for ${propertyId} (${currentAllocatedForProp}/${sub.seats} seats allocated — BR03 / F-008).`,
+        message: `Seat allowance exhausted for ${propertyId} (${currentAllocatedForProp}/${committedCap} seats committed — BR03 / M02). Submit a Change Order to expand seat pool.`,
       });
     }
 
@@ -2462,6 +3577,26 @@ async function startServer() {
     workspace.endpoints.push(newEndpoint);
     cand.authState = 'Enrolled';
     cand.assignedRoomId = room.id;
+
+    // Record Seat Ledger & increment allocated quantity
+    sub.allocatedQuantity = (sub.allocatedQuantity ?? currentAllocatedForProp) + 1;
+    sub.version = (sub.version || 1) + 1;
+
+    const ledgerEntry: SeatLedgerEntry = {
+      id: `LED-00${(workspace.seatLedger?.length || 0) + 1}`,
+      subscriptionId: sub.id,
+      propertyId,
+      type: 'ALLOCATED',
+      quantityDelta: 1,
+      effectiveFrom: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+      reasonCode: `DEVICE_ENROLLMENT_${newEndpoint.id}`,
+      createdBy: `${user.name} (${role.name})`,
+      createdAtUtc: environmentId === 'DEMO' ? workspace.clockUtc : new Date().toISOString(),
+      version: sub.version,
+    };
+    if (!workspace.seatLedger) workspace.seatLedger = [];
+    workspace.seatLedger.push(ledgerEntry);
+
     saveStore(store);
 
     recordAudit(

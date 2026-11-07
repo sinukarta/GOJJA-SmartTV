@@ -45,6 +45,12 @@ import {
   Image as ImageIcon,
   Terminal,
   Trash2,
+  ShoppingBag,
+  Store,
+  Handshake,
+  Tag,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   EnvironmentId,
@@ -79,6 +85,12 @@ import {
   ScenarioDefinition,
   CURATED_BRAND_MEDIA_PRESETS,
   GOJJA_CLEANTV_PACKAGES,
+  AdOffer,
+  PropertyAdAcceptance,
+  MarketplaceItem,
+  ServiceOrder,
+  ServiceOrderStatus,
+  maskGuestName,
 } from './data/mockData';
 import { GojjaWordmark, RollingKpiValue } from './components/GojjaWordmark';
 import { TvGuestAppView } from './components/TvGuestAppModal';
@@ -96,6 +108,7 @@ const CMS_UI_STRINGS: Record<
     navBranding: string;
     navTvServices: string;
     navCampaigns: string;
+    navMarketplace: string;
     navChannels: string;
     navUpdates: string;
     navAnalytics: string;
@@ -158,6 +171,7 @@ const CMS_UI_STRINGS: Record<
     navBranding: 'Brand Studio & TV',
     navTvServices: 'Pustaka Konten',
     navCampaigns: 'Kampanye Promo',
+    navMarketplace: 'Marketplace & Iklan',
     navChannels: 'Saluran & Paket TV',
     navUpdates: 'Pembaruan OTA',
     navAnalytics: 'Analitik Tayangan',
@@ -224,6 +238,7 @@ const CMS_UI_STRINGS: Record<
     navBranding: 'Brand Studio',
     navTvServices: 'Content Library',
     navCampaigns: 'Campaigns',
+    navMarketplace: 'Marketplace & Ads',
     navChannels: 'Channels & Packages',
     navUpdates: 'Updates',
     navAnalytics: 'Analytics',
@@ -293,6 +308,7 @@ type NavTabId =
   | 'branding'
   | 'tv-services'
   | 'campaigns'
+  | 'marketplace'
   | 'channels'
   | 'updates'
   | 'analytics'
@@ -304,9 +320,9 @@ type NavTabId =
 function getAllowedTabsForRole(roleId: RoleId): NavTabId[] {
   switch (roleId) {
     case 'R-01': // Product / Business Owner (GOJJA HQ)
-      return ['overview', 'tenants', 'branding', 'campaigns', 'channels', 'analytics', 'users', 'billing', 'settings'];
+      return ['overview', 'tenants', 'branding', 'campaigns', 'marketplace', 'channels', 'analytics', 'users', 'billing', 'settings'];
     case 'R-02': // Platform Administrator (GOJJA HQ)
-      return ['overview', 'tenants', 'rooms', 'devices', 'branding', 'campaigns', 'channels', 'users', 'billing', 'support-qa', 'settings'];
+      return ['overview', 'tenants', 'rooms', 'devices', 'branding', 'campaigns', 'marketplace', 'channels', 'users', 'billing', 'support-qa', 'settings'];
     case 'R-03': // Technical Administrator (GOJJA HQ)
       return ['overview', 'devices', 'updates', 'support-qa', 'users'];
     case 'R-04': // Security Administrator (GOJJA HQ)
@@ -322,15 +338,15 @@ function getAllowedTabsForRole(roleId: RoleId): NavTabId[] {
     case 'R-09': // Partner / Assigned Field Installer
       return ['overview', 'devices', 'discovery', 'rooms'];
     case 'R-10': // Property Owner
-      return ['overview', 'rooms', 'devices', 'branding', 'tv-services', 'campaigns', 'channels', 'updates', 'analytics', 'billing', 'settings'];
+      return ['overview', 'rooms', 'devices', 'branding', 'tv-services', 'campaigns', 'marketplace', 'channels', 'updates', 'analytics', 'billing', 'settings'];
     case 'R-11': // Property Manager
-      return ['overview', 'rooms', 'devices', 'branding', 'tv-services', 'campaigns', 'channels', 'updates', 'analytics', 'support-qa', 'settings', 'users'];
+      return ['overview', 'rooms', 'devices', 'branding', 'tv-services', 'campaigns', 'marketplace', 'channels', 'updates', 'analytics', 'support-qa', 'settings', 'users'];
     case 'R-12': // Content Editor
-      return ['overview', 'branding', 'tv-services', 'campaigns'];
+      return ['overview', 'branding', 'tv-services', 'campaigns', 'marketplace'];
     case 'R-13': // Front Office
-      return ['overview', 'rooms', 'devices'];
+      return ['overview', 'rooms', 'devices', 'marketplace'];
     case 'R-14': // Property Analyst
-      return ['overview', 'analytics'];
+      return ['overview', 'analytics', 'marketplace'];
     case 'R-15': // Property Finance
       return ['overview', 'billing'];
     case 'R-16': // In-Room Guest
@@ -419,6 +435,10 @@ interface BootstrapPayload {
     profileOverrides: ProfileOverride[];
     invoices: Invoice[];
     receipts: Receipt[];
+    adOffers?: AdOffer[];
+    propertyAdAcceptances?: PropertyAdAcceptance[];
+    marketplaceItems?: MarketplaceItem[];
+    serviceOrders?: ServiceOrder[];
     releases: ReleaseArtifact[];
     updateApprovals: PropertyUpdateApproval[];
     updateJobs: UpdateJob[];
@@ -538,6 +558,13 @@ export default function App() {
     summary: { totalChecked: number; passed: number; blockedHardware: number; failed: number };
     results: Array<{ id: string; suite: string; title: string; status: string; expected: string; actual: string }>;
   } | null>(null);
+
+  // Fase D Poin 13: Marketplace & External Ad Network state
+  const [marketplaceSubTab, setMarketplaceSubTab] = useState<'OFFERS' | 'ORDERS' | 'FUNNEL'>('OFFERS');
+  const [showRawGuestNames, setShowRawGuestNames] = useState(false);
+  const [revisingOfferId, setRevisingOfferId] = useState<string | null>(null);
+  const [revisionHeadline, setRevisionHeadline] = useState('');
+  const [revisionSubline, setRevisionSubline] = useState('');
 
   // Sync theme to document root
   useEffect(() => {
@@ -905,6 +932,22 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             corporateGroup={modalGroup}
             channels={data.channels}
             campaigns={data.campaigns}
+            marketplaceItems={data.marketplaceItems || []}
+            onRequestServiceOrder={async (itemId, itemTitle) => {
+              try {
+                await apiCall('/api/marketplace/services/create-order', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    itemId,
+                    propertyId: activeProperty.id,
+                    notes: `Requested '${itemTitle}' from Login Preview`,
+                  }),
+                });
+                await fetchBootstrap();
+              } catch {
+                // ignore
+              }
+            }}
             onSelectLocale={async (nextTvLoc) => {
               setBrandLocaleTab(nextTvLoc);
               try {
@@ -950,6 +993,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
     { id: 'branding', label: ct.navBranding, icon: Palette },
     { id: 'tv-services', label: ct.navTvServices, icon: Radio },
     { id: 'campaigns', label: ct.navCampaigns, icon: Megaphone },
+    { id: 'marketplace', label: ct.navMarketplace, icon: ShoppingBag },
     { id: 'channels', label: ct.navChannels, icon: Layers },
     { id: 'updates', label: ct.navUpdates, icon: Download },
     { id: 'analytics', label: ct.navAnalytics, icon: BarChart3 },
@@ -3642,6 +3686,867 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           )}
 
           {/* ===================================================================== */}
+          {/* TAB: MARKETPLACE & EXTERNAL AD NETWORK (POIN 13 / M13 / FR17)         */}
+          {/* ===================================================================== */}
+          {activeTab === 'marketplace' && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl font-bold">Marketplace & External Ad Network Foundation (M13 / FR17)</h1>
+                  <p className="text-xs text-[var(--cms-text-secondary)]">
+                    External paid ad offers with explicit hotel opt-in and creative version control; in-room concierge marketplace with privacy-redacted guest order tracking.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                    className="px-4 py-2 rounded-xl bg-[#0050F5] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm hover:bg-[#0040D0] transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    <span>Pratinjau Layanan di TV</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Subtabs Switcher */}
+              <div className="flex items-center gap-2 border-b border-[var(--cms-divider)] pb-3 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setMarketplaceSubTab('OFFERS')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all ${
+                    marketplaceSubTab === 'OFFERS'
+                      ? 'bg-[var(--cms-text)] text-[var(--cms-bg)] shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Handshake className="w-4 h-4" />
+                  <span>Jaringan Iklan Brand Eksternal</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono-tabular">
+                    {(data.adOffers || []).length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMarketplaceSubTab('ORDERS')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all ${
+                    marketplaceSubTab === 'ORDERS'
+                      ? 'bg-[var(--cms-text)] text-[var(--cms-bg)] shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Katalog Layanan & Meja Concierge</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono-tabular">
+                    {(data.serviceOrders || []).filter((o) => o.status === 'Requested').length} Baru
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMarketplaceSubTab('FUNNEL')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all ${
+                    marketplaceSubTab === 'FUNNEL'
+                      ? 'bg-[var(--cms-text)] text-[var(--cms-bg)] shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Corong Komersial & Monetisasi</span>
+                </button>
+              </div>
+
+              {/* SUBTAB 1: EXTERNAL AD NETWORK & OPT-IN */}
+              {marketplaceSubTab === 'OFFERS' && (
+                <div className="space-y-6">
+                  {/* Privacy & Governance Notice */}
+                  <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-blue-900 dark:text-blue-200">
+                          Fondasi Jaringan Iklan Berbayar & Jaminan Privasi Nol PII (BR19 / FR13)
+                        </div>
+                        <p className="text-blue-700 dark:text-blue-300 text-[11px] mt-0.5 leading-relaxed">
+                          Hotel memegang kendali penuh atas brand yang tampil. Tawaran hanya tayang setelah opt-in eksplisit oleh Property Manager. Jika brand melakukan perubahan material pada kreatif/syarat, status persetujuan otomatis menjadi <strong>Superceded</strong> dan penayangan dijeda sampai disetujui ulang. Advertiser <strong>tidak pernah</strong> menerima identitas atau nomor kamar tamu.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Pills */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono-tabular">
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                      <div className="text-[10px] uppercase font-bold text-[var(--cms-text-secondary)]">Total Usulan Brand</div>
+                      <div className="text-lg font-bold mt-1">{(data.adOffers || []).length} Tawaran</div>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                      <div className="text-[10px] uppercase font-bold text-[var(--cms-text-secondary)]">Disetujui Properti</div>
+                      <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                        {(data.propertyAdAcceptances || []).filter((a) => a.status === 'Accepted').length} Aktif
+                      </div>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                      <div className="text-[10px] uppercase font-bold text-[var(--cms-text-secondary)]">Menunggu Tinjauan</div>
+                      <div className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">
+                        {(data.adOffers || []).filter(
+                          (o) =>
+                            !(data.propertyAdAcceptances || []).some(
+                              (a) => a.offerId === o.id && (a.status === 'Accepted' || a.status === 'Rejected')
+                            )
+                        ).length} Pending
+                      </div>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                      <div className="text-[10px] uppercase font-bold text-[var(--cms-text-secondary)]">Kreatif Superceded</div>
+                      <div className="text-lg font-bold text-rose-600 dark:text-rose-400 mt-1">
+                        {(data.propertyAdAcceptances || []).filter((a) => a.status === 'Superceded').length} Perlu Re-Accept
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ad Offers List */}
+                  <div className="space-y-4">
+                    {(data.adOffers || []).map((offer) => {
+                      const acceptance = (data.propertyAdAcceptances || []).find(
+                        (a) => a.offerId === offer.id && a.propertyId === activeProperty.id
+                      );
+                      const isAccepted = acceptance?.status === 'Accepted' && acceptance.offerVersion === offer.currentVersion;
+                      const isSuperceded = acceptance?.status === 'Superceded' || (acceptance?.status === 'Accepted' && acceptance.offerVersion < offer.currentVersion);
+                      const isRejected = acceptance?.status === 'Rejected';
+                      const isPending = !acceptance || acceptance.status === 'PendingReview';
+                      const activeCreative = offer.creativeVersions[0];
+
+                      return (
+                        <div
+                          key={offer.id}
+                          className={`p-5 rounded-2xl bg-[var(--cms-surface)] border transition-all space-y-4 ${
+                            isSuperceded
+                              ? 'border-rose-400/60 dark:border-rose-500/50 shadow-xs'
+                              : isAccepted
+                              ? 'border-emerald-400/60 dark:border-emerald-500/50'
+                              : 'border-[var(--cms-divider)]'
+                          }`}
+                        >
+                          {/* Offer Header Bar */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--cms-divider)] pb-3">
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <span className="font-mono-tabular font-bold text-[#0050F5] dark:text-[#C7B9FF] text-xs">
+                                {offer.id}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                {offer.category}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-[var(--cms-bg)] border border-[var(--cms-divider)] font-mono-tabular text-[10px] font-semibold">
+                                Versi Kreatif: v{offer.currentVersion}
+                              </span>
+                              <span className="font-semibold text-xs text-[var(--cms-text-secondary)]">
+                                Advertiser: <strong>{offer.advertiserName}</strong>
+                              </span>
+                            </div>
+
+                            {/* Opt-In Status Badge */}
+                            <div>
+                              {isAccepted && (
+                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 inline-flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Opted-In & Aktif Tayang (v{acceptance.offerVersion})</span>
+                                </span>
+                              )}
+                              {isSuperceded && (
+                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 inline-flex items-center gap-1.5 animate-pulse">
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  <span>Superceded — Revisi Kreatif Memerlukan Re-Approve</span>
+                                </span>
+                              )}
+                              {isRejected && (
+                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 inline-flex items-center gap-1.5">
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  <span>Ditolak oleh Properti</span>
+                                </span>
+                              )}
+                              {isPending && (
+                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 inline-flex items-center gap-1.5">
+                                  <span>⏳ Menunggu Tinjauan Properti</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Content Grid: Creative Preview + Commercial Terms */}
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+                            {/* Creative Preview Canvas */}
+                            <div className="md:col-span-5 rounded-xl border border-[var(--cms-divider)] p-3 bg-[var(--cms-bg)] space-y-2">
+                              <div className="text-[10px] uppercase font-bold text-[var(--cms-text-secondary)] flex items-center justify-between">
+                                <span>Pratinjau Kreatif Saat Ini</span>
+                                <span className="font-mono-tabular">v{activeCreative?.version}</span>
+                              </div>
+                              <div className="aspect-video w-full rounded-lg overflow-hidden relative bg-black/80 flex items-center justify-center">
+                                {activeCreative?.mediaUrl ? (
+                                  <img
+                                    src={activeCreative.mediaUrl}
+                                    alt={activeCreative.headline}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="text-slate-400 text-xs">Media Visual Ad</div>
+                                )}
+                                <div className="absolute bottom-2 left-2 right-2 p-2 rounded bg-black/75 backdrop-blur-xs text-white">
+                                  <div className="text-xs font-bold truncate">{activeCreative?.headline}</div>
+                                  <div className="text-[10px] text-slate-300 line-clamp-1">{activeCreative?.subline}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] pt-1">
+                                <span className="text-[var(--cms-text-secondary)]">Call to Action:</span>
+                                <span className="px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 font-bold text-xs">
+                                  {activeCreative?.callToAction || 'Claim Offer'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Commercial Terms & Controls */}
+                            <div className="md:col-span-7 space-y-3 text-xs">
+                              <div>
+                                <h3 className="text-sm font-bold">{offer.title}</h3>
+                                <p className="text-[11px] text-[var(--cms-text-secondary)] mt-0.5">
+                                  {offer.targetingNotes || 'Penawaran brand premium untuk tamu menginap.'}
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 font-mono-tabular">
+                                <div className="p-2.5 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                                  <div className="text-[10px] text-[var(--cms-text-secondary)]">Skema Model</div>
+                                  <div className="font-bold text-xs mt-0.5">{offer.pricingModel}</div>
+                                </div>
+                                <div className="p-2.5 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                                  <div className="text-[10px] text-[var(--cms-text-secondary)]">Nilai Penawaran</div>
+                                  <div className="font-bold text-xs text-[#0050F5] dark:text-[#C7B9FF] mt-0.5">
+                                    Rp {offer.proposedRateIdr.toLocaleString('id-ID')}
+                                  </div>
+                                </div>
+                                <div className="p-2.5 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-divider)]">
+                                  <div className="text-[10px] text-[var(--cms-text-secondary)]">Frekuensi Cap</div>
+                                  <div className="font-bold text-xs mt-0.5">Maks {offer.proposedCapPerStay}× / Stay</div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1 text-[11px]">
+                                <div>
+                                  <span className="text-[var(--cms-text-secondary)]">Penempatan yang Diminta: </span>
+                                  {offer.requestedPlacements.map((p) => (
+                                    <span key={p} className="mr-1 px-1.5 py-0.5 rounded bg-[var(--cms-bg)] border border-[var(--cms-divider)] font-mono-tabular text-[10px]">
+                                      {p}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div>
+                                  <span className="text-[var(--cms-text-secondary)]">Periode Usulan: </span>
+                                  <span className="font-mono-tabular">
+                                    {offer.proposedPeriod.startUtc.slice(0, 10)} s/d {offer.proposedPeriod.endUtc.slice(0, 10)}
+                                  </span>
+                                </div>
+                                {acceptance?.commercialTermsRef && (
+                                  <div>
+                                    <span className="text-[var(--cms-text-secondary)]">Referensi Kontrak Komersial: </span>
+                                    <span className="font-mono-tabular font-bold">{acceptance.commercialTermsRef}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Superceded Warning Box */}
+                              {isSuperceded && (
+                                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-200 text-xs space-y-1">
+                                  <div className="font-bold flex items-center gap-1.5">
+                                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                    <span>Penayangan Otomatis Dijeda (Rule M13 / BR19)</span>
+                                  </div>
+                                  <p className="text-[11px] leading-snug">
+                                    {acceptance?.supercededReason || `Kreatif telah diubah ke versi ${offer.currentVersion}. Persetujuan properti sebelumnya tidak berlaku lagi untuk materi baru.`}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Governance Action Buttons */}
+                              <div className="pt-2 flex flex-wrap items-center gap-2">
+                                {isSuperceded ? (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const res = await apiCall('/api/marketplace/offers/accept', {
+                                          method: 'POST',
+                                          body: JSON.stringify({
+                                            offerId: offer.id,
+                                            propertyId: activeProperty.id,
+                                          }),
+                                        });
+                                        await fetchBootstrap();
+                                        showNotice('success', res.message || `Revisi v${offer.currentVersion} berhasil disetujui.`);
+                                      } catch (err: unknown) {
+                                        showNotice('error', err instanceof Error ? err.message : 'Gagal menyetujui tawaran');
+                                      }
+                                    }}
+                                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-colors"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Setujui Materi Revisi (v{offer.currentVersion}) & Aktifkan Kembali</span>
+                                  </button>
+                                ) : isAccepted ? (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const res = await apiCall('/api/marketplace/offers/reject', {
+                                          method: 'POST',
+                                          body: JSON.stringify({
+                                            offerId: offer.id,
+                                            propertyId: activeProperty.id,
+                                            rejectionReason: 'Property Manager mencabut persetujuan penayangan.',
+                                          }),
+                                        });
+                                        await fetchBootstrap();
+                                        showNotice('info', res.message || 'Persetujuan tawaran dicabut.');
+                                      } catch (err: unknown) {
+                                        showNotice('error', err instanceof Error ? err.message : 'Gagal mencabut persetujuan');
+                                      }
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl border border-rose-400 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs font-semibold transition-colors"
+                                  >
+                                    Cabut Persetujuan / Jeda
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await apiCall('/api/marketplace/offers/accept', {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                              offerId: offer.id,
+                                              propertyId: activeProperty.id,
+                                            }),
+                                          });
+                                          await fetchBootstrap();
+                                          showNotice('success', res.message || `Tawaran '${offer.title}' disetujui.`);
+                                        } catch (err: unknown) {
+                                          showNotice('error', err instanceof Error ? err.message : 'Gagal menyetujui tawaran');
+                                        }
+                                      }}
+                                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-colors"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Setujui Penawaran (Opt-In Hotel)</span>
+                                    </button>
+                                    {!isRejected && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            const res = await apiCall('/api/marketplace/offers/reject', {
+                                              method: 'POST',
+                                              body: JSON.stringify({
+                                                offerId: offer.id,
+                                                propertyId: activeProperty.id,
+                                                rejectionReason: 'Tidak sesuai dengan profil tamu properti.',
+                                              }),
+                                            });
+                                            await fetchBootstrap();
+                                            showNotice('info', res.message || 'Tawaran ditolak.');
+                                          } catch (err: unknown) {
+                                            showNotice('error', err instanceof Error ? err.message : 'Gagal menolak tawaran');
+                                          }
+                                        }}
+                                        className="px-3.5 py-2 rounded-xl border border-[var(--cms-divider)] hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition-colors"
+                                      >
+                                        Tolak Tawaran
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRevisingOfferId(revisingOfferId === offer.id ? null : offer.id);
+                                    setRevisionHeadline(`${offer.advertiserName} Platinum Year-End Promo`);
+                                    setRevisionSubline('Diskon eksklusif hingga 35% dan fasilitas jalur cepat untuk tamu hotel.');
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl border border-[var(--cms-divider)] text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] text-xs font-medium inline-flex items-center gap-1 ml-auto"
+                                >
+                                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>Simulasi Revisi Materi Kreatif</span>
+                                </button>
+                              </div>
+
+                              {/* Material Revision Simulation Drawer */}
+                              {revisingOfferId === offer.id && (
+                                <form
+                                  onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    try {
+                                      const res = await apiCall('/api/marketplace/offers/update-creative', {
+                                        method: 'POST',
+                                        body: JSON.stringify({
+                                          offerId: offer.id,
+                                          headline: revisionHeadline,
+                                          subline: revisionSubline,
+                                          mediaUrl: '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png',
+                                          callToAction: 'Lihat Ketentuan Baru',
+                                        }),
+                                      });
+                                      setRevisingOfferId(null);
+                                      await fetchBootstrap();
+                                      showNotice('info', res.message || 'Kreatif diperbarui. Acceptance otomatis Superceded!');
+                                    } catch (err: unknown) {
+                                      showNotice('error', err instanceof Error ? err.message : 'Gagal merevisi kreatif');
+                                    }
+                                  }}
+                                  className="mt-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2.5"
+                                >
+                                  <div className="text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                                    <span>Simulasi Advertiser Mengunggah Revisi Materi Kreatif (Naik ke v{offer.currentVersion + 1})</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setRevisingOfferId(null)}
+                                      className="text-amber-700 dark:text-amber-300 hover:underline text-[10px]"
+                                    >
+                                      Batal
+                                    </button>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <input
+                                      type="text"
+                                      value={revisionHeadline}
+                                      onChange={(e) => setRevisionHeadline(e.target.value)}
+                                      placeholder="Headline materi baru..."
+                                      className="w-full px-3 py-1.5 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)] text-xs"
+                                      required
+                                    />
+                                    <input
+                                      type="text"
+                                      value={revisionSubline}
+                                      onChange={(e) => setRevisionSubline(e.target.value)}
+                                      placeholder="Subline materi baru..."
+                                      className="w-full px-3 py-1.5 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)] text-xs"
+                                      required
+                                    />
+                                  </div>
+                                  <button
+                                    type="submit"
+                                    className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                                  >
+                                    <span>Simulasikan Perubahan Materi (Picu Superceded)</span>
+                                  </button>
+                                </form>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTAB 2: MARKETPLACE CATALOG & SERVICE ORDERS */}
+              {marketplaceSubTab === 'ORDERS' && (
+                <div className="space-y-6">
+                  {/* Catalog Services Grid */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-base font-bold">Katalog Layanan & Fasilitas Kamar</h2>
+                        <p className="text-xs text-[var(--cms-text-secondary)]">
+                          Ditampilkan pada Layanan Tamu SmartTV (Screen 05). Tamu dapat meminta layanan langsung via remote TV.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                      {(data.marketplaceItems || []).map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] flex flex-col justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                {item.type}
+                              </span>
+                              <span className="font-mono-tabular text-[10px] text-[var(--cms-text-secondary)]">
+                                {item.fulfilmentType}
+                              </span>
+                            </div>
+                            <div className="font-bold text-sm leading-snug">{item.title}</div>
+                            <p className="text-[11px] text-[var(--cms-text-secondary)] line-clamp-2">
+                              {item.description}
+                            </p>
+                            <div className="pt-1 flex items-center justify-between text-[11px] font-mono-tabular">
+                              <span className="font-bold text-[#0050F5] dark:text-[#C7B9FF]">{item.priceHint || 'Included'}</span>
+                              <span className="text-[var(--cms-text-secondary)]">{item.availabilitySchedule}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await apiCall('/api/marketplace/services/create-order', {
+                                  method: 'POST',
+                                  body: JSON.stringify({
+                                    itemId: item.id,
+                                    propertyId: activeProperty.id,
+                                    roomId: propRooms[0]?.id || 'R-01-201',
+                                    stayId: propStays[0]?.id || 'S-01',
+                                    notes: `Simulated order for '${item.title}' via CMS testing button`,
+                                  }),
+                                });
+                                await fetchBootstrap();
+                                showNotice('success', res.message || `Pesanan '${item.title}' berhasil dibuat.`);
+                              } catch (err: unknown) {
+                                showNotice('error', err instanceof Error ? err.message : 'Gagal membuat pesanan');
+                              }
+                            }}
+                            className="w-full py-1.5 px-3 rounded-xl bg-[var(--cms-bg)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-divider)] text-xs font-semibold text-center transition-colors cursor-pointer"
+                          >
+                            + Pesan Uji (Simulasi Tamu)
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Service Order Fulfillment Board */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--cms-divider)] pb-2.5">
+                      <div>
+                        <h2 className="text-base font-bold">Meja Pemenuhan Pesanan Front Desk (Service Order Flow)</h2>
+                        <p className="text-xs text-[var(--cms-text-secondary)]">
+                          Alur pelacakan: <strong>Requested → Confirmed → InFulfilment → Fulfilled</strong> (FR17).
+                        </p>
+                      </div>
+
+                      {/* Guest PII Redaction Toggle */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowRawGuestNames(!showRawGuestNames)}
+                          className="px-3 py-1.5 rounded-xl border border-[var(--cms-divider)] bg-[var(--cms-surface)] hover:bg-black/5 dark:hover:bg-white/5 text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
+                        >
+                          {showRawGuestNames ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span>{showRawGuestNames ? 'Sembunyikan Nama Tamu (Masked PII)' : 'Buka Nama Tamu (Front Desk)'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-[var(--cms-divider)] bg-[var(--cms-surface)]">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
+                            <th className="py-2.5 px-4 font-semibold">Order ID</th>
+                            <th className="py-2.5 px-3 font-semibold">Layanan Diminta</th>
+                            <th className="py-2.5 px-3 font-semibold">Referensi Tamu (Redacted PII)</th>
+                            <th className="py-2.5 px-3 font-semibold">Catatan / Waktu</th>
+                            <th className="py-2.5 px-3 font-semibold">Petugas (Assigned)</th>
+                            <th className="py-2.5 px-3 font-semibold">Status</th>
+                            <th className="py-2.5 pr-4 text-right font-semibold">Aksi Pemenuhan</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--cms-divider)]">
+                          {(data.serviceOrders || []).length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="py-8 text-center text-[var(--cms-text-secondary)]">
+                                Belum ada pesanan layanan dari kamar tamu.
+                              </td>
+                            </tr>
+                          ) : (
+                            (data.serviceOrders || []).map((order) => {
+                              const displayGuest =
+                                showRawGuestNames && order.rawGuestName
+                                  ? `${order.guestDisplayRef.split('·')[0]} · ${order.rawGuestName} (Unmasked)`
+                                  : order.guestDisplayRef;
+
+                              return (
+                                <tr key={order.id} className="hover:bg-black/2 dark:hover:bg-white/2 transition-colors">
+                                  <td className="py-3 px-4 font-mono-tabular font-bold text-[#0050F5] dark:text-[#C7B9FF]">
+                                    {order.id}
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <div className="font-semibold text-xs">{order.itemTitle}</div>
+                                    <div className="text-[10px] text-[var(--cms-text-secondary)] font-mono-tabular">
+                                      Tipe: {order.fulfilmentType}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <div className="font-mono-tabular text-xs font-semibold">{displayGuest}</div>
+                                    <div className="text-[10px] text-[var(--cms-text-secondary)]">
+                                      {new Date(order.requestedAtUtc).toLocaleTimeString()} · FR17 Redacted
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3 text-[11px] max-w-[200px] truncate text-[var(--cms-text-secondary)]">
+                                    {order.notes || '—'}
+                                  </td>
+                                  <td className="py-3 px-3 text-xs">
+                                    {order.assignedTo || <span className="text-[var(--cms-text-secondary)]">Belum ditugaskan</span>}
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    {order.status === 'Requested' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                        Requested
+                                      </span>
+                                    )}
+                                    {order.status === 'Confirmed' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                                        Confirmed
+                                      </span>
+                                    )}
+                                    {order.status === 'InFulfilment' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                                        In Fulfilment
+                                      </span>
+                                    )}
+                                    {order.status === 'Fulfilled' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                        Fulfilled
+                                      </span>
+                                    )}
+                                    {order.status === 'Cancelled' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                                        Cancelled
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 pr-4 text-right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {order.status === 'Requested' && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              const res = await apiCall('/api/marketplace/services/update-order-status', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  orderId: order.id,
+                                                  newStatus: 'Confirmed',
+                                                  assignedTo: `${currentUser.alias} (Front Desk)`,
+                                                }),
+                                              });
+                                              await fetchBootstrap();
+                                              showNotice('success', res.message || 'Pesanan dikonfirmasi.');
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Gagal konfirmasi');
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition-colors"
+                                        >
+                                          Konfirmasi
+                                        </button>
+                                      )}
+                                      {order.status === 'Confirmed' && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              const res = await apiCall('/api/marketplace/services/update-order-status', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  orderId: order.id,
+                                                  newStatus: 'InFulfilment',
+                                                }),
+                                              });
+                                              await fetchBootstrap();
+                                              showNotice('success', res.message || 'Status diubah ke In Fulfilment.');
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Gagal update status');
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition-colors"
+                                        >
+                                          Mulai Kerjakan
+                                        </button>
+                                      )}
+                                      {order.status === 'InFulfilment' && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              const res = await apiCall('/api/marketplace/services/update-order-status', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  orderId: order.id,
+                                                  newStatus: 'Fulfilled',
+                                                }),
+                                              });
+                                              await fetchBootstrap();
+                                              showNotice('success', res.message || 'Layanan selesai terpenuhi.');
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Gagal update status');
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-colors"
+                                        >
+                                          Selesai
+                                        </button>
+                                      )}
+                                      {order.status !== 'Fulfilled' && order.status !== 'Cancelled' && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              const res = await apiCall('/api/marketplace/services/update-order-status', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  orderId: order.id,
+                                                  newStatus: 'Cancelled',
+                                                  notes: 'Dibatalkan oleh staf front desk.',
+                                                }),
+                                              });
+                                              await fetchBootstrap();
+                                              showNotice('info', res.message || 'Pesanan dibatalkan.');
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Gagal batalkan');
+                                            }
+                                          }}
+                                          className="px-2 py-1 rounded-lg border border-[var(--cms-divider)] hover:bg-rose-50 text-rose-600 text-[10px] transition-colors"
+                                        >
+                                          Batal
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTAB 3: COMMERCIAL FUNNEL & MONETIZATION ANALYTICS */}
+              {marketplaceSubTab === 'FUNNEL' && (
+                <div className="space-y-6">
+                  {/* Three-Column Funnel Matrix */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {/* Column 1: Internal Hotel Promotions */}
+                    <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--cms-text-secondary)] uppercase tracking-wider">
+                          1. Kampanye Internal Hotel
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                          In-House
+                        </span>
+                      </div>
+                      <div className="space-y-2 font-mono-tabular">
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Percobaan Tayang:</span>
+                          <span className="font-bold">42 Impression</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Pemutaran Dimulai:</span>
+                          <span className="font-bold text-[#0050F5] dark:text-[#C7B9FF]">38 Starts</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Selesai Menonton:</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">26 Selesai (68%)</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Total Durasi Paparan:</span>
+                          <span className="font-bold">780 Detik</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column 2: External Paid Ad Network */}
+                    <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--cms-text-secondary)] uppercase tracking-wider">
+                          2. Jaringan Iklan Berbayar
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          B2B Network
+                        </span>
+                      </div>
+                      <div className="space-y-2 font-mono-tabular">
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Tawaran Disetujui (Opt-In):</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                            {(data.propertyAdAcceptances || []).filter((a) => a.status === 'Accepted').length} Aktif
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Pemutaran Iklan Eksternal:</span>
+                          <span className="font-bold text-[#0050F5] dark:text-[#C7B9FF]">8 Starts</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Kepatuhan Privasi:</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Zero-PII</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Kejadian Superceded:</span>
+                          <span className="font-bold text-rose-600 dark:text-rose-400">
+                            {(data.propertyAdAcceptances || []).filter((a) => a.status === 'Superceded').length} Insiden
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column 3: In-Room Marketplace Orders */}
+                    <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--cms-text-secondary)] uppercase tracking-wider">
+                          3. Marketplace Layanan Kamar
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                          Concierge
+                        </span>
+                      </div>
+                      <div className="space-y-2 font-mono-tabular">
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Total Permintaan Tamu:</span>
+                          <span className="font-bold">{(data.serviceOrders || []).length} Pesanan</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Dikonfirmasi Front Desk:</span>
+                          <span className="font-bold text-blue-600 dark:text-blue-400">
+                            {(data.serviceOrders || []).filter((o) => o.status === 'Confirmed' || o.status === 'InFulfilment' || o.status === 'Fulfilled').length} Pesanan
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Terselesaikan (Fulfilled):</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                            {(data.serviceOrders || []).filter((o) => o.status === 'Fulfilled').length} Selesai
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--cms-text-secondary)]">Saluran Pemenuhan:</span>
+                          <span className="font-bold text-xs">Staff Ticket & Partner API</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Non-Audience & Financial Disclaimer Box */}
+                  <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] text-xs space-y-1.5 text-[var(--cms-text-secondary)]">
+                    <div className="font-bold text-[var(--cms-text)] flex items-center gap-1.5">
+                      <LifeBuoy className="w-4 h-4 text-[#0050F5] dark:text-[#C7B9FF]" />
+                      <span>Catatan Batas Lingkup Fondasi Fase 1 (Implementation Plan §13.2 & §13.6):</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      1. Metrik tayangan dan durasi paparan dihitung berdasarkan pemutaran teknis pemutar video (BR19 PlaybackFact Ledger), bukan klaim pemirsa manusia (no unverified human audience claims).<br />
+                      2. Tidak ada penagihan kartu kredit otomatis (payment gateway capture) di dalam sistem GOJJA SmartTV pada fase ini. Semua pesanan tamu ditagihkan melalui folio kamar hotel (PMS) atau QR handoff partner eksternal.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===================================================================== */}
           {/* TAB 8: UPDATES & RELEASES (PR-23..24 / GA-09..10)                     */}
           {/* ===================================================================== */}
           {activeTab === 'updates' && (
@@ -5138,6 +6043,25 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           corporateGroup={modalGroup}
           channels={data.channels}
           campaigns={data.campaigns}
+          marketplaceItems={data.marketplaceItems || []}
+          onRequestServiceOrder={async (itemId, itemTitle) => {
+            try {
+              const res = await apiCall('/api/marketplace/services/create-order', {
+                method: 'POST',
+                body: JSON.stringify({
+                  itemId,
+                  propertyId: activeProperty.id,
+                  roomId: modalRoom?.id,
+                  stayId: modalStay?.id,
+                  notes: `Requested '${itemTitle}' via in-room SmartTV`,
+                }),
+              });
+              await fetchBootstrap();
+              showNotice('success', res.message || `Service request for '${itemTitle}' placed.`);
+            } catch (err: unknown) {
+              showNotice('error', err instanceof Error ? err.message : 'Could not place service order');
+            }
+          }}
           onClose={() => setTvModalEndpointId(null)}
           onOpenChannelCheck={async (epId, chId) => {
             try {

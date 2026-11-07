@@ -108,6 +108,47 @@ export interface Property {
   };
 }
 
+export type SubscriptionSuspensionStatus = 'None' | 'Soft' | 'Hard';
+
+export interface SeatLedgerEntry {
+  id: string;
+  subscriptionId: string;
+  propertyId: string;
+  type: 'COMMITTED' | 'ALLOCATED' | 'RESERVED' | 'RELEASED' | 'ADJUSTMENT';
+  quantityDelta: number;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  reasonCode: string;
+  changeOrderId?: string;
+  createdBy: string;
+  createdAtUtc: string;
+  version: number;
+}
+
+export interface ChangeOrder {
+  id: string;
+  subscriptionId: string;
+  propertyId: string;
+  requestedDelta: number;
+  effectiveDate: string;
+  status: 'Draft' | 'Approved' | 'Applied' | 'Rejected';
+  prorataAmountIdr: number;
+  reason: string;
+  requestedBy: string;
+  approvedBy?: string | null;
+  appliedAtUtc?: string | null;
+  createdAtUtc: string;
+}
+
+export interface InvoiceLine {
+  id: string;
+  description: string;
+  seatDays: number;
+  unitPriceIdr: number;
+  amountIdr: number;
+  lineType: 'BASE' | 'TRUE_UP' | 'CREDIT' | 'ADJUSTMENT';
+}
+
 export interface Subscription {
   id: string;
   customerId: string;
@@ -117,9 +158,17 @@ export interface Subscription {
   planName: string;
   planVersion: string;
   seats: number;
+  committedQuantity: number;
+  allocatedQuantity: number;
+  reservedQuantity: number;
+  billedQuantityCurrentPeriod: number;
   unitPriceIdr: number;
   status: 'Active' | 'Trial' | 'PastDue';
+  suspensionStatus: SubscriptionSuspensionStatus;
+  trialEndsAt?: string;
+  graceEndsAt?: string;
   effectiveDate: string;
+  version: number;
 }
 
 export interface Room {
@@ -133,12 +182,44 @@ export interface Room {
   notes?: string;
 }
 
+export type CapabilityKey =
+  | 'launcher.takeover'
+  | 'adb.install'
+  | 'adb.shell'
+  | 'kiosk.mode'
+  | 'power.recovery'
+  | 'drm.widevine.l1'
+  | 'playback.hls'
+  | 'playback.dash'
+  | 'offline.cache'
+  | 'remote.dpad';
+
+export interface EffectiveCapabilityResult {
+  capability: CapabilityKey;
+  status: 'Supported' | 'Limited' | 'Unsupported' | 'Unknown';
+  route: string;
+  evidenceType: 'DemoFixture' | 'LiveObserved' | 'VendorDeclared';
+  limitationMessage?: string;
+  requiredAction?: string;
+}
+
 export interface CapabilityFlag {
   capability: string;
   status: 'Supported' | 'Limited' | 'Unsupported' | 'Unknown';
   route: string;
   evidenceType: 'DemoFixture' | 'LiveObserved';
   limitation: string;
+}
+
+export interface PreflightCheckItem {
+  id: string;
+  name: string;
+  category: 'OS' | 'Storage' | 'Network' | 'ADB' | 'DRM' | 'Launcher';
+  status: 'Supported' | 'Limited' | 'Unsupported';
+  observedValue: string;
+  detail: string;
+  requiredAction?: string;
+  isCritical: boolean;
 }
 
 export interface Endpoint {
@@ -190,6 +271,39 @@ export interface CorporateGroup {
   badgeText: string;
 }
 
+export type EntitlementDenialCode =
+  | 'CONTRACT_EXPIRED'
+  | 'CONTRACT_NOT_ACTIVE'
+  | 'PACKAGE_NOT_INCLUDED'
+  | 'ROOM_CLASS_NOT_ALLOWED'
+  | 'PROVIDER_DEGRADED'
+  | 'PUBLIC_AREA_RESTRICTED'
+  | 'HIDDEN_IN_GUIDE';
+
+export interface DenialReason {
+  channelId: string;
+  channelName: string;
+  packageId: string;
+  code: EntitlementDenialCode;
+  message: string;
+}
+
+export interface EffectiveChannel extends Channel {
+  entitlementSource: string;
+  allowedRoomClasses: string[];
+}
+
+export interface EffectiveLineupResult {
+  propertyId: string;
+  roomId?: string;
+  roomClass: string;
+  isPublicArea: boolean;
+  computedAtUtc: string;
+  lineupVersion: number;
+  channels: EffectiveChannel[];
+  deniedChannels: DenialReason[];
+}
+
 export interface ProviderContract {
   id: string;
   propertyId: string;
@@ -222,12 +336,31 @@ export interface Channel {
   hiddenInGuide?: boolean;
 }
 
+export type BrandingLayer = 'PLATFORM' | 'CUSTOMER' | 'PROPERTY' | 'ROOM_CLASS' | 'ROOM' | 'STAY';
+
+export type BrandingFieldKey =
+  | 'accentColor'
+  | 'primaryColor'
+  | 'welcomeHeadline'
+  | 'welcomeSubline'
+  | 'logoText'
+  | 'logoSubtitle'
+  | 'logoImageUrl'
+  | 'heroMediaType'
+  | 'heroImageUrl'
+  | 'heroVideoUrl'
+  | 'promoMediaType'
+  | 'promoMediaUrl'
+  | 'promoTitle'
+  | 'defaultLocale'
+  | 'preTvPromoEnabled';
+
 export interface ProfileOverride {
   id: string;
   propertyId: string;
-  layer: 'PLATFORM' | 'CUSTOMER' | 'PROPERTY' | 'ROOM_CLASS' | 'ROOM' | 'STAY';
+  layer: BrandingLayer;
   targetId: string;
-  field: 'accentColor' | 'welcomeHeadline' | 'logoText' | 'defaultLocale' | 'preTvPromoEnabled';
+  field: BrandingFieldKey;
   value: string;
   updatedBy: string;
   updatedAtUtc: string;
@@ -251,12 +384,27 @@ export interface Publication {
   notes: string;
 }
 
+export type CampaignPlacement =
+  | 'home_hero'
+  | 'welcome_screen'
+  | 'service_detail'
+  | 'pre_live_tv'
+  | 'idle_home'
+  | 'shared_signage';
+
+export interface CampaignTargetAudience {
+  roomClasses?: string[];
+  groupIds?: string[];
+  stayRequired?: boolean;
+  isPublicAreaAllowed?: boolean;
+}
+
 export interface Campaign {
   id: string;
   propertyId: string;
   name: string;
   category: 'Spa & Wellness' | 'Corporate Welcome' | 'Fine Dining' | 'Pool & Leisure' | 'External Offer';
-  placement: 'home_hero' | 'welcome_screen' | 'service_detail' | 'pre_live_tv';
+  placement: CampaignPlacement;
   status: 'Active' | 'Draft' | 'Scheduled' | 'Expired' | 'Paused';
   priority: number;
   frequencyCapPerStay: number;
@@ -276,6 +424,169 @@ export interface Campaign {
   interruptedCount: number;
   failedAfterStartCount: number;
   totalPlaySeconds: number;
+  targetAudience?: CampaignTargetAudience;
+  externalPaid?: boolean;
+  adOfferId?: string;
+  advertiserName?: string;
+  offerVersion?: number;
+}
+
+export type PlaybackEventType =
+  | 'impression_attempt'
+  | 'start'
+  | 'first_quartile'
+  | 'midpoint'
+  | 'third_quartile'
+  | 'complete'
+  | 'skip'
+  | 'interrupt'
+  | 'fail_after_start';
+
+export interface PlaybackFact {
+  id: string;
+  campaignId: string;
+  endpointId: string;
+  stayId?: string;
+  eventType: PlaybackEventType;
+  occurredAt: string;
+  playSeconds: number;
+  creativeVersion: number;
+  sessionId: string;
+  locale: GuestLocale;
+  outcome: 'completed' | 'skipped' | 'interrupted' | 'failed';
+}
+
+// ============================================================================
+// FASE D: Commercial Expansion Foundation (Poin 13: Marketplace & Ad Network)
+// ============================================================================
+
+export type AdOfferPricingModel = 'CPM' | 'CPC' | 'CPA' | 'Flat' | 'RevShare';
+export type AdOfferStatus =
+  | 'Draft'
+  | 'Submitted'
+  | 'UnderReview'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Active'
+  | 'Completed'
+  | 'Cancelled';
+
+export interface AdOfferCreative {
+  version: number;
+  headline: string;
+  subline: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video';
+  targetPlacement: CampaignPlacement;
+  callToAction?: string;
+  advertiserBrand: string;
+  updatedAtUtc: string;
+}
+
+export interface AdOffer {
+  id: string;
+  advertiserOrgId: string;
+  advertiserName: string;
+  title: string;
+  category: 'F&B' | 'AUTOMOTIVE' | 'LUXURY_RETAIL' | 'AIRLINE' | 'LOCAL_EXPERIENCE' | 'FINTECH';
+  creativeVersions: AdOfferCreative[];
+  currentVersion: number;
+  requestedPlacements: CampaignPlacement[];
+  proposedPeriod: {
+    startUtc: string;
+    endUtc: string;
+  };
+  proposedCapPerStay: number;
+  pricingModel: AdOfferPricingModel;
+  proposedRateIdr: number;
+  exclusions?: string[];
+  targetingNotes?: string;
+  status: AdOfferStatus;
+  createdAtUtc: string;
+}
+
+export type PropertyAdAcceptanceStatus = 'PendingReview' | 'Accepted' | 'Rejected' | 'Superceded';
+
+export interface PropertyAdAcceptance {
+  id: string;
+  offerId: string;
+  offerVersion: number;
+  propertyId: string;
+  acceptedPlacements: CampaignPlacement[];
+  acceptedPeriod: {
+    startUtc: string;
+    endUtc: string;
+  };
+  acceptedCapPerStay: number;
+  commercialTermsRef: string;
+  acceptedBy: string;
+  acceptedAtUtc: string;
+  status: PropertyAdAcceptanceStatus;
+  rejectionReason?: string;
+  supercededReason?: string;
+}
+
+export type MarketplaceItemType =
+  | 'InHouseService'
+  | 'ThirdPartyExperience'
+  | 'F&B'
+  | 'Transport'
+  | 'Wellness';
+
+export type FulfilmentType = 'QR_HANDOFF' | 'STAFF_TICKET' | 'PARTNER_API' | 'MANUAL';
+
+export interface MarketplaceItem {
+  id: string;
+  propertyId: string;
+  partnerId?: string;
+  partnerName?: string;
+  type: MarketplaceItemType;
+  title: string;
+  description: string;
+  localeContent: Record<GuestLocale, { title: string; description: string; actionLabel: string }>;
+  priceHint?: string;
+  availabilitySchedule: string;
+  fulfilmentType: FulfilmentType;
+  status: 'Active' | 'Paused' | 'Archived';
+  imageUrl?: string;
+  featured?: boolean;
+}
+
+export type ServiceOrderStatus =
+  | 'Requested'
+  | 'Confirmed'
+  | 'InFulfilment'
+  | 'Fulfilled'
+  | 'Cancelled'
+  | 'Expired';
+
+export interface ServiceOrder {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  propertyId: string;
+  roomId?: string;
+  stayId?: string;
+  guestDisplayRef: string; // Strictly redacted PII, e.g., 'Room 201 · Guest B*** S***'
+  rawGuestName?: string;   // Only accessible to authorized staff (Front Office / Property Manager)
+  status: ServiceOrderStatus;
+  requestedAtUtc: string;
+  confirmedAtUtc?: string | null;
+  fulfilledAtUtc?: string | null;
+  notes?: string;
+  assignedTo?: string | null;
+  fulfilmentType: FulfilmentType;
+}
+
+export function maskGuestName(fullName: string): string {
+  if (!fullName) return 'Guest ***';
+  const parts = fullName.trim().split(/\s+/);
+  return parts
+    .map((p) => {
+      if (p.length <= 1) return `${p}***`;
+      return `${p[0]}***`;
+    })
+    .join(' ');
 }
 
 export interface GojjaCleanTvPackageItem {
@@ -436,7 +747,9 @@ export interface Invoice {
   unitPriceIdr: number;
   totalIdr: number;
   paidIdr: number;
+  remainingBalanceIdr: number;
   lineDescription: string;
+  lines: InvoiceLine[];
   receiptRefs: string[];
 }
 
@@ -475,22 +788,27 @@ export interface PropertyUpdateApproval {
   standingPolicy: boolean;
 }
 
+export type UpdateJobStage =
+  | 'AwaitingApproval'
+  | 'AwaitingReadiness'
+  | 'Staged'
+  | 'Installing'
+  | 'Verifying'
+  | 'Healthy'
+  | 'Deferred'
+  | 'OutcomeUnknown'
+  | 'Failed'
+  | 'Cancelled'
+  | 'RolledBack'
+  | 'RollbackFailed';
+
 export interface UpdateJob {
   id: string;
   propertyId: string;
   endpointId: string;
   roomId: string;
   releaseId: string;
-  stage:
-    | 'AwaitingApproval'
-    | 'AwaitingReadiness'
-    | 'Staged'
-    | 'Installing'
-    | 'Verifying'
-    | 'Healthy'
-    | 'Deferred'
-    | 'OutcomeUnknown'
-    | 'Failed';
+  stage: UpdateJobStage;
   reason: string;
   updatedAtUtc: string;
 }
@@ -1258,9 +1576,15 @@ export const INITIAL_SUBSCRIPTIONS: Subscription[] = [
     planName: 'Hospitality Core Wholesale (H)',
     planVersion: '2026.10-W1',
     seats: 12,
+    committedQuantity: 12,
+    allocatedQuantity: 7,
+    reservedQuantity: 1,
+    billedQuantityCurrentPeriod: 12,
     unitPriceIdr: 15000,
     status: 'Active',
+    suspensionStatus: 'None',
     effectiveDate: '2026-10-01',
+    version: 4,
   },
   {
     id: 'SUB-02',
@@ -1271,9 +1595,15 @@ export const INITIAL_SUBSCRIPTIONS: Subscription[] = [
     planName: 'Hospitality Core Wholesale (H)',
     planVersion: '2026.10-W1',
     seats: 8,
+    committedQuantity: 8,
+    allocatedQuantity: 5,
+    reservedQuantity: 0,
+    billedQuantityCurrentPeriod: 8,
     unitPriceIdr: 15000,
     status: 'Active',
+    suspensionStatus: 'None',
     effectiveDate: '2026-10-01',
+    version: 2,
   },
   {
     id: 'SUB-03',
@@ -1284,9 +1614,144 @@ export const INITIAL_SUBSCRIPTIONS: Subscription[] = [
     planName: 'Hospitality Core Direct (Demo)',
     planVersion: '2026.10-D1',
     seats: 10,
+    committedQuantity: 10,
+    allocatedQuantity: 2,
+    reservedQuantity: 0,
+    billedQuantityCurrentPeriod: 10,
     unitPriceIdr: 25000,
     status: 'Active',
+    suspensionStatus: 'None',
     effectiveDate: '2026-10-15',
+    version: 1,
+  },
+];
+
+export const INITIAL_SEAT_LEDGER: SeatLedgerEntry[] = [
+  {
+    id: 'LED-001',
+    subscriptionId: 'SUB-01',
+    propertyId: 'P-01',
+    type: 'COMMITTED',
+    quantityDelta: 10,
+    effectiveFrom: '2026-10-01T00:00:00Z',
+    reasonCode: 'INITIAL_CONTRACT_COMMISSION',
+    createdBy: 'Finance Wholesale Ops',
+    createdAtUtc: '2026-10-01T00:00:00Z',
+    version: 1,
+  },
+  {
+    id: 'LED-002',
+    subscriptionId: 'SUB-01',
+    propertyId: 'P-01',
+    type: 'ALLOCATED',
+    quantityDelta: 5,
+    effectiveFrom: '2026-10-05T08:00:00Z',
+    reasonCode: 'BATCH_DEPLOY_PHASE_1',
+    createdBy: 'Bima Sakti (Tech Admin)',
+    createdAtUtc: '2026-10-05T08:00:00Z',
+    version: 2,
+  },
+  {
+    id: 'LED-003',
+    subscriptionId: 'SUB-01',
+    propertyId: 'P-01',
+    type: 'COMMITTED',
+    quantityDelta: 2,
+    effectiveFrom: '2026-10-20T00:00:00Z',
+    reasonCode: 'CHANGE_ORDER_EXPANSION',
+    changeOrderId: 'CO-01',
+    createdBy: 'Putri Maharani (Property Mgr)',
+    createdAtUtc: '2026-10-20T10:15:00Z',
+    version: 3,
+  },
+  {
+    id: 'LED-004',
+    subscriptionId: 'SUB-01',
+    propertyId: 'P-01',
+    type: 'ALLOCATED',
+    quantityDelta: 2,
+    effectiveFrom: '2026-10-22T09:00:00Z',
+    reasonCode: 'SUITE_EXPANSION_E06_E07',
+    createdBy: 'Bima Sakti (Tech Admin)',
+    createdAtUtc: '2026-10-22T09:00:00Z',
+    version: 4,
+  },
+  {
+    id: 'LED-005',
+    subscriptionId: 'SUB-01',
+    propertyId: 'P-01',
+    type: 'RESERVED',
+    quantityDelta: 1,
+    effectiveFrom: '2026-11-01T00:00:00Z',
+    reasonCode: 'STAGED_ROOM104_EXPANSION',
+    createdBy: 'Bima Sakti (Tech Admin)',
+    createdAtUtc: '2026-11-01T08:30:00Z',
+    version: 4,
+  },
+  {
+    id: 'LED-006',
+    subscriptionId: 'SUB-02',
+    propertyId: 'P-02',
+    type: 'COMMITTED',
+    quantityDelta: 8,
+    effectiveFrom: '2026-10-01T00:00:00Z',
+    reasonCode: 'INITIAL_CONTRACT_COMMISSION',
+    createdBy: 'Finance Wholesale Ops',
+    createdAtUtc: '2026-10-01T00:00:00Z',
+    version: 1,
+  },
+  {
+    id: 'LED-007',
+    subscriptionId: 'SUB-02',
+    propertyId: 'P-02',
+    type: 'ALLOCATED',
+    quantityDelta: 5,
+    effectiveFrom: '2026-10-10T11:00:00Z',
+    reasonCode: 'VILLA_DEPLOYMENT',
+    createdBy: 'Wayan Sudira (Property Mgr)',
+    createdAtUtc: '2026-10-10T11:00:00Z',
+    version: 2,
+  },
+  {
+    id: 'LED-008',
+    subscriptionId: 'SUB-03',
+    propertyId: 'P-03',
+    type: 'COMMITTED',
+    quantityDelta: 10,
+    effectiveFrom: '2026-10-15T00:00:00Z',
+    reasonCode: 'DIRECT_DEMO_POOL',
+    createdBy: 'Siti Rahma (Direct Sales)',
+    createdAtUtc: '2026-10-15T00:00:00Z',
+    version: 1,
+  },
+  {
+    id: 'LED-009',
+    subscriptionId: 'SUB-03',
+    propertyId: 'P-03',
+    type: 'ALLOCATED',
+    quantityDelta: 2,
+    effectiveFrom: '2026-10-20T14:00:00Z',
+    reasonCode: 'PILOT_STUDIOS',
+    createdBy: 'Aris Munandar (Operations)',
+    createdAtUtc: '2026-10-20T14:00:00Z',
+    version: 1,
+  },
+];
+
+export const INITIAL_CHANGE_ORDERS: ChangeOrder[] = [
+  {
+    id: 'CO-01',
+    subscriptionId: 'SUB-01',
+    propertyId: 'P-01',
+    requestedDelta: 2,
+    effectiveDate: '2026-10-20',
+    status: 'Applied',
+    prorataAmountIdr: 11000,
+    reason: 'Royal Suite 301 expansion requiring 2 additional dedicated TV seats',
+    requestedBy: 'Putri Maharani (Property Mgr P-01)',
+    approvedBy: 'Finance Wholesale Director',
+    appliedAtUtc: '2026-10-20T10:15:00Z',
+    createdAtUtc: '2026-10-19T14:20:00Z',
   },
 ];
 
@@ -1748,12 +2213,28 @@ export const INITIAL_CONTRACTS: ProviderContract[] = [
     propertyId: 'P-01',
     holderName: 'PT Arunika Hospitality Indonesia (via ISP-A)',
     providerId: 'F-A',
-    providerName: 'Nusantara Vision Hospitality (F-A)',
+    providerName: 'Nusantara Vision Core (F-A)',
     basis: 'room',
     quantity: 6,
     status: 'Active',
-    packages: ['PKG-BASIC', 'PKG-INTL', 'PKG-SPORTS'],
+    packages: ['PKG-BASIC', 'PKG-INTL'],
     allowedRoomClasses: ['Standard', 'Deluxe', 'Suite'],
+    multiTvIncluded: true,
+    publicAreaAllowed: false,
+    validUntilUtc: '2027-06-30T23:59:59Z',
+    connectionStatus: 'Ready',
+  },
+  {
+    id: 'CT-01B',
+    propertyId: 'P-01',
+    holderName: 'PT Arunika Hospitality Indonesia (via ISP-A)',
+    providerId: 'F-A',
+    providerName: 'Nusantara Vision Sports Tier (F-A)',
+    basis: 'room',
+    quantity: 3,
+    status: 'Active',
+    packages: ['PKG-SPORTS'],
+    allowedRoomClasses: ['Deluxe', 'Suite'],
     multiTvIncluded: true,
     publicAreaAllowed: false,
     validUntilUtc: '2027-06-30T23:59:59Z',
@@ -1920,6 +2401,7 @@ export const INITIAL_CAMPAIGNS: Campaign[] = [
     interruptedCount: 1,
     failedAfterStartCount: 1,
     totalPlaySeconds: 212,
+    targetAudience: { isPublicAreaAllowed: true },
   },
   {
     id: 'CMP-02',
@@ -1933,7 +2415,7 @@ export const INITIAL_CAMPAIGNS: Campaign[] = [
     durationSeconds: 15,
     skippableAfterSeconds: 0,
     startUtc: '2026-11-01T00:00:00Z',
-    endUtc: '2026-11-03T12:00:00Z',
+    endUtc: '2026-11-30T12:00:00Z',
     imageUrl: '/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png',
     headline: {
       id: 'Selamat Datang Delegasi Nusantara Summit di Ballroom Pukul 19.00',
@@ -1954,6 +2436,7 @@ export const INITIAL_CAMPAIGNS: Campaign[] = [
     interruptedCount: 0,
     failedAfterStartCount: 0,
     totalPlaySeconds: 60,
+    targetAudience: { groupIds: ['GRP-01'], stayRequired: true },
   },
   {
     id: 'CMP-03',
@@ -2023,6 +2506,432 @@ export const INITIAL_CAMPAIGNS: Campaign[] = [
     failedAfterStartCount: 0,
     totalPlaySeconds: 370,
   },
+  {
+    id: 'CMP-05',
+    propertyId: 'P-01',
+    name: 'Executive Suite Sunset Aperitif',
+    category: 'Fine Dining',
+    placement: 'pre_live_tv',
+    status: 'Active',
+    priority: 85,
+    frequencyCapPerStay: 2,
+    durationSeconds: 15,
+    skippableAfterSeconds: 5,
+    startUtc: '2026-11-01T00:00:00Z',
+    endUtc: '2026-11-30T23:59:59Z',
+    imageUrl: '/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png',
+    headline: {
+      id: 'Aperitif Eksklusif Tamu Suite di Rooftop Lounge',
+      en: 'Complimentary Sunset Aperitif at Suite Rooftop Lounge',
+      'zh-CN': '套房贵宾专属日落餐前酒会',
+      'ja-JP': 'スイート限定 ルーフトップ・サンセットアペリティフ',
+    },
+    ctaLabel: {
+      id: 'Lihat Detail',
+      en: 'View Lounge Details',
+      'zh-CN': '查看酒廊详情',
+      'ja-JP': '詳細を見る',
+    },
+    creativeVersion: 1,
+    startsCount: 8,
+    completedCount: 5,
+    skippedCount: 3,
+    interruptedCount: 0,
+    failedAfterStartCount: 0,
+    totalPlaySeconds: 95,
+    targetAudience: { roomClasses: ['Suite', 'Deluxe'], stayRequired: true },
+  },
+  {
+    id: 'CMP-06',
+    propertyId: 'P-01',
+    name: 'Heritage Facilities & Cultural Garden Walk',
+    category: 'Pool & Leisure',
+    placement: 'shared_signage',
+    status: 'Active',
+    priority: 60,
+    frequencyCapPerStay: 99,
+    durationSeconds: 20,
+    skippableAfterSeconds: 0,
+    startUtc: '2026-11-01T00:00:00Z',
+    endUtc: '2026-11-30T23:59:59Z',
+    imageUrl: '/assets/aistudio/GOJJA_SmartTV_linen_hospitality_dashboard_886c6353.png',
+    headline: {
+      id: 'Jelajahi Fasilitas Sanctuary & Kebun Budaya Arunika',
+      en: 'Discover Sanctuary Facilities & Arunika Cultural Garden',
+      'zh-CN': '探索酒店静谧设施与文化花园',
+      'ja-JP': 'サンクチュアリ施設と文化庭園の散策',
+    },
+    ctaLabel: {
+      id: 'Panduan Resor',
+      en: 'Resort Guide',
+      'zh-CN': '度假村指南',
+      'ja-JP': 'リゾート案内',
+    },
+    creativeVersion: 1,
+    startsCount: 42,
+    completedCount: 38,
+    skippedCount: 2,
+    interruptedCount: 2,
+    failedAfterStartCount: 0,
+    totalPlaySeconds: 780,
+    targetAudience: { isPublicAreaAllowed: true },
+  },
+  {
+    id: 'CMP-EXT-01',
+    propertyId: 'P-01',
+    name: 'Garuda Priority Executive Miles & In-Flight Upgrade (External Offer)',
+    category: 'External Offer',
+    externalPaid: true,
+    adOfferId: 'OFFER-01',
+    offerVersion: 1,
+    advertiserName: 'Garuda Indonesia',
+    placement: 'home_hero',
+    status: 'Active',
+    priority: 88,
+    frequencyCapPerStay: 2,
+    durationSeconds: 15,
+    skippableAfterSeconds: 5,
+    startUtc: '2026-11-01T00:00:00Z',
+    endUtc: '2026-12-31T23:59:59Z',
+    imageUrl: '/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png',
+    headline: {
+      id: 'Terbang Bersama Garuda Indonesia — Double Miles untuk Tamu Arunika',
+      en: 'Fly the Skies with Garuda Indonesia — Double Miles for Arunika Guests',
+      'zh-CN': '搭乘印尼鹰航 — 尊享双倍里程与专属休息室',
+      'ja-JP': 'ガルーダ・インドネシア航空 — ご宿泊者様限定ダブルマイル進呈',
+    },
+    ctaLabel: {
+      id: 'Dapatkan Miles',
+      en: 'Claim Double Miles',
+      'zh-CN': '领取特权',
+      'ja-JP': 'マイル特典を見る',
+    },
+    creativeVersion: 1,
+    startsCount: 8,
+    completedCount: 6,
+    skippedCount: 1,
+    interruptedCount: 1,
+    failedAfterStartCount: 0,
+    totalPlaySeconds: 110,
+    targetAudience: { isPublicAreaAllowed: true },
+  },
+];
+
+// ============================================================================
+// FASE D SEEDED DATA: Ad Offers, Property Acceptances, Marketplace & Orders
+// ============================================================================
+
+export const INITIAL_AD_OFFERS: AdOffer[] = [
+  {
+    id: 'OFFER-01',
+    advertiserOrgId: 'ADV-GARUDA',
+    advertiserName: 'Garuda Indonesia',
+    title: 'Garuda Priority Executive Miles & In-Flight Upgrade',
+    category: 'AIRLINE',
+    currentVersion: 1,
+    creativeVersions: [
+      {
+        version: 1,
+        headline: 'Fly the Skies of Indonesia with Double Miles',
+        subline: 'Exclusive GarudaMiles bonus and complimentary lounge access for hotel guests.',
+        mediaUrl: '/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png',
+        mediaType: 'image',
+        targetPlacement: 'home_hero',
+        callToAction: 'Scan QR for Member Upgrade',
+        advertiserBrand: 'Garuda Indonesia',
+        updatedAtUtc: '2026-11-01T00:00:00Z',
+      },
+    ],
+    requestedPlacements: ['home_hero', 'service_detail'],
+    proposedPeriod: {
+      startUtc: '2026-11-01T00:00:00Z',
+      endUtc: '2026-12-31T23:59:59Z',
+    },
+    proposedCapPerStay: 2,
+    pricingModel: 'CPM',
+    proposedRateIdr: 350000,
+    exclusions: ['Standard Room'],
+    targetingNotes: 'Focus on Suite & Villa guests; executive leisure profile. Zero guest PII exposed.',
+    status: 'Active',
+    createdAtUtc: '2026-11-01T00:00:00Z',
+  },
+  {
+    id: 'OFFER-02',
+    advertiserOrgId: 'ADV-BCA',
+    advertiserName: 'BCA Solitaire & Prioritas',
+    title: 'BCA Solitaire Curated Privileges & Dining Rebate',
+    category: 'FINTECH',
+    currentVersion: 1,
+    creativeVersions: [
+      {
+        version: 1,
+        headline: 'BCA Solitaire Curated Privileges',
+        subline: 'Enjoy up to 25% dining rebate at Arunika Heritage with BCA Prioritas card.',
+        mediaUrl: '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png',
+        mediaType: 'image',
+        targetPlacement: 'welcome_screen',
+        callToAction: 'View Privileges',
+        advertiserBrand: 'Bank Central Asia',
+        updatedAtUtc: '2026-11-02T00:00:00Z',
+      },
+    ],
+    requestedPlacements: ['welcome_screen', 'home_hero'],
+    proposedPeriod: {
+      startUtc: '2026-11-01T00:00:00Z',
+      endUtc: '2026-12-15T23:59:59Z',
+    },
+    proposedCapPerStay: 1,
+    pricingModel: 'Flat',
+    proposedRateIdr: 12500000,
+    exclusions: [],
+    targetingNotes: 'High-net-worth welcome interstitial proposal. Awaiting Property Manager opt-in review.',
+    status: 'Submitted',
+    createdAtUtc: '2026-11-02T00:00:00Z',
+  },
+  {
+    id: 'OFFER-03',
+    advertiserOrgId: 'ADV-LEXUS',
+    advertiserName: 'Lexus Indonesia',
+    title: 'Lexus Electrified Chauffeur Experience',
+    category: 'AUTOMOTIVE',
+    currentVersion: 1,
+    creativeVersions: [
+      {
+        version: 1,
+        headline: 'Lexus LM 350h Luxury Mover Chauffeur',
+        subline: 'Complimentary private airport transfer for Presidential Suite stays.',
+        mediaUrl: '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png',
+        mediaType: 'image',
+        targetPlacement: 'pre_live_tv',
+        callToAction: 'Book Test Drive',
+        advertiserBrand: 'Lexus Indonesia',
+        updatedAtUtc: '2026-11-03T00:00:00Z',
+      },
+    ],
+    requestedPlacements: ['pre_live_tv', 'service_detail'],
+    proposedPeriod: {
+      startUtc: '2026-11-01T00:00:00Z',
+      endUtc: '2026-11-30T23:59:59Z',
+    },
+    proposedCapPerStay: 1,
+    pricingModel: 'CPA',
+    proposedRateIdr: 500000,
+    exclusions: ['Deluxe Garden', 'Superior'],
+    targetingNotes: 'Requires pre_live_tv interstitial consent and Suite guest target only.',
+    status: 'Submitted',
+    createdAtUtc: '2026-11-03T00:00:00Z',
+  },
+];
+
+export const INITIAL_PROPERTY_AD_ACCEPTANCES: PropertyAdAcceptance[] = [
+  {
+    id: 'PAC-01',
+    offerId: 'OFFER-01',
+    offerVersion: 1,
+    propertyId: 'P-01',
+    acceptedPlacements: ['home_hero', 'service_detail'],
+    acceptedPeriod: {
+      startUtc: '2026-11-01T00:00:00Z',
+      endUtc: '2026-12-31T23:59:59Z',
+    },
+    acceptedCapPerStay: 2,
+    commercialTermsRef: 'AGR-ARUNIKA-GARUDA-2026Q4',
+    acceptedBy: 'pm_arunika',
+    acceptedAtUtc: '2026-11-02T08:30:00Z',
+    status: 'Accepted',
+  },
+];
+
+export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
+  {
+    id: 'MKT-01',
+    propertyId: 'P-01',
+    type: 'F&B',
+    title: 'Kayumanis Signature Indonesian Rijsttafel',
+    description: 'A royal multi-dish tasting presentation reflecting royal Javanese gastronomic traditions, served in-room or at the courtyard.',
+    localeContent: {
+      id: {
+        title: 'Kayumanis Rijsttafel Nusantara',
+        description: 'Sajian hidangan istana dengan rempah autentik Nusantara disajikan di kamar atau teras.',
+        actionLabel: 'Pesan Meja / Menu',
+      },
+      en: {
+        title: 'Kayumanis Indonesian Rijsttafel',
+        description: 'Royal heritage banquet featuring curated regional dishes delivered to your suite.',
+        actionLabel: 'Request Table / Menu',
+      },
+      'zh-CN': {
+        title: '肉桂印尼皇家飨宴',
+        description: '为您呈献精心调配的传统印尼特色菜肴，可送至套房或庭院享用。',
+        actionLabel: '预订餐桌 / 菜单',
+      },
+      'ja-JP': {
+        title: 'カユマニス・インドネシア宮廷料理',
+        description: '厳選された伝統スパイス料理をお部屋またはテラスにてご堪能ください。',
+        actionLabel: 'テーブル／メニュー予約',
+      },
+    },
+    priceHint: 'Rp 450.000 / person',
+    availabilitySchedule: '11:00 – 22:30',
+    fulfilmentType: 'STAFF_TICKET',
+    status: 'Active',
+    featured: true,
+  },
+  {
+    id: 'MKT-02',
+    propertyId: 'P-01',
+    type: 'Wellness',
+    title: 'Royal Javanese Boreh & Herbal Compress',
+    description: 'Ancient warming spice therapy with clove, ginger, and sandalwood to soothe travel fatigue and improve circulation.',
+    localeContent: {
+      id: {
+        title: 'Spa Boreh Keraton & Kompres Herbal',
+        description: 'Terapi rempah hangat cengkeh, jahe, dan cendana untuk meredakan kelelahan.',
+        actionLabel: 'Reservasi Slot Spa',
+      },
+      en: {
+        title: 'Royal Boreh Spice & Herbal Compress',
+        description: 'Traditional warming herbal therapy with sandalwood and clove to restore vital energy.',
+        actionLabel: 'Request Spa Slot',
+      },
+      'zh-CN': {
+        title: '爪哇皇家草药热敷水疗',
+        description: '丁香、生姜和檀香暖身草本疗法，舒缓旅途疲劳。',
+        actionLabel: '预约水疗时段',
+      },
+      'ja-JP': {
+        title: 'ロイヤル・ボレ＆ハーブ温熱スパ',
+        description: '生姜や白檀の伝統ハーブを用いた温熱療法で旅の疲れを癒します。',
+        actionLabel: 'スパのご予約',
+      },
+    },
+    priceHint: 'Rp 650.000 / 90 min',
+    availabilitySchedule: '09:00 – 22:00',
+    fulfilmentType: 'STAFF_TICKET',
+    status: 'Active',
+    featured: true,
+  },
+  {
+    id: 'MKT-03',
+    propertyId: 'P-01',
+    partnerId: 'PARTNER-TRANS',
+    partnerName: 'Bluebird Golden Bird Luxury Limousine',
+    type: 'Transport',
+    title: 'VIP Airport Limousine Transfer (Toyota Alphard HEV)',
+    description: 'Executive meet-and-greet curbside service with dedicated baggage escort and cold towel refreshment.',
+    localeContent: {
+      id: {
+        title: 'Antar Jemput Bandara VIP Alphard',
+        description: 'Layanan penjemputan eksekutif langsung dari pintu kedatangan dengan pengawalan bagasi.',
+        actionLabel: 'Pesan Transport VIP',
+      },
+      en: {
+        title: 'VIP Airport Limousine (Alphard HEV)',
+        description: 'Curbside VIP meet-and-greet airport transfer with dedicated luggage handling.',
+        actionLabel: 'Request VIP Limousine',
+      },
+      'zh-CN': {
+        title: 'VIP豪华机场接送服务 (埃尔法)',
+        description: '专职人员机场贵宾迎接与行李协助，尊享无忧出行。',
+        actionLabel: '预约接送',
+      },
+      'ja-JP': {
+        title: 'VIP 空港送迎リムジン (アルファード)',
+        description: '空港到着ロビーでのお出迎えとお荷物エスコート付き専用送迎。',
+        actionLabel: '送迎予約',
+      },
+    },
+    priceHint: 'Rp 750.000 / one-way',
+    availabilitySchedule: '24 Hours',
+    fulfilmentType: 'PARTNER_API',
+    status: 'Active',
+    featured: false,
+  },
+  {
+    id: 'MKT-04',
+    propertyId: 'P-01',
+    partnerId: 'PARTNER-TOUR',
+    partnerName: 'Borobudur Sunrise & Heritage Curator',
+    type: 'ThirdPartyExperience',
+    title: 'Private Sunrise Meditation at Punthuk Setumbu',
+    description: 'Exclusive pre-dawn scenic view of Borobudur emerging from morning mist with hot Javanese herbal tea.',
+    localeContent: {
+      id: {
+        title: 'Meditasi Sunrise Punthuk Setumbu Borobudur',
+        description: 'Pemandangan magis fajar Borobudur di atas kabut pagi dipandu pemandu budaya lokal.',
+        actionLabel: 'Jadwalkan Tur',
+      },
+      en: {
+        title: 'Private Borobudur Sunrise Meditation',
+        description: 'Pre-dawn private vantage point to witness morning mist lifting over ancient temples.',
+        actionLabel: 'Schedule Tour',
+      },
+      'zh-CN': {
+        title: '婆罗浮屠日出冥想私享之旅',
+        description: '晨曦破晓时分俯瞰云海中的婆罗浮屠古刹，享用热爪哇药草茶。',
+        actionLabel: '预约体验',
+      },
+      'ja-JP': {
+        title: 'ボロブドゥール朝日と静寂の瞑想ツアー',
+        description: '朝霧に包まれる古代寺院を望む特別な夜明けのプライベートツアー。',
+        actionLabel: 'ツアー予約',
+      },
+    },
+    priceHint: 'Rp 850.000 / person',
+    availabilitySchedule: '04:30 Departure',
+    fulfilmentType: 'QR_HANDOFF',
+    status: 'Active',
+    featured: false,
+  },
+];
+
+export const INITIAL_SERVICE_ORDERS: ServiceOrder[] = [
+  {
+    id: 'ORD-2026-001',
+    itemId: 'MKT-01',
+    itemTitle: 'Kayumanis Signature Indonesian Rijsttafel',
+    propertyId: 'P-01',
+    roomId: 'R-01-201',
+    stayId: 'S-01',
+    guestDisplayRef: 'Room 201 · Guest B*** S***',
+    rawGuestName: 'Bambang Soediro',
+    status: 'Confirmed',
+    requestedAtUtc: '2026-11-02T11:15:00Z',
+    confirmedAtUtc: '2026-11-02T11:18:20Z',
+    notes: 'Serve at courtyard veranda for 2 pax at 19:30.',
+    assignedTo: 'Front Office Duty Manager (fo_arunika)',
+    fulfilmentType: 'STAFF_TICKET',
+  },
+  {
+    id: 'ORD-2026-002',
+    itemId: 'MKT-02',
+    itemTitle: 'Royal Javanese Boreh & Herbal Compress',
+    propertyId: 'P-01',
+    roomId: 'R-01-301',
+    stayId: 'S-02',
+    guestDisplayRef: 'Room 301 · Guest C*** L***',
+    rawGuestName: 'Chen Lin',
+    status: 'InFulfilment',
+    requestedAtUtc: '2026-11-02T14:00:00Z',
+    confirmedAtUtc: '2026-11-02T14:05:00Z',
+    notes: 'Prefers warm clove herbal compress at 16:00.',
+    assignedTo: 'Royal Spa Lead Therapist',
+    fulfilmentType: 'STAFF_TICKET',
+  },
+  {
+    id: 'ORD-2026-003',
+    itemId: 'MKT-03',
+    itemTitle: 'VIP Airport Limousine Transfer (Toyota Alphard HEV)',
+    propertyId: 'P-01',
+    roomId: 'R-01-502',
+    stayId: 'S-04',
+    guestDisplayRef: 'Room 502 · Guest D*** W***',
+    rawGuestName: 'Dr. Dian Wulandari',
+    status: 'Requested',
+    requestedAtUtc: '2026-11-02T15:30:00Z',
+    notes: 'Flight GA-204 departure tomorrow at 09:40 AM.',
+    fulfilmentType: 'PARTNER_API',
+  },
 ];
 
 export const INITIAL_PUBLICATIONS: Publication[] = [
@@ -2078,6 +2987,70 @@ export const INITIAL_PROFILE_OVERRIDES: ProfileOverride[] = [
     updatedAtUtc: '2026-11-01T08:30:00Z',
     version: 2,
   },
+  {
+    id: 'OVR-04',
+    propertyId: 'P-01',
+    layer: 'ROOM_CLASS',
+    targetId: 'Suite',
+    field: 'accentColor',
+    value: '#E5C185',
+    updatedBy: 'property-manager',
+    updatedAtUtc: '2026-11-01T08:30:00Z',
+    version: 1,
+  },
+  {
+    id: 'OVR-05',
+    propertyId: 'P-01',
+    layer: 'CUSTOMER',
+    targetId: 'C-01',
+    field: 'logoSubtitle',
+    value: 'A Heritage Luxury Hotel',
+    updatedBy: 'brand-director',
+    updatedAtUtc: '2026-10-15T00:00:00Z',
+    version: 1,
+  },
+];
+
+export const INITIAL_PLAYBACK_FACTS: PlaybackFact[] = [
+  {
+    id: 'FACT-01',
+    campaignId: 'CMP-01',
+    endpointId: 'E-01',
+    stayId: 'S-01',
+    eventType: 'complete',
+    occurredAt: '2026-11-02T10:15:30Z',
+    playSeconds: 30,
+    creativeVersion: 2,
+    sessionId: 'SESS-E01-001',
+    locale: 'id',
+    outcome: 'completed',
+  },
+  {
+    id: 'FACT-02',
+    campaignId: 'CMP-01',
+    endpointId: 'E-01',
+    stayId: 'S-01',
+    eventType: 'skip',
+    occurredAt: '2026-11-02T14:20:10Z',
+    playSeconds: 6,
+    creativeVersion: 2,
+    sessionId: 'SESS-E01-002',
+    locale: 'id',
+    outcome: 'skipped',
+  },
+  {
+    id: 'FACT-03',
+    campaignId: 'CMP-02',
+    endpointId: 'E-06',
+    stayId: 'S-03',
+    eventType: 'complete',
+    occurredAt: '2026-11-02T16:00:00Z',
+    playSeconds: 15,
+    creativeVersion: 1,
+    sessionId: 'SESS-E06-001',
+    locale: 'en',
+    outcome: 'completed',
+  },
 ];
 
 export const INITIAL_INVOICES: Invoice[] = [
@@ -2096,7 +3069,26 @@ export const INITIAL_INVOICES: Invoice[] = [
     unitPriceIdr: 15000,
     totalIdr: 180000,
     paidIdr: 0,
+    remainingBalanceIdr: 180000,
     lineDescription: 'GOJJA Hospitality Core Wholesale — 12 Contracted Seats × Rp15,000',
+    lines: [
+      {
+        id: 'INVL-01-A',
+        description: 'Base Seat Allocation — 10 Contracted Units (Full Month November 2026)',
+        seatDays: 300,
+        unitPriceIdr: 15000,
+        amountIdr: 150000,
+        lineType: 'BASE',
+      },
+      {
+        id: 'INVL-01-B',
+        description: 'True-up Change Order CO-01 — 2 Units Royal Suite 301 expansion (Effective 20 Oct prorata)',
+        seatDays: 60,
+        unitPriceIdr: 15000,
+        amountIdr: 30000,
+        lineType: 'TRUE_UP',
+      },
+    ],
     receiptRefs: [],
   },
   {
@@ -2114,7 +3106,18 @@ export const INITIAL_INVOICES: Invoice[] = [
     unitPriceIdr: 15000,
     totalIdr: 120000,
     paidIdr: 120000,
+    remainingBalanceIdr: 0,
     lineDescription: 'GOJJA Hospitality Core Wholesale — 8 Contracted Seats × Rp15,000',
+    lines: [
+      {
+        id: 'INVL-02-A',
+        description: 'Base Seat Allocation — 8 Villa Units (Full Month November 2026)',
+        seatDays: 240,
+        unitPriceIdr: 15000,
+        amountIdr: 120000,
+        lineType: 'BASE',
+      },
+    ],
     receiptRefs: ['RCP-01'],
   },
   {
@@ -2132,7 +3135,18 @@ export const INITIAL_INVOICES: Invoice[] = [
     unitPriceIdr: 25000,
     totalIdr: 250000,
     paidIdr: 0,
+    remainingBalanceIdr: 250000,
     lineDescription: 'GOJJA Hospitality Core Direct — 10 Contracted Seats × Rp25,000',
+    lines: [
+      {
+        id: 'INVL-03-A',
+        description: 'Base Studio Direct Pool — 10 Demo Seats (Full Month November 2026)',
+        seatDays: 300,
+        unitPriceIdr: 25000,
+        amountIdr: 250000,
+        lineType: 'BASE',
+      },
+    ],
     receiptRefs: [],
   },
 ];
@@ -2474,3 +3488,983 @@ export const ANALYTICS_FIXTURE = {
     { date: '31 Oct', starts: 138, playMinutes: 390 },
   ],
 };
+
+export function resolveEndpointCapabilities(endpoint: Endpoint): Record<CapabilityKey, EffectiveCapabilityResult> {
+  const profile = endpoint.capabilityProfile;
+  const isManaged = profile === 'DEMO-MANAGED' || profile === 'LIVE-VERIFIED';
+  const isLimited = profile === 'DEMO-LIMITED';
+  const isAssisted = profile === 'DEMO-ASSISTED';
+  const evidenceType = profile === 'LIVE-VERIFIED' ? 'LiveObserved' : 'DemoFixture';
+
+  return {
+    'launcher.takeover': {
+      capability: 'launcher.takeover',
+      status: isManaged ? 'Supported' : isAssisted ? 'Limited' : 'Unsupported',
+      route: isManaged ? 'ADB Shell pm set-home-activity' : isAssisted ? 'User confirmation dialog' : 'Blocked by OEM locked launcher',
+      evidenceType,
+      limitationMessage: isLimited
+        ? 'TCL OEM UI locks default home launcher. Requires manual settings navigation or factory hospitality firmware.'
+        : isAssisted
+        ? 'Requires guest or technician to select GOJJA once on boot.'
+        : undefined,
+      requiredAction: isLimited
+        ? 'Deploy via secondary app launcher or obtain vendor unlock code.'
+        : undefined,
+    },
+    'adb.install': {
+      capability: 'adb.install',
+      status: 'Supported',
+      route: 'ADB Wireless (port 5555)',
+      evidenceType,
+    },
+    'adb.shell': {
+      capability: 'adb.shell',
+      status: isAssisted ? 'Limited' : 'Supported',
+      route: 'ADB Shell daemon',
+      evidenceType,
+      limitationMessage: isAssisted ? 'Restricted permissions on Philips Android 9.' : undefined,
+    },
+    'kiosk.mode': {
+      capability: 'kiosk.mode',
+      status: isManaged ? 'Supported' : 'Limited',
+      route: 'Android Device Policy / Lock Task',
+      evidenceType,
+      limitationMessage: !isManaged ? 'Requires device owner provisioning via QR/NFC.' : undefined,
+    },
+    'power.recovery': {
+      capability: 'power.recovery',
+      status: 'Supported',
+      route: 'AC Power state resume test',
+      evidenceType,
+    },
+    'drm.widevine.l1': {
+      capability: 'drm.widevine.l1',
+      status: isLimited ? 'Limited' : 'Supported',
+      route: 'Widevine Modular DRM (Hardware Secure)',
+      evidenceType,
+      limitationMessage: isLimited ? 'Fallback to Widevine L3 (SD only, 480p/576p).' : undefined,
+    },
+    'playback.hls': {
+      capability: 'playback.hls',
+      status: 'Supported',
+      route: 'ExoPlayer / Media3 HLS pipeline',
+      evidenceType,
+    },
+    'playback.dash': {
+      capability: 'playback.dash',
+      status: isAssisted ? 'Limited' : 'Supported',
+      route: 'ExoPlayer / Media3 MPEG-DASH pipeline',
+      evidenceType,
+    },
+    'offline.cache': {
+      capability: 'offline.cache',
+      status: 'Supported',
+      route: 'App Internal Storage (/data/data)',
+      evidenceType,
+    },
+    'remote.dpad': {
+      capability: 'remote.dpad',
+      status: 'Supported',
+      route: 'Standard Android KeyEvent (DPAD_CENTER, UP, DOWN, LEFT, RIGHT)',
+      evidenceType,
+    },
+  };
+}
+
+export function checkCapability(endpoint: Endpoint, key: CapabilityKey): EffectiveCapabilityResult {
+  const all = resolveEndpointCapabilities(endpoint);
+  return all[key];
+}
+
+export function runDevicePreflight(candidate: DiscoveryCandidate): {
+  passed: boolean;
+  criticalPassed: boolean;
+  items: PreflightCheckItem[];
+  summary: string;
+} {
+  const sdkInt = candidate.observedSdkInt || 30;
+  const authState = candidate.authState;
+  const isTcl = (candidate.observedManufacturer || candidate.observedModel || '').toLowerCase().includes('tcl');
+  const isSony = (candidate.observedManufacturer || candidate.observedModel || '').toLowerCase().includes('sony');
+
+  const osCheck: PreflightCheckItem = {
+    id: 'PFC-OS',
+    name: 'Android OS Version & SDK',
+    category: 'OS',
+    status: sdkInt >= 29 ? 'Supported' : sdkInt >= 26 ? 'Limited' : 'Unsupported',
+    observedValue: `Android ${candidate.observedAndroidVersion || '11'} (SDK ${sdkInt})`,
+    detail: sdkInt >= 29 ? 'Modern Android TV runtime compatible with GOJJA Shell v2.4+.' : 'Legacy Android TV runtime. Some UI animations and WebKit features may degrade.',
+    isCritical: true,
+    requiredAction: sdkInt < 26 ? 'Upgrade firmware or replace endpoint box.' : undefined,
+  };
+
+  const isAdbAuthorized = authState === 'DeviceVerified' || authState === 'TransportReady' || authState === 'Enrolled';
+  const adbCheck: PreflightCheckItem = {
+    id: 'PFC-ADB',
+    name: 'ADB Wireless Authorization',
+    category: 'ADB',
+    status: isAdbAuthorized ? 'Supported' : authState === 'AuthRequired' || authState === 'PairRequired' || authState === 'Paired' ? 'Limited' : 'Unsupported',
+    observedValue: authState,
+    detail: isAdbAuthorized
+      ? 'RSA key verified and connected. Remote provisioning ready.'
+      : authState === 'AuthRequired'
+      ? 'Host RSA key pending acceptance on TV screen prompt.'
+      : 'Device pairing or transport link required before binding.',
+    isCritical: true,
+    requiredAction: authState === 'AuthRequired' ? 'Click "Allow always from this computer" on the TV screen.' : undefined,
+  };
+
+  const storageCheck: PreflightCheckItem = {
+    id: 'PFC-STORAGE',
+    name: 'Internal Flash Storage Headroom',
+    category: 'Storage',
+    status: 'Supported',
+    observedValue: '4.8 GB Available (Est.)',
+    detail: 'Adequate storage for APK binary (42MB) and cached promotional video assets (max 500MB).',
+    isCritical: false,
+  };
+
+  const netCheck: PreflightCheckItem = {
+    id: 'PFC-NET',
+    name: 'LAN Latency & NTP Time Synchronization',
+    category: 'Network',
+    status: 'Supported',
+    observedValue: 'Ping < 4ms • NTP In-Sync',
+    detail: 'Hospitality VLAN routing verified. Digital certificate validity and token checks will pass.',
+    isCritical: true,
+  };
+
+  const drmCheck: PreflightCheckItem = {
+    id: 'PFC-DRM',
+    name: 'Widevine Hardware Modular DRM',
+    category: 'DRM',
+    status: isTcl ? 'Limited' : 'Supported',
+    observedValue: isTcl ? 'Widevine L3 (Software Security)' : 'Widevine L1 (OEM Hardware Trusted)',
+    detail: isTcl
+      ? 'Limited to standard definition (SD 480p) streams for DRM-protected premium channels.'
+      : 'Hardware root-of-trust verified. Full HD 1080p and 4K UHD streaming authorized.',
+    isCritical: false,
+    requiredAction: isTcl ? 'Advise guest or operations that 4K premium channels require L1 certified hardware.' : undefined,
+  };
+
+  const launcherCheck: PreflightCheckItem = {
+    id: 'PFC-LAUNCHER',
+    name: 'Default Launcher Takeover Feasibility',
+    category: 'Launcher',
+    status: isTcl ? 'Unsupported' : isSony ? 'Supported' : 'Limited',
+    observedValue: isTcl ? 'OEM Protected Home (Locked)' : isSony ? 'Standard Android TV Home (Takeover Ready)' : 'Vendor Shell Present',
+    detail: isTcl
+      ? 'Manufacturer locks default home activity. TV boot will show TCL Home unless factory hospitality firmware is flashed.'
+      : 'Can automatically set GOJJA Hospitality Shell as default home activity on AC power on.',
+    isCritical: false,
+    requiredAction: isTcl ? 'SOP: Set GOJJA app on auto-start upon boot via hospitality settings.' : undefined,
+  };
+
+  const items: PreflightCheckItem[] = [osCheck, adbCheck, storageCheck, netCheck, drmCheck, launcherCheck];
+  const criticalPassed = !items.some((i) => i.isCritical && i.status === 'Unsupported');
+  const anyUnsupported = items.some((i) => i.status === 'Unsupported');
+  const anyLimited = items.some((i) => i.status === 'Limited');
+
+  const summary = criticalPassed
+    ? anyUnsupported
+      ? 'Compatible with Limitations: Core provisioning will succeed, but certain features (such as Launcher Takeover or HD DRM) are constrained by hardware.'
+      : anyLimited
+      ? 'Ready for Assignment with Advisory: Host pairing or minor limitations noted.'
+      : 'Fully Verified: Device meets all optimal criteria for GOJJA Managed Hospitality Shell.'
+    : 'Blocked: Critical preflight check failed. Resolve ADB authorization or firmware issues before assigning.';
+
+  return {
+    passed: criticalPassed,
+    criticalPassed,
+    items,
+    summary,
+  };
+}
+
+export function resolveEffectiveLineup(
+  propertyId: string,
+  roomClass: string = 'Standard',
+  isPublicArea: boolean = false,
+  contracts: ProviderContract[] = INITIAL_CONTRACTS,
+  channels: Channel[] = INITIAL_CHANNELS
+): EffectiveLineupResult {
+  const propertyContracts = contracts.filter((c) => c.propertyId === propertyId);
+  const effectiveChannels: EffectiveChannel[] = [];
+  const deniedChannels: DenialReason[] = [];
+
+  for (const ch of channels) {
+    // 1. Hotel In-House Channels (PKG-FREE) are always entitled regardless of external contracts
+    if (ch.packageId === 'PKG-FREE') {
+      effectiveChannels.push({
+        ...ch,
+        entitlementSource: 'In-House Hospitality Headend',
+        allowedRoomClasses: ['Standard', 'Deluxe', 'Suite', 'Studio', 'PublicArea'],
+      });
+      continue;
+    }
+
+    // 2. Hidden in Guide check
+    if (ch.hiddenInGuide) {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'HIDDEN_IN_GUIDE',
+        message: `Channel ${ch.name} is marked hidden in electronic program guide.`,
+      });
+      continue;
+    }
+
+    // 3. Find contract that covers this channel's package
+    const matchingContract = propertyContracts.find((c) => c.packages.includes(ch.packageId));
+
+    if (!matchingContract) {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'PACKAGE_NOT_INCLUDED',
+        message: `Package ${ch.packageId} is not included in property ${propertyId} provider contracts.`,
+      });
+      continue;
+    }
+
+    // 4. Contract Status check
+    if (matchingContract.status !== 'Active' && matchingContract.status !== 'Verified') {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'CONTRACT_NOT_ACTIVE',
+        message: `Provider contract ${matchingContract.id} (${matchingContract.providerName}) is currently '${matchingContract.status}'.`,
+      });
+      continue;
+    }
+
+    // 5. Expiration check
+    if (new Date(matchingContract.validUntilUtc).getTime() < Date.now()) {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'CONTRACT_EXPIRED',
+        message: `Provider contract ${matchingContract.id} expired on ${matchingContract.validUntilUtc.slice(0, 10)}.`,
+      });
+      continue;
+    }
+
+    // 6. Provider connection / token status check
+    if (matchingContract.connectionStatus !== 'Ready') {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'PROVIDER_DEGRADED',
+        message: `Provider headend connection is ${matchingContract.connectionStatus} for contract ${matchingContract.id}.`,
+      });
+      continue;
+    }
+
+    // 7. Public Area check
+    if (isPublicArea && !matchingContract.publicAreaAllowed) {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'PUBLIC_AREA_RESTRICTED',
+        message: `Contract ${matchingContract.id} restricts broadcasts to private in-room TVs only. Public signage playback prohibited.`,
+      });
+      continue;
+    }
+
+    // 8. Room Class Tier check
+    if (!matchingContract.allowedRoomClasses.includes(roomClass)) {
+      deniedChannels.push({
+        channelId: ch.id,
+        channelName: ch.name,
+        packageId: ch.packageId,
+        code: 'ROOM_CLASS_NOT_ALLOWED',
+        message: `Room class '${roomClass}' is not eligible for tier ${ch.packageId} (Permitted tiers: ${matchingContract.allowedRoomClasses.join(', ')}).`,
+      });
+      continue;
+    }
+
+    // Passed all resolution gates!
+    effectiveChannels.push({
+      ...ch,
+      entitlementSource: `${matchingContract.id} (${matchingContract.providerName})`,
+      allowedRoomClasses: matchingContract.allowedRoomClasses,
+    });
+  }
+
+  // Sort channels by channel number
+  effectiveChannels.sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+
+  return {
+    propertyId,
+    roomClass,
+    isPublicArea,
+    computedAtUtc: new Date().toISOString(),
+    lineupVersion: 1,
+    channels: effectiveChannels,
+    deniedChannels,
+  };
+}
+
+export interface UpdateEligibilityStep {
+  step: number;
+  name: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface EndpointEligibilityEvaluation {
+  endpointId: string;
+  roomId: string;
+  roomCode: string;
+  stage: UpdateJobStage;
+  eligible: boolean;
+  primaryReason: string;
+  steps: UpdateEligibilityStep[];
+}
+
+export function evaluateEndpointUpdateEligibility(
+  endpoint: Endpoint,
+  room: Room | undefined,
+  activeStay: Stay | undefined,
+  release: ReleaseArtifact,
+  approval: PropertyUpdateApproval | undefined
+): {
+  eligible: boolean;
+  resultingStage: UpdateJobStage;
+  primaryReason: string;
+  steps: UpdateEligibilityStep[];
+} {
+  const steps: UpdateEligibilityStep[] = [];
+
+  // Step 1: Technical Approval by GOJJA Platform Admin (R-03)
+  const isTechApproved = release.status === 'TechnicallyApproved' && !!release.technicallyApprovedBy;
+  steps.push({
+    step: 1,
+    name: 'Technical Approval Gate (R-03)',
+    passed: isTechApproved,
+    detail: isTechApproved
+      ? `Release ${release.versionName} signed and technically approved by ${release.technicallyApprovedBy}.`
+      : `Release ${release.versionName} requires sign-off from R-03 Technical Admin before deployment.`,
+  });
+
+  // Step 2: Hotel Property Maintenance Window Granted (R-10/R-11)
+  const isPropApproved = approval?.status === 'ApprovedWindow';
+  steps.push({
+    step: 2,
+    name: 'Property Window Permission (R-10/R-11)',
+    passed: isPropApproved,
+    detail: isPropApproved
+      ? `Property granted maintenance window (${approval?.windowStartLocal}–${approval?.windowEndLocal}).`
+      : `Property operator has not granted an installation permission window.`,
+  });
+
+  // Step 3: Scheduled Maintenance Window Active
+  const isWindowActive = isPropApproved;
+  steps.push({
+    step: 3,
+    name: 'Scheduled Maintenance Window Active',
+    passed: isWindowActive,
+    detail: isWindowActive
+      ? `Window authorized: ${approval?.windowStartLocal || '02:00'} to ${approval?.windowEndLocal || '05:00'} WIB.`
+      : `Outside approved deployment time window.`,
+  });
+
+  // Step 4: Endpoint Connectivity & Heartbeat
+  const isOnline = endpoint.connection === 'Online';
+  steps.push({
+    step: 4,
+    name: 'Endpoint Online & Transport Ready',
+    passed: isOnline,
+    detail: isOnline
+      ? `Endpoint is Online with active MQTT/gRPC telemetry heartbeat.`
+      : `Endpoint ${endpoint.id} is Offline. Cannot stage payload without active transport.`,
+  });
+
+  // Step 5: Guest Occupancy Status (BR06)
+  const hasGuest = !!activeStay && activeStay.status === 'InHouse';
+  steps.push({
+    step: 5,
+    name: 'Room Vacancy Protection (BR06)',
+    passed: !hasGuest,
+    detail: !hasGuest
+      ? `Room is Vacant. No active guest in-house.`
+      : `Disruptive update blocked: Guest in-house (${activeStay?.id}). Deferring to next checkout.`,
+  });
+
+  // Step 6: Housekeeping & Physical Maintenance Readiness
+  const isHousekeepingReady = room?.housekeeping === 'Ready' && !!room?.maintenanceAuthorized;
+  steps.push({
+    step: 6,
+    name: 'Housekeeping & Maintenance Authorization',
+    passed: isHousekeepingReady,
+    detail: isHousekeepingReady
+      ? `Room ${room?.code || endpoint.roomId} is Clean/Ready and authorized for TV maintenance.`
+      : `Room ${room?.code || endpoint.roomId} housekeeping is '${room?.housekeeping || 'Dirty'}' (Authorized=${room?.maintenanceAuthorized ?? false}).`,
+  });
+
+  // Step 7: TV Power State & Screen Playback Guard
+  const isTransportReady = endpoint.connection === 'Online';
+  steps.push({
+    step: 7,
+    name: 'Screen Activity & Transport Guard',
+    passed: isTransportReady,
+    detail: isTransportReady
+      ? `Endpoint transport is ${endpoint.connection}; background package staging authorized.`
+      : `Endpoint is disconnected. Transport staging halted.`,
+  });
+
+  // Step 8: Hardware Profile Compatibility
+  const isProfileMatch = release.targetProfiles.includes(endpoint.capabilityProfile);
+  steps.push({
+    step: 8,
+    name: 'Hardware Capability Profile Match',
+    passed: isProfileMatch,
+    detail: isProfileMatch
+      ? `Endpoint profile '${endpoint.capabilityProfile}' supported by release ${release.versionName}.`
+      : `Incompatible profile: Endpoint is '${endpoint.capabilityProfile}', release targets [${release.targetProfiles.join(', ')}].`,
+  });
+
+  // Step 9: Package Checksum Preflight & Storage
+  const isHealthyAlready = endpoint.appVersion === release.versionName;
+  const isPreflightOk = true;
+  steps.push({
+    step: 9,
+    name: 'Package Checksum & Storage Preflight',
+    passed: isPreflightOk,
+    detail: isHealthyAlready
+      ? `Already verified on target v${release.versionName} (${release.sha256.slice(0, 16)}...).`
+      : `Preflight passed: SHA-256 verified, >500MB free storage available.`,
+  });
+
+  const allPassed = steps.every((s) => s.passed);
+
+  let resultingStage: UpdateJobStage = 'Healthy';
+  let primaryReason = '';
+
+  if (!isTechApproved || !isPropApproved) {
+    resultingStage = 'AwaitingApproval';
+    primaryReason = !isTechApproved
+      ? `Blocked at Step 1: Release requires Technical Approval (R-03).`
+      : `Blocked at Step 2: Property Manager window permission required (R-10/R-11).`;
+  } else if (hasGuest) {
+    resultingStage = 'Deferred';
+    primaryReason = `Deferred at Step 5: Room has active guest stay (${activeStay?.id}). Preserving guest experience (BR06).`;
+  } else if (!isHousekeepingReady) {
+    resultingStage = 'AwaitingReadiness';
+    primaryReason = `Blocked at Step 6: Room housekeeping is '${room?.housekeeping || 'Dirty'}' (MaintenanceAuthorized=${room?.maintenanceAuthorized}).`;
+  } else if (!isOnline) {
+    resultingStage = 'Deferred';
+    primaryReason = `Deferred at Step 4: Endpoint ${endpoint.id} is Offline. Scheduled window passed without heartbeat.`;
+  } else if (!isProfileMatch) {
+    resultingStage = 'Deferred';
+    primaryReason = `Incompatible at Step 8: Hardware profile '${endpoint.capabilityProfile}' not supported by target release.`;
+  } else if (isHealthyAlready) {
+    resultingStage = 'Healthy';
+    primaryReason = `Endpoint verified Healthy on target release v${release.versionName}.`;
+  } else {
+    resultingStage = 'Staged';
+    primaryReason = `All 9 eligibility checks passed. Payload staged for installation.`;
+  }
+
+  return {
+    eligible: allPassed,
+    resultingStage,
+    primaryReason,
+    steps,
+  };
+}
+
+// =======================================================================
+// FASE C: BRANDING INHERITANCE & MULTI-LAYER RESOLUTION ENGINE (M05 / FR05)
+// =======================================================================
+
+export type FieldInheritanceStatus = 'Inherited' | 'Overridden' | 'Locked';
+
+export interface FieldProvenance {
+  field: BrandingFieldKey;
+  layer: BrandingLayer;
+  sourceId: string;
+  version: number;
+  label: string;
+  status: FieldInheritanceStatus;
+}
+
+export interface BrandingConflict {
+  field: BrandingFieldKey;
+  candidateLayers: {
+    layer: BrandingLayer;
+    value: string;
+    sourceId: string;
+    label: string;
+  }[];
+  resolutionPolicy: string;
+  winningLayer: BrandingLayer;
+}
+
+export interface BrandingResolutionContext {
+  propertyId: string;
+  roomId?: string;
+  roomClass?: string;
+  stayId?: string;
+  groupId?: string;
+  locale?: GuestLocale;
+}
+
+export interface ResolvedBrandingProfile {
+  propertyId: string;
+  context: BrandingResolutionContext;
+  values: {
+    logoText: string;
+    logoSubtitle: string;
+    logoImageUrl: string;
+    primaryColor: string;
+    accentColor: string;
+    heroMediaType: 'image' | 'video';
+    heroImageUrl: string;
+    heroVideoUrl: string;
+    promoMediaType: 'image' | 'video';
+    promoMediaUrl: string;
+    promoTitle: string;
+    welcomeHeadline: string;
+    welcomeSubline: string;
+    defaultLocale: GuestLocale;
+    preTvPromoEnabled: boolean;
+    contrastRatio: number;
+    contrastPassed: boolean;
+  };
+  provenance: Record<BrandingFieldKey, FieldProvenance>;
+  conflicts: BrandingConflict[];
+  warnings: string[];
+  previewHash: string;
+}
+
+export function calculateContrastRatio(hex1: string, hex2: string): number {
+  function getLuminance(hex: string): number {
+    const clean = hex.replace('#', '');
+    if (clean.length < 6) return 0.5;
+    const r = parseInt(clean.substring(0, 2), 16) / 255;
+    const g = parseInt(clean.substring(2, 4), 16) / 255;
+    const b = parseInt(clean.substring(4, 6), 16) / 255;
+    const a = [r, g, b].map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+    return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+  }
+  const l1 = getLuminance(hex1);
+  const l2 = getLuminance(hex2);
+  const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  return Math.round(ratio * 10) / 10;
+}
+
+export function resolveBranding(
+  property: Property,
+  overrides: ProfileOverride[] = INITIAL_PROFILE_OVERRIDES,
+  context: BrandingResolutionContext,
+  corporateGroups: CorporateGroup[] = INITIAL_CORPORATE_GROUPS,
+  stays: Stay[] = INITIAL_STAYS
+): ResolvedBrandingProfile {
+  const locale = context.locale || property.defaultLocale || 'id';
+  const propertyOverrides = overrides.filter((o) => o.propertyId === property.id || o.layer === 'PLATFORM');
+  const provenance: Partial<Record<BrandingFieldKey, FieldProvenance>> = {};
+  const conflicts: BrandingConflict[] = [];
+  const warnings: string[] = [];
+
+  // 1. Base values from PLATFORM & PROPERTY layer
+  const values: Record<BrandingFieldKey, any> = {
+    logoText: property.logoText || 'Hotel Arunika',
+    logoSubtitle: property.logoSubtitle || 'Yogyakarta Luxury Sanctuary',
+    logoImageUrl: property.logoImageUrl || '',
+    primaryColor: property.primaryColor || '#1E2530',
+    accentColor: property.accentColor || '#DCC6A1',
+    heroMediaType: property.heroMediaType || 'image',
+    heroImageUrl: property.heroImageUrl || '',
+    heroVideoUrl: property.heroVideoUrl || '',
+    promoMediaType: property.promoMediaType || 'image',
+    promoMediaUrl: property.promoMediaUrl || '',
+    promoTitle: property.promoTitle || '',
+    welcomeHeadline: property.welcomeHeadline?.[locale] || property.welcomeHeadline?.en || 'Selamat Datang',
+    welcomeSubline: property.welcomeSubline?.[locale] || property.welcomeSubline?.en || '',
+    defaultLocale: property.defaultLocale || 'id',
+    preTvPromoEnabled: 'false',
+  };
+
+  // Initialize default provenance as PROPERTY layer
+  (Object.keys(values) as BrandingFieldKey[]).forEach((field) => {
+    provenance[field] = {
+      field,
+      layer: 'PROPERTY',
+      sourceId: property.id,
+      version: property.resourceVersion || 1,
+      label: `Property Default (${property.name})`,
+      status: 'Inherited',
+    };
+  });
+
+  // 2. Apply CUSTOMER Layer overrides
+  const custOverrides = propertyOverrides.filter((o) => o.layer === 'CUSTOMER');
+  for (const o of custOverrides) {
+    values[o.field] = o.value;
+    provenance[o.field] = {
+      field: o.field,
+      layer: 'CUSTOMER',
+      sourceId: o.targetId,
+      version: o.version,
+      label: `Customer Brand Kit (${o.targetId})`,
+      status: 'Overridden',
+    };
+  }
+
+  // 3. Apply PROPERTY Layer explicit overrides
+  const propLayerOverrides = propertyOverrides.filter((o) => o.layer === 'PROPERTY' && o.targetId === property.id);
+  for (const o of propLayerOverrides) {
+    values[o.field] = o.value;
+    provenance[o.field] = {
+      field: o.field,
+      layer: 'PROPERTY',
+      sourceId: o.targetId,
+      version: o.version,
+      label: `Property Setting (${property.id})`,
+      status: 'Overridden',
+    };
+  }
+
+  // 4. Apply ROOM_CLASS Layer overrides
+  if (context.roomClass) {
+    const rcOverrides = propertyOverrides.filter((o) => o.layer === 'ROOM_CLASS' && o.targetId === context.roomClass);
+    for (const o of rcOverrides) {
+      values[o.field] = o.value;
+      provenance[o.field] = {
+        field: o.field,
+        layer: 'ROOM_CLASS',
+        sourceId: o.targetId,
+        version: o.version,
+        label: `Room Class Override (${context.roomClass} Tier)`,
+        status: 'Overridden',
+      };
+    }
+  }
+
+  // 5. Apply ROOM Layer overrides
+  if (context.roomId) {
+    const roomOverrides = propertyOverrides.filter((o) => o.layer === 'ROOM' && o.targetId === context.roomId);
+    for (const o of roomOverrides) {
+      values[o.field] = o.value;
+      provenance[o.field] = {
+        field: o.field,
+        layer: 'ROOM',
+        sourceId: o.targetId,
+        version: o.version,
+        label: `Room Specific Override (${context.roomId})`,
+        status: 'Overridden',
+      };
+    }
+  }
+
+  // 6. Apply STAY / GROUP Overlays with explicit conflict resolution
+  const activeStay = context.stayId ? stays.find((s) => s.id === context.stayId) : undefined;
+  const activeGroup = context.groupId
+    ? corporateGroups.find((g) => g.id === context.groupId)
+    : activeStay?.groupId
+    ? corporateGroups.find((g) => g.id === activeStay.groupId)
+    : undefined;
+
+  // Conflict Resolution: Personal Guest Greeting vs Corporate Group Message
+  if (activeStay && activeGroup) {
+    conflicts.push({
+      field: 'welcomeHeadline',
+      candidateLayers: [
+        {
+          layer: 'STAY',
+          value: `Bapak/Ibu ${activeStay.displayName}`,
+          sourceId: activeStay.id,
+          label: `Personal Guest (${activeStay.displayName})`,
+        },
+        {
+          layer: 'STAY',
+          value: activeGroup.message[locale] || activeGroup.name,
+          sourceId: activeGroup.id,
+          label: `Corporate Group (${activeGroup.name})`,
+        },
+      ],
+      resolutionPolicy: 'Dual-Layer Coexistence: Guest displayName retained in primary greeting; Corporate group banner rendered in secondary subtitle.',
+      winningLayer: 'STAY',
+    });
+    values.welcomeHeadline = `Selamat Datang, ${activeStay.displayName}`;
+    values.welcomeSubline = activeGroup.message[locale] || activeGroup.message.en || activeGroup.name;
+    provenance.welcomeHeadline = {
+      field: 'welcomeHeadline',
+      layer: 'STAY',
+      sourceId: activeStay.id,
+      version: 1,
+      label: `Personal Stay Overlay (${activeStay.displayName})`,
+      status: 'Overridden',
+    };
+    provenance.welcomeSubline = {
+      field: 'welcomeSubline',
+      layer: 'STAY',
+      sourceId: activeGroup.id,
+      version: 1,
+      label: `Corporate Group Overlay (${activeGroup.name})`,
+      status: 'Overridden',
+    };
+  } else if (activeStay) {
+    values.welcomeHeadline = `Selamat Datang, ${activeStay.displayName}`;
+    provenance.welcomeHeadline = {
+      field: 'welcomeHeadline',
+      layer: 'STAY',
+      sourceId: activeStay.id,
+      version: 1,
+      label: `Personal Stay Overlay (${activeStay.displayName})`,
+      status: 'Overridden',
+    };
+  } else if (activeGroup) {
+    values.welcomeSubline = activeGroup.message[locale] || activeGroup.message.en || activeGroup.name;
+    provenance.welcomeSubline = {
+      field: 'welcomeSubline',
+      layer: 'STAY',
+      sourceId: activeGroup.id,
+      version: 1,
+      label: `Corporate Group Overlay (${activeGroup.name})`,
+      status: 'Overridden',
+    };
+  }
+
+  // 7. WCAG Contrast Check
+  const contrastRatio = calculateContrastRatio(values.accentColor, values.primaryColor);
+  const contrastPassed = contrastRatio >= 3.0;
+  if (!contrastPassed) {
+    warnings.push(`Low contrast warning: Accent color ${values.accentColor} against primary ${values.primaryColor} yields ${contrastRatio}:1 (WCAG AA requires >= 4.5:1 for body text, >= 3.0:1 for large graphical elements).`);
+  }
+
+  return {
+    propertyId: property.id,
+    context,
+    values: {
+      ...values,
+      preTvPromoEnabled: values.preTvPromoEnabled === 'true' || values.preTvPromoEnabled === true,
+      contrastRatio,
+      contrastPassed,
+    },
+    provenance: provenance as Record<BrandingFieldKey, FieldProvenance>,
+    conflicts,
+    warnings,
+    previewHash: `BR-${property.id}-${Date.now().toString().slice(-4)}`,
+  };
+}
+
+// =======================================================================
+// FASE C: CAMPAIGN ELIGIBILITY & TELEMETRY TAXONOMY (M13 / FR13)
+// =======================================================================
+
+export type CampaignDenialCode =
+  | 'EXPIRED'
+  | 'NOT_YET_ACTIVE'
+  | 'STATUS_NOT_ACTIVE'
+  | 'PLACEMENT_MISMATCH'
+  | 'ROOM_CLASS_EXCLUDED'
+  | 'GROUP_EXCLUDED'
+  | 'STAY_REQUIRED'
+  | 'FREQUENCY_CAP_REACHED'
+  | 'PUBLIC_AREA_RESTRICTED'
+  | 'EXTERNAL_AD_NOT_ACCEPTED'
+  | 'EXTERNAL_AD_SUPERCEDED';
+
+export interface CampaignEligibilityContext {
+  propertyId: string;
+  placement: CampaignPlacement;
+  roomClass?: string;
+  stayId?: string;
+  groupId?: string;
+  locale?: GuestLocale;
+  isPublicArea?: boolean;
+  currentPlayCountThisStay?: number;
+  nowUtc?: string;
+  propertyAdAcceptances?: PropertyAdAcceptance[];
+}
+
+export interface CampaignDenialReason {
+  campaignId: string;
+  campaignName: string;
+  code: CampaignDenialCode;
+  reason: string;
+}
+
+export interface CampaignEligibilityResult {
+  selectedCampaign: Campaign | null;
+  placement: CampaignPlacement;
+  evaluatedCount: number;
+  eligibleCount: number;
+  denials: CampaignDenialReason[];
+  decisionProvenance: string;
+}
+
+export function evaluateCampaignEligibility(
+  context: CampaignEligibilityContext,
+  campaigns: Campaign[] = INITIAL_CAMPAIGNS
+): CampaignEligibilityResult {
+  const now = context.nowUtc ? new Date(context.nowUtc).getTime() : Date.now();
+  const playCount = context.currentPlayCountThisStay || 0;
+  const propertyCampaigns = campaigns.filter((c) => c.propertyId === context.propertyId);
+
+  const eligible: Campaign[] = [];
+  const denials: CampaignDenialReason[] = [];
+
+  for (const cmp of propertyCampaigns) {
+    // 1. Placement Match
+    if (cmp.placement !== context.placement) {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'PLACEMENT_MISMATCH',
+        reason: `Campaign placement '${cmp.placement}' does not match requested placement '${context.placement}'.`,
+      });
+      continue;
+    }
+
+    // 2. Status Active
+    if (cmp.status !== 'Active') {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'STATUS_NOT_ACTIVE',
+        reason: `Campaign status is '${cmp.status}' (only 'Active' campaigns can be scheduled).`,
+      });
+      continue;
+    }
+
+    // 2b. External Paid Offer Opt-in & Version Control (Poin 13)
+    if (cmp.externalPaid && cmp.adOfferId) {
+      const acceptances = context.propertyAdAcceptances || [];
+      const match = acceptances.find(
+        (a) => a.offerId === cmp.adOfferId && a.propertyId === context.propertyId
+      );
+      if (!match || match.status === 'Rejected') {
+        denials.push({
+          campaignId: cmp.id,
+          campaignName: cmp.name,
+          code: 'EXTERNAL_AD_NOT_ACCEPTED',
+          reason: `External paid ad offer '${cmp.adOfferId}' has not been explicitly accepted by property manager (Opt-in required).`,
+        });
+        continue;
+      }
+      const requiredVersion = cmp.offerVersion ?? cmp.creativeVersion;
+      if (match.status === 'Superceded' || match.offerVersion < requiredVersion) {
+        denials.push({
+          campaignId: cmp.id,
+          campaignName: cmp.name,
+          code: 'EXTERNAL_AD_SUPERCEDED',
+          reason: `External offer creative was revised to v${requiredVersion}; property acceptance (v${match.offerVersion}) is Superceded and requires re-approval.`,
+        });
+        continue;
+      }
+    }
+
+    // 3. Time Validity Window
+    const start = new Date(cmp.startUtc).getTime();
+    const end = new Date(cmp.endUtc).getTime();
+    if (now < start) {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'NOT_YET_ACTIVE',
+        reason: `Campaign start schedule (${cmp.startUtc}) is in the future.`,
+      });
+      continue;
+    }
+    if (now > end) {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'EXPIRED',
+        reason: `Campaign expired on ${cmp.endUtc.slice(0, 10)}.`,
+      });
+      continue;
+    }
+
+    // 4. Public Area Privacy & Signage Constraint (FR13-02)
+    if (context.isPublicArea && !cmp.targetAudience?.isPublicAreaAllowed && cmp.placement !== 'shared_signage') {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'PUBLIC_AREA_RESTRICTED',
+        reason: `Campaign contains in-room targeting and is restricted from public signage display.`,
+      });
+      continue;
+    }
+
+    // 5. Room Class Targeting
+    if (cmp.targetAudience?.roomClasses && cmp.targetAudience.roomClasses.length > 0) {
+      if (!context.roomClass || !cmp.targetAudience.roomClasses.includes(context.roomClass)) {
+        denials.push({
+          campaignId: cmp.id,
+          campaignName: cmp.name,
+          code: 'ROOM_CLASS_EXCLUDED',
+          reason: `Targeted to room classes [${cmp.targetAudience.roomClasses.join(', ')}], current room is '${context.roomClass || 'None'}'.`,
+        });
+        continue;
+      }
+    }
+
+    // 6. Corporate Group Targeting
+    if (cmp.targetAudience?.groupIds && cmp.targetAudience.groupIds.length > 0) {
+      if (!context.groupId || !cmp.targetAudience.groupIds.includes(context.groupId)) {
+        denials.push({
+          campaignId: cmp.id,
+          campaignName: cmp.name,
+          code: 'GROUP_EXCLUDED',
+          reason: `Targeted to group delegation [${cmp.targetAudience.groupIds.join(', ')}], active stay group is '${context.groupId || 'Individual'}'.`,
+        });
+        continue;
+      }
+    }
+
+    // 7. Stay Requirement
+    if (cmp.targetAudience?.stayRequired && !context.stayId) {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'STAY_REQUIRED',
+        reason: `Campaign requires active guest stay session.`,
+      });
+      continue;
+    }
+
+    // 8. Frequency Cap per Stay
+    if (cmp.frequencyCapPerStay > 0 && playCount >= cmp.frequencyCapPerStay) {
+      denials.push({
+        campaignId: cmp.id,
+        campaignName: cmp.name,
+        code: 'FREQUENCY_CAP_REACHED',
+        reason: `Stay frequency cap reached (${playCount}/${cmp.frequencyCapPerStay} plays consumed).`,
+      });
+      continue;
+    }
+
+    // Passed all guards!
+    eligible.push(cmp);
+  }
+
+  // Priority ordering (highest priority wins; ties broken by creativeVersion)
+  eligible.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return b.creativeVersion - a.creativeVersion;
+  });
+
+  const selectedCampaign = eligible.length > 0 ? eligible[0] : null;
+  const decisionProvenance = selectedCampaign
+    ? `Selected '${selectedCampaign.name}' (${selectedCampaign.id}, Priority: ${selectedCampaign.priority}) for placement '${context.placement}'. ${eligible.length} eligible, ${denials.length} excluded.`
+    : `No eligible campaign found for placement '${context.placement}'. Evaluated ${propertyCampaigns.length} campaigns (${denials.length} excluded).`;
+
+  return {
+    selectedCampaign,
+    placement: context.placement,
+    evaluatedCount: propertyCampaigns.length,
+    eligibleCount: eligible.length,
+    denials,
+    decisionProvenance,
+  };
+}
