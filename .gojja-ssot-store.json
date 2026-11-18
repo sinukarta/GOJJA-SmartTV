@@ -375,7 +375,7 @@
         "categoryLabel": "Boutique Heritage Sanctuary • 6 Rooms / 7 TVs",
         "city": "Yogyakarta",
         "timezone": "Asia/Jakarta",
-        "defaultLocale": "id",
+        "defaultLocale": "en",
         "experienceProfile": "Hospitality",
         "heroImageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
         "logoText": "HOTEL ARUNIKA",
@@ -396,7 +396,7 @@
         },
         "wifiSsid": "Arunika-Sanctuary-5G",
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
-        "resourceVersion": 4,
+        "resourceVersion": 5,
         "heroMediaType": "image",
         "promoMediaType": "video",
         "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
@@ -1111,7 +1111,7 @@
         "arrivalUtc": "2026-11-01T07:00:00Z",
         "departureUtc": "2026-11-03T04:00:00Z",
         "status": "InHouse",
-        "contextVersion": 2,
+        "contextVersion": 15,
         "ottCleanupStatus": "NotApplicable"
       },
       {
@@ -2085,6 +2085,188 @@
     ],
     "auditEvents": [
       {
+        "id": "AUD-1794994710396-692",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'id' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794994705988-192",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'ja-JP' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794994703578-907",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'zh-CN' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794994698090-201",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'en' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794994696450-114",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'zh-CN' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984567048-49",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'en' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984566072-532",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'zh-CN' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984563127-958",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'ja-JP' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984559883-590",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'zh-CN' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984532615-191",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'en' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984531649-522",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'id' (1 active stay(s))."
+      },
+      {
+        "id": "AUD-1794984500305-413",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "marketplace.order_requested",
+        "targetRef": "ORD-f5ca08ca-0e2e-45e9-baef-d7421fbb0749",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "SERVICE_REQUESTED",
+        "details": "Guest placed service request 'Kayumanis Signature Indonesian Rijsttafel' (ORD-f5ca08ca-0e2e-45e9-baef-d7421fbb0749) for Room 101 · Guest B*** A***. Redacted guest ref generated."
+      },
+      {
+        "id": "AUD-1794982784884-922",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'en' (1 active stay(s), property default updated)."
+      },
+      {
+        "id": "AUD-1794982729118-430",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "stays.manage",
+        "targetRef": "ROOM-101",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "TV_LOCALE_UPDATED",
+        "details": "Updated SmartTV Guest Interface language to 'zh-CN' (1 active stay(s))."
+      },
+      {
         "id": "AUD-1794975146616-613",
         "environmentId": "DEMO",
         "timestampUtc": "2026-11-02T07:00:00Z",
@@ -2441,9 +2623,56 @@
         "fulfilmentType": "QR_HANDOFF",
         "status": "Active",
         "featured": false
+      },
+      {
+        "id": "MKT-LAUNDRY-P01",
+        "propertyId": "P-01",
+        "type": "InHouseService",
+        "title": "Laundry & Garment Care",
+        "description": "Laundry and garment care during your stay.",
+        "localeContent": {
+          "id": {
+            "title": "Laundry & Perawatan Pakaian",
+            "description": "Layanan cuci dan perawatan pakaian. Hubungi resepsionis untuk jadwal dan tarif.",
+            "actionLabel": "Minta layanan laundry"
+          },
+          "en": {
+            "title": "Laundry & Garment Care",
+            "description": "Laundry and garment care. Contact reception for schedules and prices.",
+            "actionLabel": "Request laundry"
+          },
+          "zh-CN": {
+            "title": "洗衣与衣物护理",
+            "description": "洗衣和衣物护理。时间和价格请咨询前台。",
+            "actionLabel": "申请洗衣服务"
+          },
+          "ja-JP": {
+            "title": "ランドリー・衣類ケア",
+            "description": "衣類の洗濯とケア。営業時間と料金はフロントにお問い合わせください。",
+            "actionLabel": "ランドリーを依頼"
+          }
+        },
+        "availabilitySchedule": "08:00–20:00",
+        "fulfilmentType": "STAFF_TICKET",
+        "status": "Active",
+        "featured": false
       }
     ],
     "serviceOrders": [
+      {
+        "id": "ORD-f5ca08ca-0e2e-45e9-baef-d7421fbb0749",
+        "itemId": "MKT-01",
+        "itemTitle": "Kayumanis Signature Indonesian Rijsttafel",
+        "propertyId": "P-01",
+        "roomId": "ROOM-101",
+        "stayId": "S-01",
+        "guestDisplayRef": "Room 101 · Guest B*** A***",
+        "rawGuestName": "Bapak Aditya",
+        "status": "Requested",
+        "requestedAtUtc": "2026-11-02T07:00:00Z",
+        "notes": "Requested explicitly through TV preview",
+        "fulfilmentType": "STAFF_TICKET"
+      },
       {
         "id": "ORD-2026-001",
         "itemId": "MKT-01",

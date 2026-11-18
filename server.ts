@@ -1,3 +1,6 @@
+import {validateCatalogPresentation} from './src/data/tvCatalog';
+import { validateTvExperience, TV_LOCALES, resolveTvExperience, hasEntertainmentEntitlement, ENTERTAINMENT_APPS } from './src/data/tvExperience';
+import { randomUUID } from 'node:crypto';
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import fs from 'node:fs';
@@ -97,7 +100,7 @@ import {
 } from './src/data/mockData.ts';
 
 const execFileAsync = promisify(execFile);
-const STORE_FILE = path.resolve(process.cwd(), '.gojja-ssot-store.json');
+const STORE_FILE = process.env.GOJJA_STORE_FILE || path.resolve(process.cwd(), '.gojja-ssot-store.json');
 
 interface WorkspaceData {
   userAccounts: UserAccount[];
@@ -301,6 +304,15 @@ function loadStore(): SSOTStore {
         if (!parsed.DEMO.propertyAdAcceptances) parsed.DEMO.propertyAdAcceptances = clone(INITIAL_PROPERTY_AD_ACCEPTANCES);
         if (!parsed.DEMO.marketplaceItems) parsed.DEMO.marketplaceItems = clone(INITIAL_MARKETPLACE_ITEMS);
         if (!parsed.DEMO.serviceOrders) parsed.DEMO.serviceOrders = clone(INITIAL_SERVICE_ORDERS);
+        const laundrySeed = INITIAL_MARKETPLACE_ITEMS.find(i => i.id === 'MKT-LAUNDRY-P01');
+        if (laundrySeed && !parsed.DEMO.marketplaceItems.some(i => i.id === laundrySeed.id)) parsed.DEMO.marketplaceItems.push(clone(laundrySeed));
+        const demoAppSub = parsed.DEMO.subscriptions.find(sub => sub.propertyId === 'P-01');
+        if (demoAppSub && !demoAppSub.entertainmentAppsEntitlement) {
+          demoAppSub.entertainmentAppsEntitlement = {status:'Active',mode:'DEMO',reference:'DEMO-ADDON-PREVIEW'};
+          const demoProperty = parsed.DEMO.properties.find(p => p.id === 'P-01');
+          if (demoProperty) demoProperty.tvExperience = {...resolveTvExperience(demoProperty.tvExperience),appsEnabled:true};
+        }
+
         if (!parsed.LIVE_LAB.adOffers) parsed.LIVE_LAB.adOffers = clone(INITIAL_AD_OFFERS);
         if (!parsed.LIVE_LAB.propertyAdAcceptances) parsed.LIVE_LAB.propertyAdAcceptances = [];
         if (!parsed.LIVE_LAB.marketplaceItems) parsed.LIVE_LAB.marketplaceItems = clone(INITIAL_MARKETPLACE_ITEMS);
@@ -1239,6 +1251,7 @@ async function startServer() {
       welcomeHeadline,
       welcomeSubline,
       defaultLocale,
+      tvExperience,
     } = req.body;
     const auth = authorizeAction(req, 'branding.edit', propertyId);
     if (!auth.allowed) {
@@ -1247,6 +1260,21 @@ async function startServer() {
     const { user, role, environmentId, workspace } = getRequestContext(req);
     const prop = workspace.properties.find((p) => p.id === propertyId);
     if (!prop) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Property not found.' });
+
+    const promoChanged = (promoMediaUrl !== undefined && String(promoMediaUrl).trim() !== (prop.promoMediaUrl || '')) || (promoTitle !== undefined && String(promoTitle).trim() !== (prop.promoTitle || '')) || (promoMediaType !== undefined && promoMediaType !== prop.promoMediaType);
+    let tvDraft;
+    if (tvExperience !== undefined) {
+      try { tvDraft = validateTvExperience(tvExperience); }
+      catch (error) { return res.status(422).json({code:'VALIDATION_FAILED',message:error instanceof Error ? error.message : 'Invalid TV settings'}); }
+    }
+    if (tvDraft) {
+      const previous = resolveTvExperience(prop.tvExperience);
+      const appsChanged = previous.appsEnabled !== tvDraft.appsEnabled || JSON.stringify(previous.apps) !== JSON.stringify(tvDraft.apps) || JSON.stringify(previous.appProfiles) !== JSON.stringify(tvDraft.appProfiles);
+      if (appsChanged && !['R-01','R-02','R-10','R-11'].includes(role.id)) return res.status(403).json({code:'PERMISSION_DENIED',message:'Only property administrators can configure entertainment apps.'});
+      if (tvDraft.appsEnabled && !hasEntertainmentEntitlement(workspace.subscriptions.find(sub => sub.propertyId === propertyId),environmentId)) return res.status(403).json({code:'ADDON_REQUIRED',message:'An active GOJJA entertainment add-on is required.'});
+      prop.tvExperience = tvDraft;
+      if (tvDraft.wifi.ssid) prop.wifiSsid = tvDraft.wifi.ssid;
+    }
 
     if (logoText !== undefined) prop.logoText = String(logoText).trim();
     if (logoSubtitle !== undefined) prop.logoSubtitle = String(logoSubtitle).trim();
@@ -1269,8 +1297,8 @@ async function startServer() {
     prop.resourceVersion += 1;
 
     // Also sync primary active campaign for this property if promoMediaUrl is updated
-    if (promoMediaUrl) {
-      const activeCmp = workspace.campaigns.find((c) => c.propertyId === propertyId && c.status === 'Active');
+    if (promoChanged && promoMediaUrl) {
+      const activeCmp = workspace.campaigns.find((c) => c.propertyId === propertyId && c.status === 'Active' && !c.externalPaid);
       if (activeCmp) {
         activeCmp.mediaUrl = String(promoMediaUrl).trim();
         activeCmp.mediaType = promoMediaType === 'video' ? 'video' : 'image';
@@ -1510,6 +1538,7 @@ async function startServer() {
       locale = 'id',
       isPublicArea = false,
       currentPlayCountThisStay = 0,
+      externalPaid,
     } = req.body;
     const { workspace } = getRequestContext(req);
 
@@ -1525,7 +1554,7 @@ async function startServer() {
         currentPlayCountThisStay,
         propertyAdAcceptances: workspace.propertyAdAcceptances || [],
       },
-      workspace.campaigns
+      typeof externalPaid === 'boolean' ? workspace.campaigns.filter(c => !!c.externalPaid === externalPaid) : workspace.campaigns
     );
 
     return res.json({ ok: true, ...result });
@@ -1868,6 +1897,34 @@ async function startServer() {
     });
   });
 
+  app.post('/api/marketplace/services/upsert-item', (req: Request, res: Response) => {
+    const {propertyId, item: input} = req.body;
+    const auth = authorizeAction(req, 'branding.edit', propertyId);
+    if (!auth.allowed) return res.status(403).json({code:auth.reasonCode,message:auth.message});
+    const {workspace,environmentId,user,role} = getRequestContext(req);
+    if (!workspace.properties.some(p => p.id === propertyId) || !input || typeof input !== 'object') return res.status(422).json({code:'VALIDATION_FAILED',message:'Invalid property or service.'});
+    const existing = input.id ? workspace.marketplaceItems.find(i => i.id === input.id) : undefined;
+    if (input.id && (!existing || existing.propertyId !== propertyId)) return res.status(404).json({code:'NOT_FOUND',message:'Service not found in this property.'});
+    if (!['InHouseService','ThirdPartyExperience','F&B','Transport','Wellness'].includes(input.type) || !['Active','Paused','Archived'].includes(input.status)) return res.status(422).json({code:'VALIDATION_FAILED',message:'Invalid service category or status.'});
+    for (const loc of TV_LOCALES) for (const key of ['title','description','actionLabel']) {
+      const value = input.localeContent?.[loc]?.[key];
+      if (typeof value !== 'string' || !value.trim() || value.length > 2000) return res.status(422).json({code:'VALIDATION_FAILED',message:`Provide ${key} for ${loc}.`});
+    }
+    if (typeof input.availabilitySchedule !== 'string' || input.availabilitySchedule.length > 200 || (input.priceHint !== undefined && (typeof input.priceHint !== 'string' || input.priceHint.length > 200))) return res.status(422).json({code:'VALIDATION_FAILED',message:'Invalid availability or price.'});
+    let presentation:ReturnType<typeof validateCatalogPresentation>;
+    try{presentation=validateCatalogPresentation(input,existing);}catch(error){return res.status(422).json({code:'VALIDATION_FAILED',message:error instanceof Error?error.message:'Invalid catalog media.'});}
+    const item: MarketplaceItem = {
+      id: existing?.id || `MKT-${randomUUID()}`, propertyId, type:input.type,
+      title:input.localeContent.en.title.trim(), description:input.localeContent.en.description.trim(),
+      localeContent: Object.fromEntries(TV_LOCALES.map(loc => [loc, {title: input.localeContent[loc].title.trim(), description:input.localeContent[loc].description.trim(), actionLabel:input.localeContent[loc].actionLabel.trim()}])) as MarketplaceItem['localeContent'],
+      status:input.status, availabilitySchedule:input.availabilitySchedule.trim(), priceHint:input.priceHint?.trim(), fulfilmentType:existing?.fulfilmentType || 'STAFF_TICKET',
+      ...presentation, partnerId:existing?.partnerId, partnerName:existing?.partnerName, featured:existing?.featured || false,
+    };
+    workspace.marketplaceItems = [item, ...workspace.marketplaceItems.filter(i => i.id !== item.id)];
+    saveStore(store); recordAudit(environmentId,user.alias,role.id,'branding.edit',item.id,propertyId,'ALLOW','SERVICE_CATALOG_SAVED',`Updated hotel service ${item.id}`);
+    return res.json({ok:true,item});
+  });
+
   // Create Guest Service Order (From SmartTV in-room app or concierge desk)
   app.post('/api/marketplace/services/create-order', (req: Request, res: Response) => {
     const { itemId, propertyId = 'P-01', roomId, stayId, guestName, notes } = req.body;
@@ -1875,6 +1932,11 @@ async function startServer() {
 
     const item = workspace.marketplaceItems.find((m) => m.id === itemId);
     if (!item) return res.status(404).json({ code: 'NOT_FOUND', message: `MarketplaceItem '${itemId}' not found.` });
+
+    if (item.propertyId !== propertyId || item.status !== 'Active') return res.status(422).json({code:'VALIDATION_FAILED',message:'Service is not active in this property.'});
+    const requestRoom = roomId ? workspace.rooms.find(r => r.id === roomId && r.propertyId === propertyId) : undefined;
+    if (roomId && !requestRoom) return res.status(422).json({code:'VALIDATION_FAILED',message:'Room does not belong to this property.'});
+    if (stayId && !workspace.stays.some(s => s.id === stayId && s.roomId === roomId && s.status === 'InHouse')) return res.status(422).json({code:'VALIDATION_FAILED',message:'Stay is not active in this room.'});
 
     const rawGuestName =
       guestName ||
@@ -1889,7 +1951,7 @@ async function startServer() {
     const guestDisplayRef = `Room ${roomCode} · Guest ${masked}`;
 
     const newOrder: ServiceOrder = {
-      id: `ORD-${Date.now().toString().slice(-6)}`,
+      id: `ORD-${randomUUID()}`,
       itemId: item.id,
       itemTitle: item.title,
       propertyId,
@@ -2454,6 +2516,37 @@ async function startServer() {
       reasonCode: 'ENTITLEMENT_VERIFIED',
       entitlementSource: effectiveCh?.entitlementSource || 'Hospitality Headend',
     });
+  });
+
+  // Entertainment URLs are allowlisted. Native-device launching is a separate adapter.
+  app.post('/api/tv/open-app', (req: Request, res: Response) => {
+    const {endpointId,appId} = req.body;
+    const {workspace,user,environmentId} = getRequestContext(req);
+    const ep = workspace.endpoints.find(e => e.id === endpointId);
+    if (!ep || !user.propertyIds.includes(ep.propertyId) || !user.allowedEnvironments.includes(environmentId)) return res.status(403).json({code:'SCOPE_DENIED',message:'Endpoint is outside the current property scope.'});
+    const prop = workspace.properties.find(p => p.id === ep.propertyId);
+    const app = ENTERTAINMENT_APPS.find(a => a.id === appId);
+    if (!prop || !app) return res.status(404).json({code:'NOT_FOUND',message:'App not found.'});
+    const config = resolveTvExperience(prop.tvExperience);
+    if (!hasEntertainmentEntitlement(workspace.subscriptions.find(sub => sub.propertyId === ep.propertyId),environmentId) || !config.appsEnabled || !config.apps[app.id]) return res.status(403).json({code:'APP_DISABLED',message:'This app or its paid add-on is disabled for the property.'});
+    if (ep.connection !== 'Online') return res.status(409).json({code:'ENDPOINT_OFFLINE',message:'The TV is offline.'});
+    return res.json({ok:true,mode:'NATIVE_MANAGED_REQUIRED',owner:config.appProfiles[app.id].owner,requiresNativeLauncher:true});
+  });
+
+  app.post('/api/properties/entertainment/license', (req: Request, res: Response) => {
+    const {propertyId,status,reference} = req.body;
+    const {workspace,user,role,environmentId} = getRequestContext(req);
+    if (!['R-01','R-02'].includes(role.id)) return res.status(403).json({code:'PERMISSION_DENIED',message:'Only GOJJA HQ can grant paid feature entitlement.'});
+    const auth = authorizeAction(req,'subscriptions.manage',propertyId);
+    if (!auth.allowed) return res.status(403).json({code:auth.reasonCode,message:auth.message});
+    if (!['Active','Inactive'].includes(status) || typeof reference !== 'string' || !reference.trim() || reference.length > 200) return res.status(422).json({code:'VALIDATION_FAILED',message:'Provide a valid entitlement reference and status.'});
+    const subscription = workspace.subscriptions.find(sub => sub.propertyId === propertyId);
+    const prop = workspace.properties.find(p => p.id === propertyId);
+    if (!subscription || !prop) return res.status(404).json({code:'NOT_FOUND',message:'Property subscription not found.'});
+    subscription.entertainmentAppsEntitlement = {status,mode:environmentId === 'DEMO'?'DEMO':'CONTRACT',reference:reference.trim()};
+    if (status === 'Inactive') prop.tvExperience = {...resolveTvExperience(prop.tvExperience),appsEnabled:false};
+    saveStore(store); recordAudit(environmentId,user.alias,role.id,'subscriptions.manage',subscription.id,propertyId,'ALLOW','ENTERTAINMENT_LICENSE_CHANGED','Entertainment add-on entitlement updated; no payment executed.');
+    return res.json({ok:true,entitlement:subscription.entertainmentAppsEntitlement});
   });
 
   // 9. Release Technical Approval & Property Installation Permission (Two-Stage Gate) + M09 Job State Machine
@@ -3830,8 +3923,8 @@ async function startServer() {
   }
 
   const PORT = Number(process.env.PORT) || 3000;
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`GOJJA SmartTV Full-Stack Server listening on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
+    console.log(`GOJJA SmartTV Full-Stack Server listening on http://${process.env.HOST || '0.0.0.0'}:${PORT}`);
   });
 }
 

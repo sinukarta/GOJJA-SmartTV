@@ -1,3 +1,5 @@
+import { resolveTvExperience } from './tvExperience';
+import type { TvExperienceSettings, EntertainmentEntitlement } from './tvExperience';
 /**
  * GOJJA SmartTV — Unified Single Source of Truth (SSOT) Seed & Domain Data
  * Implements Prototype Specification & Build Brief v1.0, Master PRD v1.0,
@@ -73,6 +75,7 @@ export interface Customer {
 }
 
 export interface Property {
+  tvExperience?: TvExperienceSettings;
   id: string;
   customerId: string;
   partnerId: string | null;
@@ -150,6 +153,7 @@ export interface InvoiceLine {
 }
 
 export interface Subscription {
+  entertainmentAppsEntitlement?: EntertainmentEntitlement;
   id: string;
   customerId: string;
   propertyId: string;
@@ -536,6 +540,10 @@ export type MarketplaceItemType =
 export type FulfilmentType = 'QR_HANDOFF' | 'STAFF_TICKET' | 'PARTNER_API' | 'MANUAL';
 
 export interface MarketplaceItem {
+  tvIcon?: import('./tvCatalog').TvCatalogIconId;
+  videoUrl?: string;
+  locationLabel?: string;
+  exploreCategory?: import('./tvCatalog').ExploreCategory;
   id: string;
   propertyId: string;
   partnerId?: string;
@@ -696,31 +704,31 @@ export const CURATED_BRAND_MEDIA_PRESETS = {
     },
     {
       id: 'bg-resort-video-1',
-      label: 'Tropical Resort Coastline Aerial (MP4 Video Loop)',
+      label: 'Nature playback test (CC0 MP4)',
       type: 'video' as const,
-      url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-city-traffic-at-night-11-large.mp4',
+      url: '/assets/tv/demo-flower.mp4',
     },
     {
       id: 'bg-resort-video-2',
-      label: 'Luxury Poolside & Palm Breeze (MP4 Video Loop)',
+      label: 'HLS test stream (Big Buck Bunny)',
       type: 'video' as const,
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     },
   ],
   promoMedia: [
     {
       id: 'promo-video-spa',
-      label: 'Royal Spa & Wellness Experience (MP4 Promo Video)',
+      label: 'Local CC0 video — playback test',
       type: 'video' as const,
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      title: 'Royal Javanese Spa • Complimentary 30-Min Welcome Ritual',
+      url: '/assets/tv/demo-flower.mp4',
+      title: 'Video demo CC0 — ganti dengan video hotel',
     },
     {
       id: 'promo-video-dining',
-      label: 'Fine Dining & Sunset Lounge (MP4 Promo Video)',
+      label: 'HLS video — playback test',
       type: 'video' as const,
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoy.mp4',
-      title: 'Kayumanis Chef Tasting Menu • Reserve via In-Room TV',
+      url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+      title: 'HLS test stream — bukan siaran hotel',
     },
     {
       id: 'promo-image-sanctuary',
@@ -1456,6 +1464,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
 
 export const INITIAL_PROPERTIES: Property[] = [
   {
+    tvExperience: {...resolveTvExperience(),appsEnabled:true},
     id: 'P-01',
     customerId: 'C-01',
     partnerId: 'ISP-A',
@@ -1568,6 +1577,7 @@ export const INITIAL_PROPERTIES: Property[] = [
 
 export const INITIAL_SUBSCRIPTIONS: Subscription[] = [
   {
+    entertainmentAppsEntitlement: {status:'Active',mode:'DEMO',reference:'DEMO-ADDON-PREVIEW'},
     id: 'SUB-01',
     customerId: 'C-01',
     propertyId: 'P-01',
@@ -2883,6 +2893,39 @@ export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
     status: 'Active',
     featured: false,
   },
+  {
+  "id": "MKT-LAUNDRY-P01",
+  "propertyId": "P-01",
+  "type": "InHouseService",
+  "title": "Laundry & Garment Care",
+  "description": "Laundry and garment care during your stay.",
+  "localeContent": {
+    "id": {
+      "title": "Laundry & Perawatan Pakaian",
+      "description": "Layanan cuci dan perawatan pakaian. Hubungi resepsionis untuk jadwal dan tarif.",
+      "actionLabel": "Minta layanan laundry"
+    },
+    "en": {
+      "title": "Laundry & Garment Care",
+      "description": "Laundry and garment care. Contact reception for schedules and prices.",
+      "actionLabel": "Request laundry"
+    },
+    "zh-CN": {
+      "title": "洗衣与衣物护理",
+      "description": "洗衣和衣物护理。时间和价格请咨询前台。",
+      "actionLabel": "申请洗衣服务"
+    },
+    "ja-JP": {
+      "title": "ランドリー・衣類ケア",
+      "description": "衣類の洗濯とケア。営業時間と料金はフロントにお問い合わせください。",
+      "actionLabel": "ランドリーを依頼"
+    }
+  },
+  "availabilitySchedule": "08:00–20:00",
+  "fulfilmentType": "STAFF_TICKET",
+  "status": "Active",
+  "featured": false
+},
 ];
 
 export const INITIAL_SERVICE_ORDERS: ServiceOrder[] = [

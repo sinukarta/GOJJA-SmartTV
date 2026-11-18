@@ -1,3 +1,7 @@
+import {StudioSection} from './components/StudioSection';
+import { TvEntertainmentSettings } from './components/TvEntertainmentSettings';
+import { TvStudioSettings } from './components/TvStudioSettings';
+import { resolveTvExperience, hasEntertainmentEntitlement, resolveLegacyDemoMedia, type TvExperienceSettings } from './data/tvExperience';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   LayoutDashboard,
@@ -349,9 +353,9 @@ type NavTabId =
 function getAllowedTabsForRole(roleId: RoleId): NavTabId[] {
   switch (roleId) {
     case 'R-01': // Product / Business Owner (GOJJA HQ)
-      return ['overview', 'tenants', 'branding', 'campaigns', 'marketplace', 'channels', 'analytics', 'users', 'billing', 'settings'];
+      return ['overview', 'tenants', 'tv-services', 'branding', 'campaigns', 'marketplace', 'channels', 'analytics', 'users', 'billing', 'settings'];
     case 'R-02': // Platform Administrator (GOJJA HQ)
-      return ['overview', 'tenants', 'rooms', 'devices', 'branding', 'campaigns', 'marketplace', 'channels', 'users', 'billing', 'support-qa', 'settings'];
+      return ['overview', 'tenants', 'rooms', 'devices', 'tv-services', 'branding', 'campaigns', 'marketplace', 'channels', 'users', 'billing', 'support-qa', 'settings'];
     case 'R-03': // Technical Administrator (GOJJA HQ)
       return ['overview', 'devices', 'updates', 'support-qa', 'users'];
     case 'R-04': // Security Administrator (GOJJA HQ)
@@ -629,15 +633,16 @@ export default function App() {
     '/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png'
   );
   const [brandHeroVideoUrl, setBrandHeroVideoUrl] = useState<string>(
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    '/assets/tv/demo-flower.mp4'
   );
   const [brandPromoMediaType, setBrandPromoMediaType] = useState<'image' | 'video'>('video');
   const [brandPromoMediaUrl, setBrandPromoMediaUrl] = useState<string>(
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    '/assets/tv/demo-flower.mp4'
   );
   const [brandPromoTitle, setBrandPromoTitle] = useState<string>(
     'Royal Javanese Spa • Complimentary 30-Min Welcome Ritual'
   );
+  const [brandTvExperience, setBrandTvExperience] = useState<TvExperienceSettings>(() => resolveTvExperience());
   const [brandAccentColor, setBrandAccentColor] = useState<string>('#DCC6A1');
   const [brandPrimaryColor, setBrandPrimaryColor] = useState<string>('#1E3A2F');
   const [brandLocaleTab, setBrandLocaleTab] = useState<GuestLocale>('en');
@@ -664,7 +669,7 @@ export default function App() {
   const [newCmpPlacement, setNewCmpPlacement] = useState<Campaign['placement']>('home_hero');
   const [newCmpMediaType, setNewCmpMediaType] = useState<'image' | 'video'>('video');
   const [newCmpMediaUrl, setNewCmpMediaUrl] = useState<string>(
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    '/assets/tv/demo-flower.mp4'
   );
   const [newCmpCta, setNewCmpCta] = useState<string>('Reserve via Concierge');
 
@@ -891,11 +896,12 @@ export default function App() {
         ...(options.headers as Record<string, string>),
       };
 
+      const authoritative = /^\/api\/(?:tv\/(?:open-channel|open-app)|properties\/entertainment\/license|stays\/locale|branding\/draft|campaigns\/evaluate-eligibility|marketplace\/services\/(?:create-order|upsert-item))/.test(pathUrl);
       try {
         const res = await fetch(pathUrl, { ...options, headers });
         if (!res.ok) {
           // If 404 on static deployment (like Vercel), gracefully fallback to local client emulation
-          if (res.status === 404) {
+          if (res.status === 404 && !authoritative) {
             return handleClientSideFallbackApi(pathUrl, options, persona);
           }
           const text = await res.text();
@@ -909,7 +915,8 @@ export default function App() {
         }
         return await res.json();
       } catch (err: unknown) {
-        // If network failed completely or on static host, use client-side fallback
+        if (authoritative) throw err;
+        // Non-TV legacy static-host emulation remains explicitly separate.
         console.warn(`[Client-Side SSOT] Route ${pathUrl} handled locally:`, err);
         return handleClientSideFallbackApi(pathUrl, options, persona);
       }
@@ -926,13 +933,14 @@ export default function App() {
       setBrandLogoImageUrl(propToUse.logoImageUrl || '');
       setBrandHeroMediaType(propToUse.heroMediaType || 'image');
       setBrandHeroImageUrl(propToUse.heroImageUrl);
-      if (propToUse.heroVideoUrl) setBrandHeroVideoUrl(propToUse.heroVideoUrl);
+      if (propToUse.heroVideoUrl) setBrandHeroVideoUrl(resolveLegacyDemoMedia(propToUse.heroVideoUrl));
       setBrandPromoMediaType(propToUse.promoMediaType || 'video');
-      if (propToUse.promoMediaUrl) setBrandPromoMediaUrl(propToUse.promoMediaUrl);
+      if (propToUse.promoMediaUrl) setBrandPromoMediaUrl(resolveLegacyDemoMedia(propToUse.promoMediaUrl));
       if (propToUse.promoTitle) setBrandPromoTitle(propToUse.promoTitle);
       setBrandAccentColor(propToUse.accentColor);
       setBrandPrimaryColor(propToUse.primaryColor);
       setBrandHeadline(propToUse.welcomeHeadline);
+      setBrandTvExperience(resolveTvExperience(propToUse.tvExperience,propToUse.wifiSsid));
       if (propToUse.launcherConfig?.disabledPackages?.length) {
         setCleanTvDisabledPackages(propToUse.launcherConfig.disabledPackages);
       }
@@ -1191,6 +1199,32 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
   const modalStay = data.stays.find((s) => s.roomId === modalRoom.id && s.status === 'InHouse');
   const modalGroup = data.corporateGroups.find((g) => g.id === modalStay?.groupId);
 
+  const entertainmentLicensed = hasEntertainmentEntitlement(data.subscriptions.find(s => s.propertyId === activeProperty.id), environmentId);
+  const tvExperienceBindings = {
+    entertainmentLicensed,
+    onOpenEntertainmentApp: async (appId: string): Promise<{url:string}> => {
+      return await apiCall('/api/tv/open-app', {method:'POST',body:JSON.stringify({endpointId:modalEndpoint.id,appId})});
+    },
+    contracts: data.contracts,
+    marketplaceItems: data.marketplaceItems || [],
+    serviceOrders: data.serviceOrders || [],
+    onRequestServiceOrder: async (itemId: string, _itemTitle: string) => {
+      const result = await apiCall('/api/marketplace/services/create-order', {
+        method: 'POST', body: JSON.stringify({itemId, propertyId: activeProperty.id, roomId: modalRoom.id, stayId: modalStay?.id, notes: 'Requested explicitly through TV preview'}),
+      });
+      if (!result.order) throw new Error('Server did not confirm the service request.');
+      setBootstrap(prev => prev ? {...prev, data: {...prev.data, serviceOrders: [result.order, ...(prev.data.serviceOrders || [])]}} : prev);
+    },
+    onEvaluateCampaign: async (external: boolean): Promise<Campaign | null> => {
+      const candidate = data.campaigns.find(c => c.propertyId === activeProperty.id && !!c.externalPaid === external);
+      const result = await apiCall('/api/campaigns/evaluate-eligibility', {
+        method: 'POST', body: JSON.stringify({propertyId: activeProperty.id, placement: candidate?.placement || 'home_hero', roomClass: modalRoom.roomClass, stayId: modalStay?.id, groupId: modalStay?.groupId, locale: brandLocaleTab, externalPaid: external}),
+      });
+      return result.selectedCampaign || null;
+    },
+  };
+
+
   if (viewMode === 'landing') {
     return (
       <>
@@ -1206,6 +1240,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
         />
         {tvModalEndpointId && modalEndpoint && (
           <TvGuestAppView
+                      {...tvExperienceBindings}
             property={activeProperty}
             room={modalRoom}
             endpoint={modalEndpoint}
@@ -1214,21 +1249,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             channels={data.channels}
             campaigns={data.campaigns}
             marketplaceItems={data.marketplaceItems || []}
-            onRequestServiceOrder={async (itemId, itemTitle) => {
-              try {
-                await apiCall('/api/marketplace/services/create-order', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    itemId,
-                    propertyId: activeProperty.id,
-                    notes: `Requested '${itemTitle}' from Login Preview`,
-                  }),
-                });
-                await fetchBootstrap();
-              } catch {
-                // ignore
-              }
-            }}
+
             onSelectLocale={async (nextTvLoc) => {
               setBrandLocaleTab(nextTvLoc);
               try {
@@ -1335,13 +1356,14 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   setBrandLogoImageUrl(p.logoImageUrl || '');
                   setBrandHeroMediaType(p.heroMediaType || 'image');
                   setBrandHeroImageUrl(p.heroImageUrl);
-                  if (p.heroVideoUrl) setBrandHeroVideoUrl(p.heroVideoUrl);
+                  if (p.heroVideoUrl) setBrandHeroVideoUrl(resolveLegacyDemoMedia(p.heroVideoUrl));
                   setBrandPromoMediaType(p.promoMediaType || 'video');
-                  if (p.promoMediaUrl) setBrandPromoMediaUrl(p.promoMediaUrl);
+                  if (p.promoMediaUrl) setBrandPromoMediaUrl(resolveLegacyDemoMedia(p.promoMediaUrl));
                   if (p.promoTitle) setBrandPromoTitle(p.promoTitle);
                   setBrandAccentColor(p.accentColor);
                   setBrandPrimaryColor(p.primaryColor);
                   setBrandHeadline(p.welcomeHeadline);
+                  setBrandTvExperience(resolveTvExperience(p.tvExperience,p.wifiSsid));
                   setBrandLocaleTab(p.defaultLocale || 'id');
                   if (p.launcherConfig?.disabledPackages?.length) {
                     setCleanTvDisabledPackages(p.launcherConfig.disabledPackages);
@@ -2759,7 +2781,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           {/* TAB 4: BRAND STUDIO + REAL MEDIA UPLOADS + GOJJACLEANTV ADB LAUNCHER  */}
           {/* ===================================================================== */}
           {activeTab === 'branding' && (
-            <div className="space-y-6">
+            <div className="brand-studio space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{ct.brandStudioTitle}</h1>
@@ -2773,13 +2795,13 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
               </div>
 
               {/* Two-Column Split Editor + Live Embedded TV Home Preview */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <div className="studio-grid">
                 {/* Left Column: Real Media Uploaders (Logo, Hero Background Video/Image, Promo Video/Image, Colors, Locales) */}
-                <div className="lg:col-span-5 p-5 sm:p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-6">
+                <div className="studio-editor space-y-4">
                   {/* 1. REAL HOTEL LOGO UPLOAD + PRESETS + WORDMARK */}
-                  <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
+                  <StudioSection title={ct.brandStep1} initialOpen>
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep1}</label>
+
                       {brandLogoImageUrl && (
                         <button
                           type="button"
@@ -2870,12 +2892,12 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </StudioSection>
 
                   {/* 2. HERO WELCOME BACKGROUND: IMAGE OR LOOPING VIDEO UPLOAD */}
-                  <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
+                  <StudioSection title={ct.brandStep2}>
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep2}</label>
+
                       <div className="inline-flex rounded-lg bg-[var(--cms-bg)] p-0.5 border border-[var(--cms-divider)] text-[11px]">
                         <button
                           type="button"
@@ -2965,12 +2987,12 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </StudioSection>
 
                   {/* 3. PROMOTIONAL VIDEO OR IMAGE SHOWCASE UPLOAD (Syncs with 04 Promo Screen) */}
-                  <div className="space-y-3 pb-4 border-b border-[var(--cms-divider)]">
+                  <StudioSection title={ct.brandStep3}>
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep3}</label>
+
                       <div className="inline-flex rounded-lg bg-[var(--cms-bg)] p-0.5 border border-[var(--cms-divider)] text-[11px]">
                         <button
                           type="button"
@@ -3058,11 +3080,11 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </StudioSection>
 
                   {/* 4. Theme Colors & 4-Locale SmartTV Guest Setup */}
-                  <div className="space-y-3">
-                    <label className="block text-xs font-bold uppercase tracking-wider">{ct.brandStep4}</label>
+                  <StudioSection title={ct.brandStep4}>
+
                     <p className="text-[11px] text-[var(--cms-text-secondary)] leading-relaxed">
                       {ct.tvLocaleControlSub}
                     </p>
@@ -3158,11 +3180,26 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       <Globe className="w-3.5 h-3.5" />
                       <span>{ct.applyTvLocaleBtn}: {brandLocaleTab.toUpperCase()}</span>
                     </button>
-                  </div>
+                  </StudioSection>
+                <TvStudioSettings
+                    canManageApps={['R-01','R-02','R-10','R-11'].includes(currentRole.id)}
+                    entertainmentLicensed={entertainmentLicensed}
+                    value={brandTvExperience}
+                    onChange={setBrandTvExperience}
+                    locale={brandLocaleTab}
+                    propertyId={activeProperty.id}
+                    items={data.marketplaceItems || []}
+                    onSaveItem={async (item) => {
+                      const result = await apiCall('/api/marketplace/services/upsert-item', {method:'POST', body:JSON.stringify({propertyId:activeProperty.id, item})});
+                      setBootstrap(prev => prev ? {...prev, data:{...prev.data, marketplaceItems:[result.item, ...(prev.data.marketplaceItems || []).filter(existing => existing.id !== result.item.id)]}} : prev);
+                    }}
+                  />
                 </div>
 
                 {/* Right Column: Live Interactive TV Home Preview + GojjaCleanTV ADB Launcher Takeover Panel */}
-                <div className="lg:col-span-7 space-y-6">
+                <div className="studio-preview space-y-4">
+
+
                   <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -3182,26 +3219,10 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     </div>
 
                     <TvGuestAppView
+                      {...tvExperienceBindings}
                       embedded={true}
                       forcedLocale={brandLocaleTab}
-                      onSelectLocale={async (loc) => {
-                        setBrandLocaleTab(loc);
-                        try {
-                          await apiCall('/api/stays/locale', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                              propertyId: activeProperty.id,
-                              roomId: modalRoom?.id,
-                              stayId: modalStay?.id,
-                              locale: loc,
-                              updatePropertyDefault: true,
-                            }),
-                          });
-                          await fetchBootstrap();
-                        } catch {
-                          // non-fatal preview sync
-                        }
-                      }}
+                      onSelectLocale={(loc) => setBrandLocaleTab(loc)}
                       property={{
                         ...activeProperty,
                         defaultLocale: brandLocaleTab,
@@ -3214,6 +3235,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         promoMediaType: brandPromoMediaType,
                         promoMediaUrl: brandPromoMediaUrl || undefined,
                         promoTitle: brandPromoTitle || undefined,
+                        tvExperience: brandTvExperience,
                         accentColor: brandAccentColor,
                         primaryColor: brandPrimaryColor,
                         welcomeHeadline: brandHeadline,
@@ -3261,6 +3283,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                                   promoMediaType: brandPromoMediaType,
                                   promoMediaUrl: brandPromoMediaUrl,
                                   promoTitle: brandPromoTitle,
+                                  tvExperience: brandTvExperience,
                                   accentColor: brandAccentColor,
                                   primaryColor: brandPrimaryColor,
                                   welcomeHeadline: brandHeadline,
@@ -3294,6 +3317,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                                   promoMediaType: brandPromoMediaType,
                                   promoMediaUrl: brandPromoMediaUrl,
                                   promoTitle: brandPromoTitle,
+                                  tvExperience: brandTvExperience,
                                   accentColor: brandAccentColor,
                                   primaryColor: brandPrimaryColor,
                                   welcomeHeadline: brandHeadline,
@@ -3324,7 +3348,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   {/* =================================================================== */}
                   {/* GOJJACLEANTV (GOJJALAUNCHER) NON-ROOT ADB SMARTTV TAKEOVER PANEL    */}
                   {/* =================================================================== */}
-                  <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4 text-xs">
+                  <StudioSection title="Lanjutan · launcher & perangkat" description="Pengaturan teknis untuk administrator perangkat.">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--cms-divider)] pb-3">
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
@@ -3511,7 +3535,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                         ))}
                       </div>
                     )}
-                  </div>
+                  </StudioSection>
                 </div>
               </div>
             </div>
@@ -3629,6 +3653,16 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 <p className="text-xs text-[var(--cms-text-secondary)]">
                   Software subscriptions (M02) do not grant broadcast rights (M07). Channel playback enforces contract verification status, room vs. endpoint allocation basis, and connection readiness.
                 </p>
+              </div>
+
+              <TvEntertainmentSettings canManage={['R-01','R-02','R-10','R-11'].includes(currentRole.id)} value={brandTvExperience} onChange={setBrandTvExperience} licensed={entertainmentLicensed}/>
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="rounded-lg bg-violet-700 px-4 py-2 text-sm text-white" onClick={async()=>{
+                  try{await apiCall('/api/branding/draft',{method:'POST',body:JSON.stringify({propertyId:activeProperty.id,tvExperience:brandTvExperience})});await fetchBootstrap();showNotice('success','Konfigurasi aplikasi Hiburan tersimpan pada draft.');}catch(error){showNotice('error',error instanceof Error?error.message:'Tidak dapat menyimpan konfigurasi.');}
+                }}>Simpan pengaturan Hiburan</button>
+                {environmentId === 'DEMO' && ['R-01','R-02'].includes(currentRole.id) ? <button className="rounded-lg border border-[var(--cms-control-border)] px-4 py-2 text-sm" onClick={async()=>{
+                  try{await apiCall('/api/properties/entertainment/license',{method:'POST',body:JSON.stringify({propertyId:activeProperty.id,status:entertainmentLicensed?'Inactive':'Active',reference:'DEMO-ADDON-PREVIEW'})});await fetchBootstrap();showNotice('info','Lisensi add-on demo diperbarui. Tidak ada penagihan nyata.');}catch(error){showNotice('error',error instanceof Error?error.message:'Lisensi tidak dapat diubah.');}
+                }}>{entertainmentLicensed?'Nonaktifkan':'Aktifkan'} lisensi demo (HQ)</button>:null}
               </div>
 
               {/* Provider Contracts List */}
@@ -6282,9 +6316,11 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
       {/* Full-Screen 16:9 TV Guest App Modal when triggered */}
       {tvModalEndpointId && modalEndpoint && (
         <TvGuestAppView
-          forcedLocale={modalStay?.locale || brandLocaleTab}
+                      {...tvExperienceBindings}
+          forcedLocale={activeTab === 'branding' ? brandLocaleTab : modalStay?.locale || brandLocaleTab}
           onSelectLocale={async (loc) => {
             setBrandLocaleTab(loc);
+            if (activeTab === 'branding') return;
             try {
               const res = await apiCall('/api/stays/locale', {
                 method: 'POST',
@@ -6314,6 +6350,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
             promoMediaType: brandPromoMediaType,
             promoMediaUrl: brandPromoMediaUrl || undefined,
             promoTitle: brandPromoTitle || undefined,
+                        tvExperience: brandTvExperience,
             accentColor: brandAccentColor,
             primaryColor: brandPrimaryColor,
             welcomeHeadline: brandHeadline,
@@ -6325,24 +6362,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           channels={data.channels}
           campaigns={data.campaigns}
           marketplaceItems={data.marketplaceItems || []}
-          onRequestServiceOrder={async (itemId, itemTitle) => {
-            try {
-              const res = await apiCall('/api/marketplace/services/create-order', {
-                method: 'POST',
-                body: JSON.stringify({
-                  itemId,
-                  propertyId: activeProperty.id,
-                  roomId: modalRoom?.id,
-                  stayId: modalStay?.id,
-                  notes: `Requested '${itemTitle}' via in-room SmartTV`,
-                }),
-              });
-              await fetchBootstrap();
-              showNotice('success', res.message || `Service request for '${itemTitle}' placed.`);
-            } catch (err: unknown) {
-              showNotice('error', err instanceof Error ? err.message : 'Could not place service order');
-            }
-          }}
+
           onClose={() => setTvModalEndpointId(null)}
           onOpenChannelCheck={async (epId, chId) => {
             try {

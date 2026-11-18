@@ -46,7 +46,11 @@ export type TvScreenId =
   | 'TV-08-LANGUAGE'
   | 'TV-09-MAINTENANCE';
 
-interface TvGuestAppProps {
+export interface TvGuestAppProps {
+  entertainmentLicensed?: boolean;
+  onOpenEntertainmentApp?: (appId: string) => Promise<{url?:string;mode?:string}>;
+  serviceOrders?: import('../data/mockData').ServiceOrder[];
+  onEvaluateCampaign?: (external: boolean) => Promise<Campaign | null>;
   property: Property;
   room: Room;
   endpoint: Endpoint;
@@ -340,7 +344,7 @@ const TV_UI_STRINGS: Record<
   },
 };
 
-export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
+export const LegacyTvGuestAppView: React.FC<TvGuestAppProps> = ({
   property,
   room,
   endpoint,
@@ -1338,3 +1342,5 @@ export const TvGuestAppView: React.FC<TvGuestAppProps> = ({
     </div>
   );
 };
+
+export { ArunikaTvExperience as TvGuestAppView } from './ArunikaTvExperience';
