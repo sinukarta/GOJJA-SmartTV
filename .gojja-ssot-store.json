@@ -398,9 +398,9 @@
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
         "resourceVersion": 4,
         "heroMediaType": "image",
-        "promoMediaType": "video",
-        "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "promoTitle": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
+        "promoMediaType": "image",
+        "promoMediaUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
+        "promoTitle": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
         "launcherConfig": {
           "mode": "GOJJA_LAUNCHER",
           "profile": "CLEAN_WITH_OTT",
@@ -1395,6 +1395,42 @@
     ],
     "campaigns": [
       {
+        "id": "CMP-08",
+        "propertyId": "P-01",
+        "name": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
+        "category": "Spa & Wellness",
+        "placement": "home_hero",
+        "status": "Active",
+        "priority": 1,
+        "frequencyCapPerStay": 3,
+        "durationSeconds": 30,
+        "skippableAfterSeconds": 5,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-12-31T23:59:59Z",
+        "imageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
+        "mediaUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
+        "mediaType": "image",
+        "headline": {
+          "id": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
+          "en": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
+          "zh-CN": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
+          "ja-JP": "Private Villa Sunset High Tea • 20% In-House Guest Privilege"
+        },
+        "ctaLabel": {
+          "id": "Reserve via Concierge",
+          "en": "Reserve via Concierge",
+          "zh-CN": "Reserve via Concierge",
+          "ja-JP": "Reserve via Concierge"
+        },
+        "creativeVersion": 1,
+        "startsCount": 1,
+        "completedCount": 1,
+        "skippedCount": 0,
+        "interruptedCount": 0,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 30
+      },
+      {
         "id": "CMP-EXT-4995",
         "propertyId": "P-01",
         "name": "BCA Solitaire Curated Privileges & Dining Rebate (External Offer)",
@@ -2084,6 +2120,19 @@
       }
     ],
     "auditEvents": [
+      {
+        "id": "AUD-1794971976614-167",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "campaigns.edit",
+        "targetRef": "CMP-08",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "CAMPAIGN_CREATED",
+        "details": "Created image campaign 'Private Villa Sunset High Tea • 20% In-House Guest Privilege' (CMP-08) for P-01."
+      },
       {
         "id": "AUD-1794051334999-925",
         "environmentId": "DEMO",
