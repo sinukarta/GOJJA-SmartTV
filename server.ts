@@ -3814,6 +3814,9 @@ async function startServer() {
       server: {
         middlewareMode: true,
         allowedHosts: true,
+        watch: {
+          ignored: ['**/.gojja-ssot-store.json*', '**/scratch/**', '**/tests/**', '**/.git/**'],
+        },
       },
       appType: 'spa',
     });

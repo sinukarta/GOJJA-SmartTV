@@ -465,10 +465,34 @@ export default function App() {
   }, []);
   const ct = CMS_UI_STRINGS[cmsLocale];
 
-  const [viewMode, setViewMode] = useState<'landing' | 'dashboard'>('landing');
-  const [personaAlias, setPersonaAlias] = useState<string>('property-manager');
-  const [environmentId, setEnvironmentId] = useState<EnvironmentId>('DEMO');
-  const [activeTab, setActiveTab] = useState<NavTabId>('overview');
+  const [viewMode, setViewMode] = useState<'landing' | 'dashboard'>(() => {
+    return (localStorage.getItem('gojja_cms_view_mode') as 'landing' | 'dashboard') || 'landing';
+  });
+  const [personaAlias, setPersonaAlias] = useState<string>(() => {
+    return localStorage.getItem('gojja_cms_persona') || 'property-manager';
+  });
+  const [environmentId, setEnvironmentId] = useState<EnvironmentId>(() => {
+    return (localStorage.getItem('gojja_cms_env') as EnvironmentId) || 'DEMO';
+  });
+  const [activeTab, setActiveTab] = useState<NavTabId>(() => {
+    return (localStorage.getItem('gojja_cms_active_tab') as NavTabId) || 'overview';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gojja_cms_view_mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem('gojja_cms_persona', personaAlias);
+  }, [personaAlias]);
+
+  useEffect(() => {
+    localStorage.setItem('gojja_cms_env', environmentId);
+  }, [environmentId]);
+
+  useEffect(() => {
+    localStorage.setItem('gojja_cms_active_tab', activeTab);
+  }, [activeTab]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('P-01');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
