@@ -3587,10 +3587,105 @@
     ],
     "updateJobs": [],
     "tickets": [],
-    "connectors": [],
+    "connectors": [
+      {
+        "id": "CON-LIVE_LAB-P-01",
+        "environmentId": "LIVE_LAB",
+        "propertyId": "P-01",
+        "name": "LAPTOP-36FV5SJR-Connector",
+        "hostPlatform": "win32 10.0.26300 (x64)",
+        "status": "Online",
+        "enrolledBy": "alpha-installer",
+        "enrolledAtUtc": "2026-11-18T04:26:11.865Z",
+        "lastHeartbeatUtc": "2026-11-18T04:26:11.865Z",
+        "adbVersion": "Not found in PATH (Install Android SDK Platform-Tools)",
+        "adbAvailable": false,
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "allowedActions": [
+          "network.scan",
+          "adb.pair",
+          "adb.connect",
+          "adb.inventory",
+          "adb.disconnect"
+        ],
+        "consentExpiresAtUtc": "2026-11-18T12:26:11.865Z"
+      }
+    ],
     "candidates": [],
-    "discoveryRuns": [],
+    "discoveryRuns": [
+      {
+        "id": "RUN-CLI-80844",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555
+        ],
+        "startedAtUtc": "2026-11-18T04:26:20.844Z",
+        "completedAtUtc": "2026-11-18T04:26:20.844Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Companion CLI Connector scan reported 0 live reachable host(s) on 192.168.1.0/24."
+      }
+    ],
     "auditEvents": [
+      {
+        "id": "AUD-1794975980846-491",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-18T04:26:20.846Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "network.scan",
+        "targetRef": "RUN-CLI-80844",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "CLI_SCAN_REPORTED",
+        "details": "Companion CLI Connector scan reported 0 live reachable host(s) on 192.168.1.0/24."
+      },
+      {
+        "id": "AUD-1794975971866-20",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-18T04:26:11.866Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "connectors.enroll",
+        "targetRef": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "CONNECTOR_ENROLLED",
+        "details": "Enrolled connector CON-LIVE_LAB-P-01 on interface vEthernet (Default Switch) with bounded grant 192.168.1.0/24."
+      },
+      {
+        "id": "AUD-1794975942040-559",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-18T04:25:42.040Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "connectors.enroll",
+        "targetRef": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "CONNECTOR_ENROLLED",
+        "details": "Enrolled connector CON-LIVE_LAB-P-01 on interface vEthernet (Default Switch) with bounded grant 192.168.1.0/24."
+      },
+      {
+        "id": "AUD-1794975923587-49",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-18T04:25:23.587Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "connectors.enroll",
+        "targetRef": "172.28.192.1/20",
+        "propertyId": "P-01",
+        "outcome": "DENY",
+        "reasonCode": "INVALID_NETWORK_GRANT",
+        "details": "Scan range exceeds bounded /24 maximum (254 hosts max per lab policy)."
+      },
       {
         "id": "AUD-1794973129670-501",
         "environmentId": "LIVE_LAB",
