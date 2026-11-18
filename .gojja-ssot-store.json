@@ -412,6 +412,109 @@
           ],
           "lastAppliedAt": "2026-11-02T05:30:00Z",
           "launcherVersion": "GojjaLauncher v4.2.0-hospitality"
+        },
+        "tvExperience": {
+          "services": {
+            "glass": 0.16,
+            "columns": 4,
+            "showImages": true
+          },
+          "welcome": {
+            "weatherLabel": "",
+            "dim": 0.56,
+            "glass": 0.18,
+            "typography": "editorial",
+            "brandLayout": "combined",
+            "statusSide": "right",
+            "items": [
+              "tv",
+              "app:youtube",
+              "app:netflix",
+              "hotel",
+              "services",
+              "explore",
+              "wifi",
+              "help"
+            ]
+          },
+          "appProfiles": {
+            "netflix": {
+              "owner": "PROPERTY",
+              "reference": ""
+            },
+            "hbo-max": {
+              "owner": "PROPERTY",
+              "reference": ""
+            },
+            "apple-tv": {
+              "owner": "PROPERTY",
+              "reference": ""
+            },
+            "prime-video": {
+              "owner": "PROPERTY",
+              "reference": ""
+            },
+            "disney-plus": {
+              "owner": "PROPERTY",
+              "reference": ""
+            },
+            "youtube": {
+              "owner": "PROPERTY",
+              "reference": ""
+            }
+          },
+          "showWifi": true,
+          "showMessages": true,
+          "showTicker": true,
+          "showPromo": true,
+          "showDock": true,
+          "tickerSeconds": 38,
+          "ticker": {
+            "id": "Selamat menikmati masa menginap Anda · Sarapan 06.00–10.00 · Hubungi resepsionis untuk bantuan",
+            "en": "Enjoy your stay · Breakfast 06:00–10:00 · Contact reception for assistance",
+            "zh-CN": "祝您入住愉快 · 早餐 06:00–10:00 · 如需帮助请联系前台",
+            "ja-JP": "ご滞在をお楽しみください · 朝食 06:00–10:00 · お困りの際はフロントまで"
+          },
+          "notificationTitle": {
+            "id": "Pesan hotel",
+            "en": "Hotel message",
+            "zh-CN": "酒店消息",
+            "ja-JP": "ホテルからのお知らせ"
+          },
+          "notificationBody": {
+            "id": "Sarapan tersedia pukul 06.00–10.00",
+            "en": "Breakfast is served from 06:00 to 10:00",
+            "zh-CN": "早餐供应时间为 06:00–10:00",
+            "ja-JP": "朝食は 06:00–10:00 にご利用いただけます"
+          },
+          "maintenanceTitle": {
+            "id": "Kami sedang meningkatkan pengalaman Anda.",
+            "en": "We are improving your experience.",
+            "zh-CN": "我们正在提升您的入住体验。",
+            "ja-JP": "より快適な体験のためメンテナンス中です。"
+          },
+          "maintenanceBody": {
+            "id": "Layanan TV sedang dalam pemeliharaan. Hubungi resepsionis bila membutuhkan bantuan.",
+            "en": "TV service is under maintenance. Please contact reception for assistance.",
+            "zh-CN": "电视服务正在维护。如需帮助，请联系前台。",
+            "ja-JP": "テレビサービスはメンテナンス中です。お困りの際はフロントへご連絡ください。"
+          },
+          "previewStreamUrl": "/assets/tv/demo-flower.mp4",
+          "appsEnabled": true,
+          "apps": {
+            "disney-plus": false,
+            "netflix": true,
+            "hbo-max": true,
+            "apple-tv": true,
+            "prime-video": true,
+            "youtube": true
+          },
+          "wifi": {
+            "ssid": "",
+            "password": "",
+            "security": "WPA",
+            "hidden": false
+          }
         }
       },
       {
@@ -495,7 +598,12 @@
         "status": "Active",
         "suspensionStatus": "None",
         "effectiveDate": "2026-10-01",
-        "version": 4
+        "version": 4,
+        "entertainmentAppsEntitlement": {
+          "status": "Active",
+          "mode": "DEMO",
+          "reference": "DEMO-ADDON-PREVIEW"
+        }
       },
       {
         "id": "SUB-02",
@@ -1395,6 +1503,88 @@
     ],
     "campaigns": [
       {
+        "id": "CMP-EXT-8349",
+        "propertyId": "P-01",
+        "name": "Lexus Electrified Chauffeur Experience (External Offer)",
+        "category": "External Offer",
+        "externalPaid": true,
+        "adOfferId": "OFFER-03",
+        "offerVersion": 1,
+        "advertiserName": "Lexus Indonesia",
+        "placement": "pre_live_tv",
+        "status": "Active",
+        "priority": 88,
+        "frequencyCapPerStay": 1,
+        "durationSeconds": 15,
+        "skippableAfterSeconds": 5,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-11-30T23:59:59Z",
+        "imageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+        "headline": {
+          "id": "Lexus LM 350h Luxury Mover Chauffeur",
+          "en": "Lexus LM 350h Luxury Mover Chauffeur",
+          "zh-CN": "Lexus LM 350h Luxury Mover Chauffeur",
+          "ja-JP": "Lexus LM 350h Luxury Mover Chauffeur"
+        },
+        "ctaLabel": {
+          "id": "Book Test Drive",
+          "en": "Book Test Drive",
+          "zh-CN": "Book Test Drive",
+          "ja-JP": "Book Test Drive"
+        },
+        "creativeVersion": 1,
+        "startsCount": 0,
+        "completedCount": 0,
+        "skippedCount": 0,
+        "interruptedCount": 0,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 0,
+        "targetAudience": {
+          "isPublicAreaAllowed": true
+        }
+      },
+      {
+        "id": "CMP-EXT-6057",
+        "propertyId": "P-01",
+        "name": "BCA Solitaire Curated Privileges & Dining Rebate (External Offer)",
+        "category": "External Offer",
+        "externalPaid": true,
+        "adOfferId": "OFFER-02",
+        "offerVersion": 1,
+        "advertiserName": "BCA Solitaire & Prioritas",
+        "placement": "welcome_screen",
+        "status": "Active",
+        "priority": 88,
+        "frequencyCapPerStay": 1,
+        "durationSeconds": 15,
+        "skippableAfterSeconds": 5,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-12-15T23:59:59Z",
+        "imageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
+        "headline": {
+          "id": "BCA Solitaire Curated Privileges",
+          "en": "BCA Solitaire Curated Privileges",
+          "zh-CN": "BCA Solitaire Curated Privileges",
+          "ja-JP": "BCA Solitaire Curated Privileges"
+        },
+        "ctaLabel": {
+          "id": "View Privileges",
+          "en": "View Privileges",
+          "zh-CN": "View Privileges",
+          "ja-JP": "View Privileges"
+        },
+        "creativeVersion": 1,
+        "startsCount": 0,
+        "completedCount": 0,
+        "skippedCount": 0,
+        "interruptedCount": 0,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 0,
+        "targetAudience": {
+          "isPublicAreaAllowed": true
+        }
+      },
+      {
         "id": "CMP-01",
         "propertyId": "P-01",
         "name": "Spa experience — Royal Javanese Ritual",
@@ -2085,6 +2275,32 @@
     ],
     "auditEvents": [
       {
+        "id": "AUD-1795007668356-32",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "marketplace.accept_offer",
+        "targetRef": "OFFER-03",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "OFFER_OPTED_IN",
+        "details": "Property P-01 opted-in to AdOffer 'OFFER-03' (v1) from Lexus Indonesia. Terms: AGR-P-01-ADV-LEXUS-2026Q4."
+      },
+      {
+        "id": "AUD-1795007666069-845",
+        "environmentId": "DEMO",
+        "timestampUtc": "2026-11-02T07:00:00Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "marketplace.accept_offer",
+        "targetRef": "OFFER-02",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "OFFER_OPTED_IN",
+        "details": "Property P-01 opted-in to AdOffer 'OFFER-02' (v1) from BCA Solitaire & Prioritas. Terms: AGR-P-01-ADV-BCA-2026Q4."
+      },
+      {
         "id": "AUD-1794994710396-692",
         "environmentId": "DEMO",
         "timestampUtc": "2026-11-02T07:00:00Z",
@@ -2419,7 +2635,7 @@
         "proposedRateIdr": 12500000,
         "exclusions": [],
         "targetingNotes": "High-net-worth welcome interstitial proposal. Awaiting Property Manager opt-in review.",
-        "status": "Submitted",
+        "status": "Active",
         "createdAtUtc": "2026-11-02T00:00:00Z"
       },
       {
@@ -2458,7 +2674,7 @@
           "Superior"
         ],
         "targetingNotes": "Requires pre_live_tv interstitial consent and Suite guest target only.",
-        "status": "Submitted",
+        "status": "Active",
         "createdAtUtc": "2026-11-03T00:00:00Z"
       }
     ],
@@ -2480,6 +2696,44 @@
         "commercialTermsRef": "AGR-ARUNIKA-GARUDA-2026Q4",
         "acceptedBy": "pm_arunika",
         "acceptedAtUtc": "2026-11-02T08:30:00Z",
+        "status": "Accepted"
+      },
+      {
+        "id": "PAC-6057",
+        "offerId": "OFFER-02",
+        "offerVersion": 1,
+        "propertyId": "P-01",
+        "acceptedPlacements": [
+          "welcome_screen",
+          "home_hero"
+        ],
+        "acceptedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-12-15T23:59:59Z"
+        },
+        "acceptedCapPerStay": 1,
+        "commercialTermsRef": "AGR-P-01-ADV-BCA-2026Q4",
+        "acceptedBy": "property-manager",
+        "acceptedAtUtc": "2026-11-02T07:00:00Z",
+        "status": "Accepted"
+      },
+      {
+        "id": "PAC-8349",
+        "offerId": "OFFER-03",
+        "offerVersion": 1,
+        "propertyId": "P-01",
+        "acceptedPlacements": [
+          "pre_live_tv",
+          "service_detail"
+        ],
+        "acceptedPeriod": {
+          "startUtc": "2026-11-01T00:00:00Z",
+          "endUtc": "2026-11-30T23:59:59Z"
+        },
+        "acceptedCapPerStay": 1,
+        "commercialTermsRef": "AGR-P-01-ADV-LEXUS-2026Q4",
+        "acceptedBy": "property-manager",
+        "acceptedAtUtc": "2026-11-02T07:00:00Z",
         "status": "Accepted"
       }
     ],

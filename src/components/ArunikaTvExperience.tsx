@@ -1,3 +1,4 @@
+import {tvAccessMessage} from '../data/tvApiErrors';
 import {TvCatalogIcon,TvCatalogImage} from './TvCatalogIcon';
 import {catalogIcon,propertyCatalog,EXPLORE_CATEGORIES} from '../data/tvCatalog';
 import { TvWifiQr } from './TvWifiQr';
@@ -64,10 +65,10 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
   const closeDialog=()=>{appRequest.current++;setDialog(null);setFocus(returnFocus.current);};
   const tune=async(ch:Channel)=>{
     const seq=++selectSeq.current;setScreen('watch');setAccess('loading');setOverlay('info');setSelected(null);setMediaError(false);setFocus('list');setInteraction(n=>n+1);
-    try{const check=await onOpenChannelCheck(endpoint.id,ch.id);if(seq!==selectSeq.current)return;if(check.allowed){setSelected(ch);setAccess('allowed');}else{setAccess('denied');setAccessError(check.message||c.denied);}}
-    catch(error){if(seq===selectSeq.current){setAccess('denied');setAccessError(error instanceof Error?error.message:c.denied);}}
+    try{const check=await onOpenChannelCheck(endpoint.id,ch.id);if(seq!==selectSeq.current)return;if(check.allowed){setSelected(ch);setAccess('allowed');}else{setAccess('denied');setOverlay('none');setFocus('retry-channel');setAccessError(tvAccessMessage(check.code,check.message,locale));}}
+    catch(error){if(seq===selectSeq.current){setAccess('denied');setOverlay('none');setFocus('retry-channel');setAccessError(tvAccessMessage(undefined,error instanceof Error?error.message:undefined,locale));}}
   };
-  const startTV=()=>{if(selected&&access==='allowed'){setScreen('watch');setOverlay('none');return;}if(tunable[0])void tune(tunable[0]);else{setScreen('watch');setAccess('denied');setAccessError(c.denied);}};
+  const startTV=()=>{if(selected&&access==='allowed'){setScreen('watch');setOverlay('none');return;}if(tunable[0])void tune(tunable[0]);else{setScreen('watch');setAccess('denied');setOverlay('none');setFocus('retry-channel');setAccessError(c.denied);}};
   const openChannels=()=>{setScreen('watch');setOverlay('channels');setFocus('channel-'+(selected?.id||tunable[0]?.id));};
   const openCampaign=async(external:boolean)=>{
     go(external?'partner':'internal','campaign-cta');setCampaign(null);setSeconds(0);setDuration(30);

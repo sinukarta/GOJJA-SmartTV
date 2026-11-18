@@ -1,3 +1,4 @@
+import {tvAccessMessage} from '../src/data/tvApiErrors';
 import {catalogIcon,propertyCatalog,validateCatalogPresentation} from '../src/data/tvCatalog';
 import {INITIAL_MARKETPLACE_ITEMS} from '../src/data/mockData';
 import assert from 'node:assert/strict';
@@ -52,4 +53,8 @@ test('Explore accepts local video and chosen category',()=>{const fields=validat
 test('Explore rejects unknown categories',()=>assert.throws(()=>validateCatalogPresentation({exploreCategory:'unknown'})));
 test('Explicit empty URL clears existing video',()=>assert.equal(validateCatalogPresentation({videoUrl:''},{...INITIAL_MARKETPLACE_ITEMS[0],videoUrl:'/old.mp4'}).videoUrl,''));
 test('Laundry has an appropriate default icon and can be customized',()=>{const item={...INITIAL_MARKETPLACE_ITEMS[0],type:'InHouseService' as const,title:'Laundry'};assert.equal(catalogIcon(item),'laundry');assert.equal(catalogIcon({...item,tvIcon:'bed'}),'bed');});
+test('Missing static-host TV API has localized recovery text',()=>{for(const locale of ['id','en','zh-CN','ja-JP'] as const){const text=tvAccessMessage('API_UNAVAILABLE','HTTP 405:',locale);assert.ok(text.length>15);assert.ok(!text.includes('HTTP 405'));}});
+test('Legacy HTTP 405 also has friendly recovery text',()=>assert.match(tvAccessMessage(undefined,'HTTP 405:','id'),/server/));
+test('SPA HTML response is identified as unavailable API',()=>assert.match(tvAccessMessage(undefined,"Unexpected token '<'",'en'),/server/));
+test('Actual entitlement denials retain their reason',()=>assert.equal(tvAccessMessage('CONTRACT_EXPIRED','Provider contract expired','en'),'Provider contract expired'));
 console.log(`PASS ${count} TV settings, Wi-Fi QR and entitlement checks`);

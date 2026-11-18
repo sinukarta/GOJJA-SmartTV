@@ -1,3 +1,4 @@
+import {ApiRequestError} from './data/tvApiErrors';
 import {StudioSection} from './components/StudioSection';
 import { TvEntertainmentSettings } from './components/TvEntertainmentSettings';
 import { TvStudioSettings } from './components/TvStudioSettings';
@@ -904,6 +905,7 @@ export default function App() {
           if (res.status === 404 && !authoritative) {
             return handleClientSideFallbackApi(pathUrl, options, persona);
           }
+          if(authoritative&&[404,405,502,503,504].includes(res.status))throw new ApiRequestError('Required API service is unavailable on this host. Use the local full-stack preview or configure a backend before deployment.','API_UNAVAILABLE',res.status);
           const text = await res.text();
           let data;
           try {
@@ -913,6 +915,7 @@ export default function App() {
           }
           throw new Error(data.message || data.code || 'Request denied by server policy');
         }
+        if(authoritative&&!res.headers.get('content-type')?.includes('application/json'))throw new ApiRequestError('This host returned a web page instead of the required API response.','API_UNAVAILABLE',res.status);
         return await res.json();
       } catch (err: unknown) {
         if (authoritative) throw err;
@@ -1275,7 +1278,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   body: JSON.stringify({ endpointId: epId, channelId: chId }),
                 });
               } catch (err: unknown) {
-                return { allowed: false, message: err instanceof Error ? err.message : 'Access restricted' };
+                return { allowed: false, code:err instanceof ApiRequestError?err.code:undefined, message: err instanceof Error ? err.message : 'Access restricted' };
               }
             }}
           />
@@ -3253,7 +3256,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                             body: JSON.stringify({ endpointId: epId, channelId: chId }),
                           });
                         } catch (err: unknown) {
-                          return { allowed: false, message: err instanceof Error ? err.message : 'Access restricted' };
+                          return { allowed: false, code:err instanceof ApiRequestError?err.code:undefined, message: err instanceof Error ? err.message : 'Access restricted' };
                         }
                       }}
                     />
@@ -6371,7 +6374,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 body: JSON.stringify({ endpointId: epId, channelId: chId }),
               });
             } catch (err: unknown) {
-              return { allowed: false, message: err instanceof Error ? err.message : 'Access restricted' };
+              return { allowed: false, code:err instanceof ApiRequestError?err.code:undefined, message: err instanceof Error ? err.message : 'Access restricted' };
             }
           }}
         />
