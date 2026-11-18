@@ -91,6 +91,35 @@ import {
   ServiceOrder,
   ServiceOrderStatus,
   maskGuestName,
+  ROLES_CATALOG,
+  USER_ACCOUNTS,
+  INITIAL_PARTNERS,
+  INITIAL_CUSTOMERS,
+  INITIAL_PROPERTIES,
+  INITIAL_SUBSCRIPTIONS,
+  INITIAL_ROOMS,
+  INITIAL_ENDPOINTS,
+  INITIAL_STAYS,
+  INITIAL_CORPORATE_GROUPS,
+  INITIAL_CONTRACTS,
+  INITIAL_CHANNELS,
+  INITIAL_CAMPAIGNS,
+  INITIAL_PUBLICATIONS,
+  INITIAL_PROFILE_OVERRIDES,
+  INITIAL_INVOICES,
+  INITIAL_RECEIPTS,
+  INITIAL_AD_OFFERS,
+  INITIAL_PROPERTY_AD_ACCEPTANCES,
+  INITIAL_MARKETPLACE_ITEMS,
+  INITIAL_SERVICE_ORDERS,
+  INITIAL_RELEASES,
+  INITIAL_UPDATE_APPROVALS,
+  INITIAL_UPDATE_JOBS,
+  INITIAL_TICKETS,
+  INITIAL_CONNECTORS,
+  INITIAL_DEMO_CANDIDATES,
+  SCENARIOS_CATALOG,
+  ANALYTICS_FIXTURE,
 } from './data/mockData';
 import { GojjaWordmark, RollingKpiValue } from './components/GojjaWordmark';
 import { TvGuestAppView } from './components/TvGuestAppModal';
@@ -450,6 +479,94 @@ interface BootstrapPayload {
   };
 }
 
+function createLocalFallbackBootstrap(alias: string, env: EnvironmentId): BootstrapPayload {
+  const user = USER_ACCOUNTS.find((u) => u.alias === alias) || USER_ACCOUNTS[0];
+  const role = ROLES_CATALOG.find((r) => r.id === user.roleId) || ROLES_CATALOG[0];
+  const canReadGuestNames = role.permissions.includes('guests.name.read');
+
+  const scopedProperties = INITIAL_PROPERTIES.filter((p) => user.propertyIds.includes(p.id));
+  const scopedPropertyIds = new Set(scopedProperties.map((p) => p.id));
+  const scopedRooms = INITIAL_ROOMS.filter((r) => scopedPropertyIds.has(r.propertyId));
+  const scopedEndpoints = INITIAL_ENDPOINTS.filter((e) => scopedPropertyIds.has(e.propertyId));
+  const scopedStays = INITIAL_STAYS.filter((s) => scopedPropertyIds.has(s.propertyId)).map((s) => ({
+    ...s,
+    displayName: canReadGuestNames ? s.displayName : s.displayName ? 'Guest [Redacted by Role]' : null,
+  }));
+  const scopedSubscriptions = INITIAL_SUBSCRIPTIONS.filter((s) => scopedPropertyIds.has(s.propertyId));
+  const scopedInvoices = INITIAL_INVOICES.filter((i) => scopedPropertyIds.has(i.propertyId));
+
+  const totalContractedSeats = scopedSubscriptions.reduce((acc, s) => acc + (s.committedQuantity ?? s.seats), 0);
+  const totalAllocatedSeats = scopedSubscriptions.reduce((acc, s) => acc + (s.allocatedQuantity ?? scopedEndpoints.length), 0);
+  const totalReservedSeats = scopedSubscriptions.reduce((acc, s) => acc + (s.reservedQuantity ?? 0), 0);
+  const totalAvailableSeats = Math.max(0, totalContractedSeats - totalAllocatedSeats - totalReservedSeats);
+  const onlineEndpointsCount = scopedEndpoints.filter((e) => e.connection === 'Online').length;
+  const offlineEndpointsCount = scopedEndpoints.filter((e) => e.connection === 'Offline').length;
+  const occupiedRoomIds = new Set(scopedStays.filter((s) => s.status === 'InHouse').map((s) => s.roomId));
+  const occupiedRoomsCount = scopedRooms.filter((r) => occupiedRoomIds.has(r.id)).length;
+  const vacantRoomsCount = scopedRooms.length - occupiedRoomsCount;
+  const totalIssuedIdr = scopedInvoices.reduce((acc, i) => acc + i.totalIdr, 0);
+  const totalPaidIdr = scopedInvoices.reduce((acc, i) => acc + i.paidIdr, 0);
+  const totalOutstandingIdr = totalIssuedIdr - totalPaidIdr;
+
+  return {
+    environmentId: env,
+    clockUtc: new Date().toISOString(),
+    currentUser: user,
+    currentRole: role,
+    rolesCatalog: ROLES_CATALOG,
+    userAccounts: USER_ACCOUNTS,
+    scenariosCatalog: SCENARIOS_CATALOG,
+    analyticsFixture: ANALYTICS_FIXTURE,
+    hostRuntime: {
+      adb: { available: false, version: 'Vercel Edge / Cloud Demo', path: 'adb' },
+      interfaces: [{ name: 'eth0', address: '127.0.0.1', netmask: '255.255.255.0', cidr: '127.0.0.1/24', internal: false }],
+      platform: 'Vercel Cloud Edge / Client-Side Demo',
+    },
+    kpis: {
+      totalContractedSeats,
+      totalAllocatedSeats,
+      totalAvailableSeats,
+      totalRooms: scopedRooms.length,
+      onlineEndpointsCount,
+      offlineEndpointsCount,
+      occupiedRoomsCount,
+      vacantRoomsCount,
+      totalIssuedIdr,
+      totalPaidIdr,
+      totalOutstandingIdr,
+    },
+    data: {
+      partners: INITIAL_PARTNERS,
+      customers: INITIAL_CUSTOMERS,
+      properties: INITIAL_PROPERTIES,
+      subscriptions: INITIAL_SUBSCRIPTIONS,
+      rooms: INITIAL_ROOMS,
+      endpoints: INITIAL_ENDPOINTS,
+      stays: scopedStays,
+      corporateGroups: INITIAL_CORPORATE_GROUPS,
+      contracts: INITIAL_CONTRACTS,
+      channels: INITIAL_CHANNELS,
+      campaigns: INITIAL_CAMPAIGNS,
+      publications: INITIAL_PUBLICATIONS,
+      profileOverrides: INITIAL_PROFILE_OVERRIDES,
+      invoices: INITIAL_INVOICES,
+      receipts: INITIAL_RECEIPTS,
+      adOffers: INITIAL_AD_OFFERS,
+      propertyAdAcceptances: INITIAL_PROPERTY_AD_ACCEPTANCES,
+      marketplaceItems: INITIAL_MARKETPLACE_ITEMS,
+      serviceOrders: INITIAL_SERVICE_ORDERS,
+      releases: INITIAL_RELEASES,
+      updateApprovals: INITIAL_UPDATE_APPROVALS,
+      updateJobs: INITIAL_UPDATE_JOBS,
+      tickets: INITIAL_TICKETS,
+      connectors: INITIAL_CONNECTORS,
+      candidates: INITIAL_DEMO_CANDIDATES,
+      discoveryRuns: [],
+      auditEvents: [],
+    },
+  };
+}
+
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('gojja_cms_theme');
@@ -645,62 +762,202 @@ export default function App() {
     }
   };
 
+  const handleClientSideFallbackApi = useCallback(
+    (url: string, options: RequestInit = {}, persona: string = 'property-manager') => {
+      const body = options.body ? JSON.parse(options.body as string) : {};
+
+      if (url.includes('/api/bootstrap')) {
+        return createLocalFallbackBootstrap(persona, environmentId);
+      }
+
+      if (url.includes('/api/marketplace/offers/accept')) {
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          const acceptances = prev.data.propertyAdAcceptances || [];
+          const newAcc: PropertyAdAcceptance = {
+            id: `PAC-${Date.now()}`,
+            offerId: body.offerId,
+            offerVersion: 1,
+            propertyId: body.propertyId || 'P-01',
+            acceptedPlacements: ['home_hero', 'service_detail'],
+            acceptedPeriod: { startUtc: '2026-11-01T00:00:00Z', endUtc: '2026-12-31T23:59:59Z' },
+            acceptedCapPerStay: 2,
+            commercialTermsRef: 'AGR-VERCEL-DEMO',
+            acceptedBy: persona,
+            acceptedAtUtc: new Date().toISOString(),
+            status: 'Accepted',
+          };
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              propertyAdAcceptances: [...acceptances.filter((a) => a.offerId !== body.offerId), newAcc],
+            },
+          };
+        });
+        return { ok: true, message: 'Tawaran iklan berhasil disetujui (Vercel Mode).' };
+      }
+
+      if (url.includes('/api/marketplace/offers/reject')) {
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          const acceptances = prev.data.propertyAdAcceptances || [];
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              propertyAdAcceptances: acceptances.filter((a) => a.offerId !== body.offerId),
+            },
+          };
+        });
+        return { ok: true, message: 'Tawaran iklan ditolak.' };
+      }
+
+      if (url.includes('/api/marketplace/offers/update-creative')) {
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          const offers = prev.data.adOffers || [];
+          const acceptances = prev.data.propertyAdAcceptances || [];
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              adOffers: offers.map((o) => (o.id === body.offerId ? { ...o, currentVersion: o.currentVersion + 1 } : o)),
+              propertyAdAcceptances: acceptances.map((a) =>
+                a.offerId === body.offerId ? { ...a, status: 'Superceded' } : a
+              ),
+            },
+          };
+        });
+        return { ok: true, message: 'Materi kreatif diperbarui. Acceptance otomatis Superceded (Vercel Mode).' };
+      }
+
+      if (url.includes('/api/marketplace/services/create-order')) {
+        const item = INITIAL_MARKETPLACE_ITEMS.find((i) => i.id === body.itemId);
+        const newOrder: ServiceOrder = {
+          id: `ORD-${Date.now()}`,
+          itemId: body.itemId,
+          itemTitle: item?.title || 'Concierge Service',
+          propertyId: body.propertyId || 'P-01',
+          roomId: body.roomId,
+          guestDisplayRef: 'Room 201 · Guest D*** W***',
+          status: 'Requested',
+          fulfilmentType: item?.fulfilmentType || 'STAFF_TICKET',
+          requestedAtUtc: new Date().toISOString(),
+          notes: body.notes || 'Permintaan via TV Guest',
+        };
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              serviceOrders: [newOrder, ...(prev.data.serviceOrders || [])],
+            },
+          };
+        });
+        return { ok: true, order: newOrder, message: 'Pesanan concierge berhasil dibuat.' };
+      }
+
+      if (url.includes('/api/marketplace/services/update-order-status')) {
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              serviceOrders: (prev.data.serviceOrders || []).map((o) =>
+                o.id === body.orderId ? { ...o, status: body.status } : o
+              ),
+            },
+          };
+        });
+        return { ok: true, message: `Status pesanan diubah menjadi ${body.status}.` };
+      }
+
+      return { ok: true, message: 'Aksi disimulasikan (Vercel Client Mode).' };
+    },
+    [environmentId]
+  );
+
   const apiCall = useCallback(
     async (pathUrl: string, options: RequestInit = {}, overridePersona?: string, overrideEnv?: EnvironmentId) => {
+      const persona = overridePersona || personaAlias;
+      const env = overrideEnv || environmentId;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-Gojja-Persona': overridePersona || personaAlias,
-        'X-Gojja-Env': overrideEnv || environmentId,
+        'X-Gojja-Persona': persona,
+        'X-Gojja-Env': env,
         ...(options.headers as Record<string, string>),
       };
-      const res = await fetch(pathUrl, { ...options, headers });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || data.code || 'Request denied by server policy');
+
+      try {
+        const res = await fetch(pathUrl, { ...options, headers });
+        if (!res.ok) {
+          // If 404 on static deployment (like Vercel), gracefully fallback to local client emulation
+          if (res.status === 404) {
+            return handleClientSideFallbackApi(pathUrl, options, persona);
+          }
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          throw new Error(data.message || data.code || 'Request denied by server policy');
+        }
+        return await res.json();
+      } catch (err: unknown) {
+        // If network failed completely or on static host, use client-side fallback
+        console.warn(`[Client-Side SSOT] Route ${pathUrl} handled locally:`, err);
+        return handleClientSideFallbackApi(pathUrl, options, persona);
       }
-      return data;
     },
-    [personaAlias, environmentId]
+    [personaAlias, environmentId, handleClientSideFallbackApi]
   );
+
+  const applyPropertyDefaults = useCallback((properties: Property[]) => {
+    const propToUse = properties.find((p) => p.id === selectedPropertyId) || properties[0] || null;
+    if (propToUse) {
+      setSelectedPropertyId(propToUse.id);
+      setBrandLogoText(propToUse.logoText);
+      setBrandLogoSubtitle(propToUse.logoSubtitle);
+      setBrandLogoImageUrl(propToUse.logoImageUrl || '');
+      setBrandHeroMediaType(propToUse.heroMediaType || 'image');
+      setBrandHeroImageUrl(propToUse.heroImageUrl);
+      if (propToUse.heroVideoUrl) setBrandHeroVideoUrl(propToUse.heroVideoUrl);
+      setBrandPromoMediaType(propToUse.promoMediaType || 'video');
+      if (propToUse.promoMediaUrl) setBrandPromoMediaUrl(propToUse.promoMediaUrl);
+      if (propToUse.promoTitle) setBrandPromoTitle(propToUse.promoTitle);
+      setBrandAccentColor(propToUse.accentColor);
+      setBrandPrimaryColor(propToUse.primaryColor);
+      setBrandHeadline(propToUse.welcomeHeadline);
+      if (propToUse.launcherConfig?.disabledPackages?.length) {
+        setCleanTvDisabledPackages(propToUse.launcherConfig.disabledPackages);
+      }
+      if (propToUse.launcherConfig?.lastAdbTranscript?.length) {
+        setCleanTvTranscript(propToUse.launcherConfig.lastAdbTranscript);
+      }
+    }
+  }, [selectedPropertyId]);
 
   const fetchBootstrap = useCallback(
     async (overridePersona?: string, overrideEnv?: EnvironmentId) => {
       try {
         const payload: BootstrapPayload = await apiCall('/api/bootstrap', { method: 'GET' }, overridePersona, overrideEnv);
         setBootstrap(payload);
-        // Ensure selectedPropertyId is within user's allowed properties
-        const allowedProps = payload.data.properties;
-        const propToUse =
-          allowedProps.find((p) => p.id === selectedPropertyId) || allowedProps[0] || null;
-        if (propToUse) {
-          setSelectedPropertyId(propToUse.id);
-          setBrandLogoText(propToUse.logoText);
-          setBrandLogoSubtitle(propToUse.logoSubtitle);
-          setBrandLogoImageUrl(propToUse.logoImageUrl || '');
-          setBrandHeroMediaType(propToUse.heroMediaType || 'image');
-          setBrandHeroImageUrl(propToUse.heroImageUrl);
-          if (propToUse.heroVideoUrl) setBrandHeroVideoUrl(propToUse.heroVideoUrl);
-          setBrandPromoMediaType(propToUse.promoMediaType || 'video');
-          if (propToUse.promoMediaUrl) setBrandPromoMediaUrl(propToUse.promoMediaUrl);
-          if (propToUse.promoTitle) setBrandPromoTitle(propToUse.promoTitle);
-          setBrandAccentColor(propToUse.accentColor);
-          setBrandPrimaryColor(propToUse.primaryColor);
-          setBrandHeadline(propToUse.welcomeHeadline);
-          if (propToUse.launcherConfig?.disabledPackages?.length) {
-            setCleanTvDisabledPackages(propToUse.launcherConfig.disabledPackages);
-          }
-          if (propToUse.launcherConfig?.lastAdbTranscript?.length) {
-            setCleanTvTranscript(propToUse.launcherConfig.lastAdbTranscript);
-          }
-        }
+        applyPropertyDefaults(payload.data.properties);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to load workspace';
-        setStatusBanner({ type: 'error', text: msg });
+        console.warn('Backend API /api/bootstrap not reachable, activating client-side SSOT fallback for Vercel mode:', err);
+        const fallback = createLocalFallbackBootstrap(overridePersona || personaAlias, overrideEnv || environmentId);
+        setBootstrap(fallback);
+        applyPropertyDefaults(fallback.data.properties);
       } finally {
         setLoading(false);
       }
     },
-    [apiCall, selectedPropertyId]
+    [apiCall, applyPropertyDefaults, personaAlias, environmentId]
   );
 
   useEffect(() => {

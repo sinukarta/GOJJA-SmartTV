@@ -398,9 +398,9 @@
         "frontDeskExt": "Dial 0 or WhatsApp +62 274 555 010",
         "resourceVersion": 4,
         "heroMediaType": "image",
-        "promoMediaType": "image",
-        "promoMediaUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
-        "promoTitle": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
+        "promoMediaType": "video",
+        "promoMediaUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "promoTitle": "Royal Javanese Spa • Complimentary 30-Min Welcome Ritual",
         "launcherConfig": {
           "mode": "GOJJA_LAUNCHER",
           "profile": "CLEAN_WITH_OTT",
@@ -1106,12 +1106,12 @@
         "propertyId": "P-01",
         "roomId": "ROOM-101",
         "displayName": "Bapak Aditya",
-        "locale": "en",
+        "locale": "id",
         "groupId": null,
         "arrivalUtc": "2026-11-01T07:00:00Z",
         "departureUtc": "2026-11-03T04:00:00Z",
         "status": "InHouse",
-        "contextVersion": 4,
+        "contextVersion": 2,
         "ottCleanupStatus": "NotApplicable"
       },
       {
@@ -1395,165 +1395,6 @@
     ],
     "campaigns": [
       {
-        "id": "CMP-EXT-9289",
-        "propertyId": "P-01",
-        "name": "Garuda Priority Executive Miles & In-Flight Upgrade (External Offer)",
-        "category": "External Offer",
-        "externalPaid": true,
-        "adOfferId": "OFFER-01",
-        "offerVersion": 3,
-        "advertiserName": "Garuda Indonesia",
-        "placement": "home_hero",
-        "status": "Active",
-        "priority": 88,
-        "frequencyCapPerStay": 2,
-        "durationSeconds": 15,
-        "skippableAfterSeconds": 5,
-        "startUtc": "2026-11-01T00:00:00Z",
-        "endUtc": "2026-12-31T23:59:59Z",
-        "imageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
-        "headline": {
-          "id": "Garuda Indonesia Platinum Year-End Promo",
-          "en": "Garuda Indonesia Platinum Year-End Promo",
-          "zh-CN": "Garuda Indonesia Platinum Year-End Promo",
-          "ja-JP": "Garuda Indonesia Platinum Year-End Promo"
-        },
-        "ctaLabel": {
-          "id": "Lihat Ketentuan Baru",
-          "en": "Lihat Ketentuan Baru",
-          "zh-CN": "Lihat Ketentuan Baru",
-          "ja-JP": "Lihat Ketentuan Baru"
-        },
-        "creativeVersion": 3,
-        "startsCount": 0,
-        "completedCount": 0,
-        "skippedCount": 0,
-        "interruptedCount": 0,
-        "failedAfterStartCount": 0,
-        "totalPlaySeconds": 0,
-        "targetAudience": {
-          "isPublicAreaAllowed": true
-        }
-      },
-      {
-        "id": "CMP-EXT-5962",
-        "propertyId": "P-01",
-        "name": "Lexus Electrified Chauffeur Experience (External Offer)",
-        "category": "External Offer",
-        "externalPaid": true,
-        "adOfferId": "OFFER-03",
-        "offerVersion": 1,
-        "advertiserName": "Lexus Indonesia",
-        "placement": "pre_live_tv",
-        "status": "Active",
-        "priority": 88,
-        "frequencyCapPerStay": 1,
-        "durationSeconds": 15,
-        "skippableAfterSeconds": 5,
-        "startUtc": "2026-11-01T00:00:00Z",
-        "endUtc": "2026-11-30T23:59:59Z",
-        "imageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
-        "headline": {
-          "id": "Lexus LM 350h Luxury Mover Chauffeur",
-          "en": "Lexus LM 350h Luxury Mover Chauffeur",
-          "zh-CN": "Lexus LM 350h Luxury Mover Chauffeur",
-          "ja-JP": "Lexus LM 350h Luxury Mover Chauffeur"
-        },
-        "ctaLabel": {
-          "id": "Book Test Drive",
-          "en": "Book Test Drive",
-          "zh-CN": "Book Test Drive",
-          "ja-JP": "Book Test Drive"
-        },
-        "creativeVersion": 1,
-        "startsCount": 0,
-        "completedCount": 0,
-        "skippedCount": 0,
-        "interruptedCount": 0,
-        "failedAfterStartCount": 0,
-        "totalPlaySeconds": 0,
-        "targetAudience": {
-          "isPublicAreaAllowed": true
-        }
-      },
-      {
-        "id": "CMP-08",
-        "propertyId": "P-01",
-        "name": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
-        "category": "Spa & Wellness",
-        "placement": "home_hero",
-        "status": "Active",
-        "priority": 1,
-        "frequencyCapPerStay": 3,
-        "durationSeconds": 30,
-        "skippableAfterSeconds": 5,
-        "startUtc": "2026-11-01T00:00:00Z",
-        "endUtc": "2026-12-31T23:59:59Z",
-        "imageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
-        "mediaUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
-        "mediaType": "image",
-        "headline": {
-          "id": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
-          "en": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
-          "zh-CN": "Private Villa Sunset High Tea • 20% In-House Guest Privilege",
-          "ja-JP": "Private Villa Sunset High Tea • 20% In-House Guest Privilege"
-        },
-        "ctaLabel": {
-          "id": "Reserve via Concierge",
-          "en": "Reserve via Concierge",
-          "zh-CN": "Reserve via Concierge",
-          "ja-JP": "Reserve via Concierge"
-        },
-        "creativeVersion": 1,
-        "startsCount": 1,
-        "completedCount": 1,
-        "skippedCount": 0,
-        "interruptedCount": 0,
-        "failedAfterStartCount": 0,
-        "totalPlaySeconds": 30
-      },
-      {
-        "id": "CMP-EXT-4995",
-        "propertyId": "P-01",
-        "name": "BCA Solitaire Curated Privileges & Dining Rebate (External Offer)",
-        "category": "External Offer",
-        "externalPaid": true,
-        "adOfferId": "OFFER-02",
-        "offerVersion": 1,
-        "advertiserName": "BCA Solitaire & Prioritas",
-        "placement": "welcome_screen",
-        "status": "Active",
-        "priority": 88,
-        "frequencyCapPerStay": 1,
-        "durationSeconds": 15,
-        "skippableAfterSeconds": 5,
-        "startUtc": "2026-11-01T00:00:00Z",
-        "endUtc": "2026-12-15T23:59:59Z",
-        "imageUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
-        "headline": {
-          "id": "BCA Solitaire Curated Privileges",
-          "en": "BCA Solitaire Curated Privileges",
-          "zh-CN": "BCA Solitaire Curated Privileges",
-          "ja-JP": "BCA Solitaire Curated Privileges"
-        },
-        "ctaLabel": {
-          "id": "View Privileges",
-          "en": "View Privileges",
-          "zh-CN": "View Privileges",
-          "ja-JP": "View Privileges"
-        },
-        "creativeVersion": 1,
-        "startsCount": 0,
-        "completedCount": 0,
-        "skippedCount": 0,
-        "interruptedCount": 0,
-        "failedAfterStartCount": 0,
-        "totalPlaySeconds": 0,
-        "targetAudience": {
-          "isPublicAreaAllowed": true
-        }
-      },
-      {
         "id": "CMP-01",
         "propertyId": "P-01",
         "name": "Spa experience — Royal Javanese Ritual",
@@ -1772,6 +1613,47 @@
         "interruptedCount": 2,
         "failedAfterStartCount": 0,
         "totalPlaySeconds": 780,
+        "targetAudience": {
+          "isPublicAreaAllowed": true
+        }
+      },
+      {
+        "id": "CMP-EXT-01",
+        "propertyId": "P-01",
+        "name": "Garuda Priority Executive Miles & In-Flight Upgrade (External Offer)",
+        "category": "External Offer",
+        "externalPaid": true,
+        "adOfferId": "OFFER-01",
+        "offerVersion": 1,
+        "advertiserName": "Garuda Indonesia",
+        "placement": "home_hero",
+        "status": "Active",
+        "priority": 88,
+        "frequencyCapPerStay": 2,
+        "durationSeconds": 15,
+        "skippableAfterSeconds": 5,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2026-12-31T23:59:59Z",
+        "imageUrl": "/assets/aistudio/file_0000000043808207bbdf250e0b1586c7_702e345a.png",
+        "headline": {
+          "id": "Terbang Bersama Garuda Indonesia — Double Miles untuk Tamu Arunika",
+          "en": "Fly the Skies with Garuda Indonesia — Double Miles for Arunika Guests",
+          "zh-CN": "搭乘印尼鹰航 — 尊享双倍里程与专属休息室",
+          "ja-JP": "ガルーダ・インドネシア航空 — ご宿泊者様限定ダブルマイル進呈"
+        },
+        "ctaLabel": {
+          "id": "Dapatkan Miles",
+          "en": "Claim Double Miles",
+          "zh-CN": "领取特权",
+          "ja-JP": "マイル特典を見る"
+        },
+        "creativeVersion": 1,
+        "startsCount": 8,
+        "completedCount": 6,
+        "skippedCount": 1,
+        "interruptedCount": 1,
+        "failedAfterStartCount": 0,
+        "totalPlaySeconds": 110,
         "targetAudience": {
           "isPublicAreaAllowed": true
         }
@@ -2182,44 +2064,6 @@
     ],
     "discoveryRuns": [
       {
-        "id": "RUN-DEMO-8820",
-        "environmentId": "DEMO",
-        "connectorId": "CON-DEMO-P01",
-        "propertyId": "P-01",
-        "interfaceName": "eth0 (Hospitality Management VLAN 10)",
-        "subnetCidr": "192.168.10.0/24",
-        "portsProbed": [
-          5555,
-          8009
-        ],
-        "startedAtUtc": "2026-11-02T07:00:00Z",
-        "completedAtUtc": "2026-11-02T07:00:00Z",
-        "hostsAttempted": 254,
-        "candidatesFound": 3,
-        "executionMode": "SIMULATED",
-        "status": "Completed",
-        "summaryText": "DEMO simulated scan on 192.168.10.0/24 returned 3 deterministic candidates (DVC-01..03)."
-      },
-      {
-        "id": "RUN-DEMO-7570",
-        "environmentId": "DEMO",
-        "connectorId": "CON-DEMO-P01",
-        "propertyId": "P-01",
-        "interfaceName": "eth0 (Hospitality Management VLAN 10)",
-        "subnetCidr": "192.168.10.0/24",
-        "portsProbed": [
-          5555,
-          8009
-        ],
-        "startedAtUtc": "2026-11-02T07:00:00Z",
-        "completedAtUtc": "2026-11-02T07:00:00Z",
-        "hostsAttempted": 254,
-        "candidatesFound": 3,
-        "executionMode": "SIMULATED",
-        "status": "Completed",
-        "summaryText": "DEMO simulated scan on 192.168.10.0/24 returned 3 deterministic candidates (DVC-01..03)."
-      },
-      {
         "id": "RUN-DEMO-01",
         "environmentId": "DEMO",
         "connectorId": "CON-DEMO-P01",
@@ -2241,319 +2085,7 @@
     ],
     "auditEvents": [
       {
-        "id": "AUD-1794973411627-629",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.order_requested",
-        "targetRef": "ORD-411617",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "SERVICE_REQUESTED",
-        "details": "Guest placed service request 'Royal Javanese Boreh & Herbal Compress' (ORD-411617) for Room 101 · Guest B*** A***. Redacted guest ref generated."
-      },
-      {
-        "id": "AUD-1794973411142-359",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.order_requested",
-        "targetRef": "ORD-411125",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "SERVICE_REQUESTED",
-        "details": "Guest placed service request 'Kayumanis Signature Indonesian Rijsttafel' (ORD-411125) for Room 101 · Guest B*** A***. Redacted guest ref generated."
-      },
-      {
-        "id": "AUD-1794973410479-448",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.order_requested",
-        "targetRef": "ORD-410471",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "SERVICE_REQUESTED",
-        "details": "Guest placed service request 'Royal Javanese Boreh & Herbal Compress' (ORD-410471) for Room 101 · Guest B*** A***. Redacted guest ref generated."
-      },
-      {
-        "id": "AUD-1794973409211-756",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.order_requested",
-        "targetRef": "ORD-409207",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "SERVICE_REQUESTED",
-        "details": "Guest placed service request 'VIP Airport Limousine Transfer (Toyota Alphard HEV)' (ORD-409207) for Room 101 · Guest B*** A***. Redacted guest ref generated."
-      },
-      {
-        "id": "AUD-1794973396925-626",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "stays.manage",
-        "targetRef": "ROOM-101",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "TV_LOCALE_UPDATED",
-        "details": "Updated SmartTV Guest Interface language to 'en' (1 active stay(s))."
-      },
-      {
-        "id": "AUD-1794973393251-864",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "stays.manage",
-        "targetRef": "ROOM-101",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "TV_LOCALE_UPDATED",
-        "details": "Updated SmartTV Guest Interface language to 'ja-JP' (1 active stay(s))."
-      },
-      {
-        "id": "AUD-1794973390822-181",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.order_requested",
-        "targetRef": "ORD-390815",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "SERVICE_REQUESTED",
-        "details": "Guest placed service request 'Kayumanis Signature Indonesian Rijsttafel' (ORD-390815) for Room 101 · Guest B*** A***. Redacted guest ref generated."
-      },
-      {
-        "id": "AUD-1794973388995-321",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.order_requested",
-        "targetRef": "ORD-388987",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "SERVICE_REQUESTED",
-        "details": "Guest placed service request 'VIP Airport Limousine Transfer (Toyota Alphard HEV)' (ORD-388987) for Room 101 · Guest B*** A***. Redacted guest ref generated."
-      },
-      {
-        "id": "AUD-1794972868822-252",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "alpha-installer",
-        "actorRole": "R-09",
-        "action": "network.scan",
-        "targetRef": "RUN-DEMO-8820",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "DEMO_SCAN_COMPLETED",
-        "details": "DEMO simulated scan on 192.168.10.0/24 returned 3 deterministic candidates (DVC-01..03)."
-      },
-      {
-        "id": "AUD-1794972867573-569",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "alpha-installer",
-        "actorRole": "R-09",
-        "action": "network.scan",
-        "targetRef": "RUN-DEMO-7570",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "DEMO_SCAN_COMPLETED",
-        "details": "DEMO simulated scan on 192.168.10.0/24 returned 3 deterministic candidates (DVC-01..03)."
-      },
-      {
-        "id": "AUD-1794972856368-242",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "alpha-admin",
-        "actorRole": "R-08",
-        "action": "network.scan",
-        "targetRef": "P-01",
-        "propertyId": "P-01",
-        "outcome": "DENY",
-        "reasonCode": "PERMISSION_DENIED",
-        "details": "Role R-08 (ISP Partner Administrator) lacks permission 'network.scan'."
-      },
-      {
-        "id": "AUD-1794972846643-207",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.accept_offer",
-        "targetRef": "OFFER-01",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_OPTED_IN",
-        "details": "Property P-01 opted-in to AdOffer 'OFFER-01' (v3) from Garuda Indonesia. Terms: AGR-ARUNIKA-GARUDA-2026Q4."
-      },
-      {
-        "id": "AUD-1794972842873-351",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "demo-support",
-        "actorRole": "R-06",
-        "action": "network.scan",
-        "targetRef": "P-01",
-        "propertyId": "P-01",
-        "outcome": "DENY",
-        "reasonCode": "PERMISSION_DENIED",
-        "details": "Role R-06 (Support Operator) lacks permission 'network.scan'."
-      },
-      {
-        "id": "AUD-1794972828661-819",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "demo-technical-admin-a",
-        "actorRole": "R-03",
-        "action": "network.scan",
-        "targetRef": "P-01",
-        "propertyId": "P-01",
-        "outcome": "DENY",
-        "reasonCode": "PERMISSION_DENIED",
-        "details": "Role R-03 (Technical Administrator) lacks permission 'network.scan'."
-      },
-      {
-        "id": "AUD-1794972816010-210",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "demo-platform-admin",
-        "actorRole": "R-02",
-        "action": "network.scan",
-        "targetRef": "P-01",
-        "propertyId": "P-01",
-        "outcome": "DENY",
-        "reasonCode": "PERMISSION_DENIED",
-        "details": "Role R-02 (Platform Administrator) lacks permission 'network.scan'."
-      },
-      {
-        "id": "AUD-1794972778025-59",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "network.scan",
-        "targetRef": "P-01",
-        "propertyId": "P-01",
-        "outcome": "DENY",
-        "reasonCode": "PERMISSION_DENIED",
-        "details": "Role R-11 (Property Manager) lacks permission 'network.scan'."
-      },
-      {
-        "id": "AUD-1794972760979-157",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.reject_offer",
-        "targetRef": "OFFER-01",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_REJECTED",
-        "details": "Property P-01 rejected AdOffer 'OFFER-01'. Reason: Property Manager mencabut persetujuan penayangan."
-      },
-      {
-        "id": "AUD-1794972759291-998",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.accept_offer",
-        "targetRef": "OFFER-01",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_OPTED_IN",
-        "details": "Property P-01 opted-in to AdOffer 'OFFER-01' (v3) from Garuda Indonesia. Terms: AGR-ARUNIKA-GARUDA-2026Q4."
-      },
-      {
-        "id": "AUD-1794972756605-671",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.update_creative",
-        "targetRef": "OFFER-01",
-        "propertyId": "GLOBAL",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_CREATIVE_REVISED",
-        "details": "Material revision to AdOffer 'OFFER-01' (bumped to v3). 1 property acceptance(s) marked Superceded and campaigns paused pending re-approval."
-      },
-      {
-        "id": "AUD-1794972277819-83",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.update_creative",
-        "targetRef": "OFFER-01",
-        "propertyId": "GLOBAL",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_CREATIVE_REVISED",
-        "details": "Material revision to AdOffer 'OFFER-01' (bumped to v2). 1 property acceptance(s) marked Superceded and campaigns paused pending re-approval."
-      },
-      {
-        "id": "AUD-1794972257978-339",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.reject_offer",
-        "targetRef": "OFFER-01",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_REJECTED",
-        "details": "Property P-01 rejected AdOffer 'OFFER-01'. Reason: Property Manager mencabut persetujuan penayangan."
-      },
-      {
-        "id": "AUD-1794972245966-591",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.accept_offer",
-        "targetRef": "OFFER-03",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_OPTED_IN",
-        "details": "Property P-01 opted-in to AdOffer 'OFFER-03' (v1) from Lexus Indonesia. Terms: AGR-P-01-ADV-LEXUS-2026Q4."
-      },
-      {
-        "id": "AUD-1794971976614-167",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "campaigns.edit",
-        "targetRef": "CMP-08",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "CAMPAIGN_CREATED",
-        "details": "Created image campaign 'Private Villa Sunset High Tea • 20% In-House Guest Privilege' (CMP-08) for P-01."
-      },
-      {
-        "id": "AUD-1794051334999-925",
-        "environmentId": "DEMO",
-        "timestampUtc": "2026-11-02T07:00:00Z",
-        "actorAlias": "property-manager",
-        "actorRole": "R-11",
-        "action": "marketplace.accept_offer",
-        "targetRef": "OFFER-02",
-        "propertyId": "P-01",
-        "outcome": "ALLOW",
-        "reasonCode": "OFFER_OPTED_IN",
-        "details": "Property P-01 opted-in to AdOffer 'OFFER-02' (v1) from BCA Solitaire & Prioritas. Terms: AGR-P-01-ADV-BCA-2026Q4."
-      },
-      {
-        "id": "AUD-1794051210655-328",
+        "id": "AUD-1794975146616-613",
         "environmentId": "DEMO",
         "timestampUtc": "2026-11-02T07:00:00Z",
         "actorAlias": "property-manager",
@@ -2633,7 +2165,6 @@
         "outcome": "completed"
       }
     ],
-    "clockUtc": "2026-11-02T07:00:00Z",
     "adOffers": [
       {
         "id": "OFFER-01",
@@ -2641,30 +2172,8 @@
         "advertiserName": "Garuda Indonesia",
         "title": "Garuda Priority Executive Miles & In-Flight Upgrade",
         "category": "AIRLINE",
-        "currentVersion": 3,
+        "currentVersion": 1,
         "creativeVersions": [
-          {
-            "version": 3,
-            "headline": "Garuda Indonesia Platinum Year-End Promo",
-            "subline": "Diskon eksklusif hingga 35% dan fasilitas jalur cepat untuk tamu hotel.",
-            "mediaUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
-            "mediaType": "image",
-            "targetPlacement": "home_hero",
-            "callToAction": "Lihat Ketentuan Baru",
-            "advertiserBrand": "Garuda Indonesia",
-            "updatedAtUtc": "2026-11-02T07:00:00Z"
-          },
-          {
-            "version": 2,
-            "headline": "Garuda Indonesia Platinum Year-End Promo",
-            "subline": "Diskon eksklusif hingga 35% dan fasilitas jalur cepat untuk tamu hotel.",
-            "mediaUrl": "/assets/aistudio/file_00000000a6b08211935c3a540293bf6c_74821162.png",
-            "mediaType": "image",
-            "targetPlacement": "home_hero",
-            "callToAction": "Lihat Ketentuan Baru",
-            "advertiserBrand": "Garuda Indonesia",
-            "updatedAtUtc": "2026-11-02T07:00:00Z"
-          },
           {
             "version": 1,
             "headline": "Fly the Skies of Indonesia with Double Miles",
@@ -2728,7 +2237,7 @@
         "proposedRateIdr": 12500000,
         "exclusions": [],
         "targetingNotes": "High-net-worth welcome interstitial proposal. Awaiting Property Manager opt-in review.",
-        "status": "Active",
+        "status": "Submitted",
         "createdAtUtc": "2026-11-02T00:00:00Z"
       },
       {
@@ -2767,7 +2276,7 @@
           "Superior"
         ],
         "targetingNotes": "Requires pre_live_tv interstitial consent and Suite guest target only.",
-        "status": "Active",
+        "status": "Submitted",
         "createdAtUtc": "2026-11-03T00:00:00Z"
       }
     ],
@@ -2775,7 +2284,7 @@
       {
         "id": "PAC-01",
         "offerId": "OFFER-01",
-        "offerVersion": 3,
+        "offerVersion": 1,
         "propertyId": "P-01",
         "acceptedPlacements": [
           "home_hero",
@@ -2787,46 +2296,8 @@
         },
         "acceptedCapPerStay": 2,
         "commercialTermsRef": "AGR-ARUNIKA-GARUDA-2026Q4",
-        "acceptedBy": "property-manager",
-        "acceptedAtUtc": "2026-11-02T07:00:00Z",
-        "status": "Accepted"
-      },
-      {
-        "id": "PAC-4995",
-        "offerId": "OFFER-02",
-        "offerVersion": 1,
-        "propertyId": "P-01",
-        "acceptedPlacements": [
-          "welcome_screen",
-          "home_hero"
-        ],
-        "acceptedPeriod": {
-          "startUtc": "2026-11-01T00:00:00Z",
-          "endUtc": "2026-12-15T23:59:59Z"
-        },
-        "acceptedCapPerStay": 1,
-        "commercialTermsRef": "AGR-P-01-ADV-BCA-2026Q4",
-        "acceptedBy": "property-manager",
-        "acceptedAtUtc": "2026-11-02T07:00:00Z",
-        "status": "Accepted"
-      },
-      {
-        "id": "PAC-5962",
-        "offerId": "OFFER-03",
-        "offerVersion": 1,
-        "propertyId": "P-01",
-        "acceptedPlacements": [
-          "pre_live_tv",
-          "service_detail"
-        ],
-        "acceptedPeriod": {
-          "startUtc": "2026-11-01T00:00:00Z",
-          "endUtc": "2026-11-30T23:59:59Z"
-        },
-        "acceptedCapPerStay": 1,
-        "commercialTermsRef": "AGR-P-01-ADV-LEXUS-2026Q4",
-        "acceptedBy": "property-manager",
-        "acceptedAtUtc": "2026-11-02T07:00:00Z",
+        "acceptedBy": "pm_arunika",
+        "acceptedAtUtc": "2026-11-02T08:30:00Z",
         "status": "Accepted"
       }
     ],
@@ -2974,90 +2445,6 @@
     ],
     "serviceOrders": [
       {
-        "id": "ORD-411617",
-        "itemId": "MKT-02",
-        "itemTitle": "Royal Javanese Boreh & Herbal Compress",
-        "propertyId": "P-01",
-        "roomId": "ROOM-101",
-        "stayId": "S-01",
-        "guestDisplayRef": "Room 101 · Guest B*** A***",
-        "rawGuestName": "Bapak Aditya",
-        "status": "Requested",
-        "requestedAtUtc": "2026-11-02T07:00:00Z",
-        "notes": "Requested 'Royal Boreh Spice & Herbal Compress' via in-room SmartTV",
-        "fulfilmentType": "STAFF_TICKET"
-      },
-      {
-        "id": "ORD-411125",
-        "itemId": "MKT-01",
-        "itemTitle": "Kayumanis Signature Indonesian Rijsttafel",
-        "propertyId": "P-01",
-        "roomId": "ROOM-101",
-        "stayId": "S-01",
-        "guestDisplayRef": "Room 101 · Guest B*** A***",
-        "rawGuestName": "Bapak Aditya",
-        "status": "Requested",
-        "requestedAtUtc": "2026-11-02T07:00:00Z",
-        "notes": "Requested 'Kayumanis Indonesian Rijsttafel' via in-room SmartTV",
-        "fulfilmentType": "STAFF_TICKET"
-      },
-      {
-        "id": "ORD-410471",
-        "itemId": "MKT-02",
-        "itemTitle": "Royal Javanese Boreh & Herbal Compress",
-        "propertyId": "P-01",
-        "roomId": "ROOM-101",
-        "stayId": "S-01",
-        "guestDisplayRef": "Room 101 · Guest B*** A***",
-        "rawGuestName": "Bapak Aditya",
-        "status": "Requested",
-        "requestedAtUtc": "2026-11-02T07:00:00Z",
-        "notes": "Requested 'Royal Boreh Spice & Herbal Compress' via in-room SmartTV",
-        "fulfilmentType": "STAFF_TICKET"
-      },
-      {
-        "id": "ORD-409207",
-        "itemId": "MKT-03",
-        "itemTitle": "VIP Airport Limousine Transfer (Toyota Alphard HEV)",
-        "propertyId": "P-01",
-        "roomId": "ROOM-101",
-        "stayId": "S-01",
-        "guestDisplayRef": "Room 101 · Guest B*** A***",
-        "rawGuestName": "Bapak Aditya",
-        "status": "Requested",
-        "requestedAtUtc": "2026-11-02T07:00:00Z",
-        "notes": "Requested 'VIP Airport Limousine (Alphard HEV)' via in-room SmartTV",
-        "fulfilmentType": "PARTNER_API"
-      },
-      {
-        "id": "ORD-390815",
-        "itemId": "MKT-01",
-        "itemTitle": "Kayumanis Signature Indonesian Rijsttafel",
-        "propertyId": "P-01",
-        "roomId": "ROOM-101",
-        "stayId": "S-01",
-        "guestDisplayRef": "Room 101 · Guest B*** A***",
-        "rawGuestName": "Bapak Aditya",
-        "status": "Requested",
-        "requestedAtUtc": "2026-11-02T07:00:00Z",
-        "notes": "Requested 'Kayumanis Rijsttafel Nusantara' via in-room SmartTV",
-        "fulfilmentType": "STAFF_TICKET"
-      },
-      {
-        "id": "ORD-388987",
-        "itemId": "MKT-03",
-        "itemTitle": "VIP Airport Limousine Transfer (Toyota Alphard HEV)",
-        "propertyId": "P-01",
-        "roomId": "ROOM-101",
-        "stayId": "S-01",
-        "guestDisplayRef": "Room 101 · Guest B*** A***",
-        "rawGuestName": "Bapak Aditya",
-        "status": "Requested",
-        "requestedAtUtc": "2026-11-02T07:00:00Z",
-        "notes": "Requested 'Antar Jemput Bandara VIP Alphard' via in-room SmartTV",
-        "fulfilmentType": "PARTNER_API"
-      },
-      {
         "id": "ORD-2026-001",
         "itemId": "MKT-01",
         "itemTitle": "Kayumanis Signature Indonesian Rijsttafel",
@@ -3103,7 +2490,8 @@
         "notes": "Flight GA-204 departure tomorrow at 09:40 AM.",
         "fulfilmentType": "PARTNER_API"
       }
-    ]
+    ],
+    "clockUtc": "2026-11-02T07:00:00Z"
   },
   "LIVE_LAB": {
     "userAccounts": [
