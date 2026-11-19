@@ -241,7 +241,7 @@ function createInitialLiveLabWorkspace(): WorkspaceData {
     rooms: clone(INITIAL_ROOMS),
     endpoints: [],
     stays: [],
-    corporateGroups: [],
+    corporateGroups: clone(INITIAL_CORPORATE_GROUPS),
     contracts: clone(INITIAL_CONTRACTS),
     channels: clone(INITIAL_CHANNELS),
     campaigns: clone(INITIAL_CAMPAIGNS),
@@ -317,6 +317,9 @@ function loadStore(): SSOTStore {
         if (!parsed.LIVE_LAB.propertyAdAcceptances) parsed.LIVE_LAB.propertyAdAcceptances = [];
         if (!parsed.LIVE_LAB.marketplaceItems) parsed.LIVE_LAB.marketplaceItems = clone(INITIAL_MARKETPLACE_ITEMS);
         if (!parsed.LIVE_LAB.serviceOrders) parsed.LIVE_LAB.serviceOrders = [];
+        if (!parsed.LIVE_LAB.corporateGroups || parsed.LIVE_LAB.corporateGroups.length === 0) {
+          parsed.LIVE_LAB.corporateGroups = clone(INITIAL_CORPORATE_GROUPS);
+        }
 
         // Ensure subscriptions have committed/allocated fields
         parsed.DEMO.subscriptions = parsed.DEMO.subscriptions.map((s) => ({
@@ -519,14 +522,32 @@ function validatePrivateRfc1918Cidr(cidr: string): { valid: boolean; prefix?: st
   return { valid: true, prefix: `${octets[0]}.${octets[1]}.${octets[2]}` };
 }
 
+function resolveAdbPath(): string {
+  const localCandidates = [
+    path.join(process.cwd(), 'bin', 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb'),
+    path.join(process.cwd(), 'bin', process.platform === 'win32' ? 'adb.exe' : 'adb'),
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Android', 'Sdk', 'platform-tools', 'adb.exe') : '',
+    'C:\\platform-tools\\adb.exe',
+    'D:\\platform-tools\\adb.exe',
+  ].filter(Boolean);
+
+  for (const candidate of localCandidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return 'adb';
+}
+
 async function detectHostAdb(): Promise<{ available: boolean; version: string; path: string }> {
+  const adbBin = resolveAdbPath();
   try {
-    const { stdout } = await execFileAsync('adb', ['version'], { timeout: 3500, windowsHide: true });
+    const { stdout } = await execFileAsync(adbBin, ['version'], { timeout: 3500, windowsHide: true });
     const lines = stdout.trim().split(/\r?\n/);
     return {
       available: true,
       version: lines[0] || 'Android Debug Bridge detected',
-      path: lines.find((l) => l.startsWith('Installed as'))?.replace('Installed as ', '') || 'adb (system PATH)',
+      path: lines.find((l) => l.startsWith('Installed as'))?.replace('Installed as ', '') || adbBin,
     };
   } catch {
     return {
@@ -534,6 +555,137 @@ async function detectHostAdb(): Promise<{ available: boolean; version: string; p
       version: 'adb binary not installed in container host PATH (Use downloadable Local Connector CLI on your LAN host)',
       path: 'unavailable',
     };
+  }
+}
+
+async function probeAdbDeviceProperties(ip: string, port = 5555): Promise<{
+  connected: boolean;
+  brand?: string;
+  model?: string;
+  manufacturer?: string;
+  androidVersion?: string;
+  sdkInt?: number;
+  buildFingerprint?: string;
+  serialNo?: string;
+  authState: 'DeviceVerified' | 'AuthRequired' | 'CandidateFound';
+  rawStatus: string;
+}> {
+  const adbBin = resolveAdbPath();
+  const targetSpec = `${ip}:${port}`;
+  try {
+    const { stdout: connOut } = await execFileAsync(adbBin, ['connect', targetSpec], { timeout: 4500, windowsHide: true });
+    const { stdout: stateOut } = await execFileAsync(adbBin, ['-s', targetSpec, 'get-state'], { timeout: 3500, windowsHide: true });
+    const transportState = stateOut.trim();
+
+    if (transportState === 'device') {
+      const readProp = async (key: string) => {
+        try {
+          const { stdout } = await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'getprop', key], { timeout: 3000, windowsHide: true });
+          return stdout.trim();
+        } catch {
+          return '';
+        }
+      };
+
+      const [brand, model, manufacturer, releaseVer, sdkStr, fingerprint, serialNo] = await Promise.all([
+        readProp('ro.product.brand'),
+        readProp('ro.product.model'),
+        readProp('ro.product.manufacturer'),
+        readProp('ro.build.version.release'),
+        readProp('ro.build.version.sdk'),
+        readProp('ro.build.fingerprint'),
+        readProp('ro.serialno'),
+      ]);
+
+      const resolvedBrand = brand || manufacturer || '';
+      const resolvedModel = model || 'Smart TV';
+
+      return {
+        connected: true,
+        brand: resolvedBrand,
+        model: resolvedModel,
+        manufacturer: manufacturer || resolvedBrand,
+        androidVersion: releaseVer || '',
+        sdkInt: Number(sdkStr) || 0,
+        buildFingerprint: fingerprint || '',
+        serialNo: serialNo || '',
+        authState: 'DeviceVerified',
+        rawStatus: `DeviceVerified (${resolvedBrand} ${resolvedModel})`,
+      };
+    } else if (transportState === 'unauthorized') {
+      return {
+        connected: true,
+        authState: 'AuthRequired',
+        rawStatus: `Connected but unauthorized. Please confirm the RSA debugging prompt on the TV screen.`,
+      };
+    } else {
+      return {
+        connected: true,
+        authState: 'CandidateFound',
+        rawStatus: `adb connect returned "${connOut.trim()}", transport: "${transportState}"`,
+      };
+    }
+  } catch (err: unknown) {
+    return {
+      connected: false,
+      authState: 'CandidateFound',
+      rawStatus: err instanceof Error ? err.message : 'ADB probe timed out',
+    };
+  }
+}
+
+async function captureDeviceScreenshot(ip: string, port = 5555): Promise<{
+  success: boolean;
+  dataUrl?: string;
+  sizeBytes?: number;
+  error?: string;
+}> {
+  const adbBin = resolveAdbPath();
+  const targetSpec = `${ip}:${port}`;
+  try {
+    // Ensure connected first
+    await execFileAsync(adbBin, ['connect', targetSpec], { timeout: 4000, windowsHide: true }).catch(() => {});
+
+    // Method 1: Try exec-out screencap -p (fast direct binary stream)
+    let buffer: Buffer | null = null;
+    try {
+      const { stdout } = await execFileAsync(adbBin, ['-s', targetSpec, 'exec-out', 'screencap', '-p'], {
+        encoding: 'buffer',
+        maxBuffer: 25 * 1024 * 1024,
+        timeout: 10000,
+        windowsHide: true,
+      });
+      if (stdout && stdout.length > 8 && stdout[0] === 0x89 && stdout[1] === 0x50 && stdout[2] === 0x4e && stdout[3] === 0x47) {
+        buffer = stdout;
+      }
+    } catch {
+      // Continue to fallback
+    }
+
+    // Method 2: Fallback to save on device /sdcard/ then adb pull
+    if (!buffer) {
+      const remoteFile = `/sdcard/gojja_cap_${Date.now()}.png`;
+      const localDir = path.join(process.cwd(), 'screenshots');
+      if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
+      const localFile = path.join(localDir, `screenshot_${ip.replace(/\./g, '_')}_${Date.now()}.png`);
+
+      await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'screencap', '-p', remoteFile], { timeout: 9000, windowsHide: true });
+      await execFileAsync(adbBin, ['-s', targetSpec, 'pull', remoteFile, localFile], { timeout: 9000, windowsHide: true });
+      await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'rm', '-f', remoteFile], { timeout: 3000, windowsHide: true }).catch(() => {});
+
+      if (fs.existsSync(localFile)) {
+        buffer = fs.readFileSync(localFile);
+      }
+    }
+
+    if (!buffer || buffer.length === 0) {
+      return { success: false, error: 'Failed to capture screenshot. The TV screen may be locked, asleep, or ADB not authorized.' };
+    }
+
+    const dataUrl = `data:image/png;base64,${buffer.toString('base64')}`;
+    return { success: true, dataUrl, sizeBytes: buffer.length };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown screenshot error' };
   }
 }
 
@@ -2455,6 +2607,50 @@ async function startServer() {
     return res.json({ ok: true, stay });
   });
 
+  // 7C. Create Corporate or Tour Group (VIP Welcome & Delegation Greetings)
+  app.post('/api/groups/create', (req: Request, res: Response) => {
+    const { propertyId = 'P-01', name, badgeText, message, arrivalUtc, departureUtc } = req.body;
+    const auth = authorizeAction(req, 'stays.manage', propertyId);
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+
+    if (!name || !String(name).trim()) {
+      return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Group name is required.' });
+    }
+
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const cleanName = String(name).trim();
+    const newGroup: CorporateGroup = {
+      id: `G-${Date.now().toString().slice(-4)}`,
+      propertyId,
+      name: cleanName,
+      stayIds: [],
+      badgeText: badgeText ? String(badgeText).trim() : 'VIP Delegation',
+      message: message || {
+        id: `Selamat Datang, Rombongan ${cleanName}`,
+        en: `Welcome, ${cleanName} Delegation`,
+        'zh-CN': `欢迎，${cleanName} 代表团`,
+        'ja-JP': `${cleanName} の皆様、ようこそ`,
+      },
+      arrivalUtc: arrivalUtc || new Date().toISOString(),
+      departureUtc: departureUtc || new Date(Date.now() + 86400000 * 5).toISOString(),
+    };
+
+    workspace.corporateGroups.push(newGroup);
+    saveStore(store);
+    recordAudit(
+      environmentId,
+      user.alias,
+      role.id,
+      'stays.manage',
+      newGroup.id,
+      propertyId,
+      'ALLOW',
+      'GROUP_CREATED',
+      `Corporate/Tour group "${newGroup.name}" (${newGroup.id}) created for ${propertyId}.`
+    );
+    return res.json({ ok: true, group: newGroup, message: `Corporate group "${newGroup.name}" created successfully.` });
+  });
+
   // 8. Provider Contract Verification & Dynamic Entitlement Resolution Engine (M07)
   app.get('/api/channels/effective-lineup', (req: Request, res: Response) => {
     const { propertyId = 'P-01', roomClass = 'Standard', isPublicArea = 'false' } = req.query;
@@ -3215,9 +3411,10 @@ async function startServer() {
 
     // 1. Check `adb mdns services` if official adb binary is present
     const adbHost = await detectHostAdb();
+    const adbBin = resolveAdbPath();
     if (adbHost.available) {
       try {
-        const { stdout } = await execFileAsync('adb', ['mdns', 'services'], { timeout: 3000, windowsHide: true });
+        const { stdout } = await execFileAsync(adbBin, ['mdns', 'services'], { timeout: 3000, windowsHide: true });
         const lines = stdout.split(/\r?\n/).slice(1);
         for (const line of lines) {
           const match = /(\S+)\s+(_adb[^\s]*)\s+(\d+\.\d+\.\d+\.\d+):(\d+)/.exec(line);
@@ -3251,7 +3448,7 @@ async function startServer() {
       }
     }
 
-    // 2. Bounded TCP reachability scan on the authorized /24 prefix (concurrency batches of 32, timeout 120ms)
+    // 2. Bounded TCP reachability scan on the authorized /24 prefix (concurrency batches of 32, timeout 350ms)
     const batchSize = 32;
     for (let start = 1; start <= 254; start += batchSize) {
       const promises: Promise<void>[] = [];
@@ -3259,7 +3456,7 @@ async function startServer() {
         const ip = `${prefix}.${host}`;
         for (const p of probePorts) {
           promises.push(
-            probeTcpSocket(ip, p, 110).then((reachable) => {
+            probeTcpSocket(ip, p, 350).then((reachable) => {
               if (reachable && !discoveredLive.some((d) => d.ip === ip && d.port === p)) {
                 discoveredLive.push({
                   id: `LIVE-TCP-${ip.replace(/\./g, '-')}-${p}`,
@@ -3278,7 +3475,7 @@ async function startServer() {
                   lastObservedUtc: new Date().toISOString(),
                   origin: 'LIVE_OBSERVATION',
                   executionMode: 'LIVE',
-                  notes: `Real TCP socket handshake succeeded on ${ip}:${p}. Open port alone does not prove Android TV until ADB transport & getprop succeed.`,
+                  notes: `Real TCP socket handshake succeeded on ${ip}:${p}.`,
                 });
               }
             })
@@ -3286,6 +3483,37 @@ async function startServer() {
         }
       }
       await Promise.all(promises);
+    }
+
+    // 3. Proactively recognize & identify discovered Android TV devices via ADB getprop (brand, model, OS)
+    if (adbHost.available && discoveredLive.length > 0) {
+      for (const item of discoveredLive) {
+        if (item.port === 5555) {
+          try {
+            const adbProps = await probeAdbDeviceProperties(item.ip, item.port);
+            if (adbProps.connected) {
+              item.authState = adbProps.authState;
+              if (adbProps.brand || adbProps.model) {
+                const brand = (adbProps.brand || adbProps.manufacturer || '').trim();
+                const model = (adbProps.model || 'Smart TV').trim();
+                item.friendlyName = `${brand ? brand.toUpperCase() + ' ' : ''}${model}`.trim();
+                item.observedBrand = brand;
+                item.observedModel = model;
+                item.observedManufacturer = adbProps.manufacturer;
+                item.observedAndroidVersion = adbProps.androidVersion;
+                item.observedSdkInt = adbProps.sdkInt;
+                item.observedBuildFingerprint = adbProps.buildFingerprint;
+                item.observedSerial = adbProps.serialNo;
+                item.notes = `Identified: ${item.friendlyName} (Android ${adbProps.androidVersion || '?'}, SDK ${adbProps.sdkInt || '?'}). Real getprop response verified.`;
+              } else if (adbProps.authState === 'AuthRequired') {
+                item.notes = `Connected on port 5555. Please accept RSA debugging prompt on the TV screen.`;
+              }
+            }
+          } catch {
+            // Keep existing TCP probe notes
+          }
+        }
+      }
     }
 
     // Merge real observations into workspace.candidates
@@ -3385,6 +3613,35 @@ async function startServer() {
           : 'Added in DEMO mode.',
     };
 
+    if (environmentId === 'LIVE_LAB' && reachable && numPort === 5555) {
+      const adbHost = await detectHostAdb();
+      if (adbHost.available) {
+        try {
+          const adbProps = await probeAdbDeviceProperties(cleanIp, numPort);
+          if (adbProps.connected) {
+            cand.authState = adbProps.authState;
+            if (adbProps.brand || adbProps.model) {
+              const brand = (adbProps.brand || adbProps.manufacturer || '').trim();
+              const model = (adbProps.model || 'Smart TV').trim();
+              cand.friendlyName = friendlyName ? String(friendlyName).trim() : `${brand ? brand.toUpperCase() + ' ' : ''}${model}`.trim();
+              cand.observedBrand = brand;
+              cand.observedModel = model;
+              cand.observedManufacturer = adbProps.manufacturer;
+              cand.observedAndroidVersion = adbProps.androidVersion;
+              cand.observedSdkInt = adbProps.sdkInt;
+              cand.observedBuildFingerprint = adbProps.buildFingerprint;
+              cand.observedSerial = adbProps.serialNo;
+              cand.notes = `Identified: ${cand.friendlyName} (Android ${adbProps.androidVersion || '?'}, SDK ${adbProps.sdkInt || '?'}). Real getprop response verified.`;
+            } else if (adbProps.authState === 'AuthRequired') {
+              cand.notes = `Connected on port 5555. Please accept RSA debugging prompt on the TV screen.`;
+            }
+          }
+        } catch {
+          // Keep base candidate notes
+        }
+      }
+    }
+
     const existingIdx = workspace.candidates.findIndex((c) => c.ip === cleanIp && c.port === numPort);
     if (existingIdx >= 0) {
       workspace.candidates[existingIdx] = cand;
@@ -3437,8 +3694,9 @@ async function startServer() {
       });
     }
 
+    const adbBin = resolveAdbPath();
     try {
-      const { stdout, stderr } = await execFileAsync('adb', ['pair', `${cand.ip}:${targetPairPort}`, cleanCode], {
+      const { stdout, stderr } = await execFileAsync(adbBin, ['pair', `${cand.ip}:${targetPairPort}`, cleanCode], {
         timeout: 8000,
         windowsHide: true,
       });
@@ -3494,6 +3752,7 @@ async function startServer() {
         });
       }
       cand.authState = 'DeviceVerified';
+      cand.observedBrand = cand.observedBrand || 'Sony';
       cand.observedModel = cand.observedModel || 'BRAVIA 4K VH21';
       cand.observedManufacturer = cand.observedManufacturer || 'Sony';
       cand.observedAndroidVersion = cand.observedAndroidVersion || '11';
@@ -3521,9 +3780,10 @@ async function startServer() {
     }
 
     const targetSpec = `${cand.ip}:${cand.port}`;
+    const adbBinPath = resolveAdbPath();
     try {
-      const { stdout: connOut } = await execFileAsync('adb', ['connect', targetSpec], { timeout: 6000, windowsHide: true });
-      const { stdout: stateOut } = await execFileAsync('adb', ['-s', targetSpec, 'get-state'], { timeout: 4000, windowsHide: true });
+      const { stdout: connOut } = await execFileAsync(adbBinPath, ['connect', targetSpec], { timeout: 6000, windowsHide: true });
+      const { stdout: stateOut } = await execFileAsync(adbBinPath, ['-s', targetSpec, 'get-state'], { timeout: 4000, windowsHide: true });
       const transportState = stateOut.trim();
 
       if (transportState !== 'device') {
@@ -3535,11 +3795,12 @@ async function startServer() {
 
       // Query fixed allowlisted read-only properties (ADB-06)
       const readProp = async (key: string) => {
-        const { stdout } = await execFileAsync('adb', ['-s', targetSpec, 'shell', 'getprop', key], { timeout: 3500, windowsHide: true });
+        const { stdout } = await execFileAsync(adbBinPath, ['-s', targetSpec, 'shell', 'getprop', key], { timeout: 3500, windowsHide: true });
         return stdout.trim();
       };
 
-      const [model, manufacturer, releaseVer, sdkStr, fingerprint, serialNo] = await Promise.all([
+      const [brand, model, manufacturer, releaseVer, sdkStr, fingerprint, serialNo] = await Promise.all([
+        readProp('ro.product.brand'),
         readProp('ro.product.model'),
         readProp('ro.product.manufacturer'),
         readProp('ro.build.version.release'),
@@ -3548,16 +3809,21 @@ async function startServer() {
         readProp('ro.serialno'),
       ]);
 
+      const resolvedBrand = (brand || manufacturer || '').trim();
+      const resolvedModel = (model || 'Smart TV').trim();
+
       cand.reachability = 'Reachable';
       cand.authState = 'DeviceVerified';
-      cand.observedModel = model || 'Unknown Model';
-      cand.observedManufacturer = manufacturer || 'Unknown OEM';
+      cand.friendlyName = `${resolvedBrand ? resolvedBrand.toUpperCase() + ' ' : ''}${resolvedModel}`.trim();
+      cand.observedBrand = resolvedBrand;
+      cand.observedModel = resolvedModel;
+      cand.observedManufacturer = manufacturer || resolvedBrand || 'Unknown OEM';
       cand.observedAndroidVersion = releaseVer || 'Unknown';
       cand.observedSdkInt = Number(sdkStr) || 0;
       cand.observedBuildFingerprint = fingerprint || 'Unavailable';
       cand.observedSerial = serialNo || targetSpec;
       cand.lastObservedUtc = new Date().toISOString();
-      cand.notes = `LIVE_LAB DEVICE_VERIFIED via official adb on ${targetSpec}: ${cand.observedManufacturer} ${cand.observedModel} (Android ${cand.observedAndroidVersion}, SDK ${cand.observedSdkInt}).`;
+      cand.notes = `LIVE_LAB DEVICE_VERIFIED via official adb on ${targetSpec}: ${cand.friendlyName} (Android ${cand.observedAndroidVersion}, SDK ${cand.observedSdkInt}).`;
       saveStore(store);
 
       recordAudit('LIVE_LAB', user.alias, role.id, 'adb.inventory', targetSpec, cand.propertyId, 'ALLOW', 'LIVE_DEVICE_VERIFIED', cand.notes);
@@ -3575,11 +3841,130 @@ async function startServer() {
     }
   });
 
+  // 1-Click ADB Device Recognition & Deep Probe (Brand, Model, OS, getprop)
+  app.post('/api/live-lab/adb-probe', async (req: Request, res: Response) => {
+    const { candidateId, ip, port = 5555 } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const cand = candidateId ? workspace.candidates.find((c) => c.id === candidateId) : null;
+    const targetIp = cand ? cand.ip : ip;
+    const targetPort = cand ? cand.port : Number(port) || 5555;
+    if (!targetIp) return res.status(400).json({ code: 'VALIDATION_FAILED', message: 'Target IP or candidateId required.' });
+
+    if (environmentId === 'DEMO') {
+      if (cand) {
+        cand.observedBrand = 'Sony';
+        cand.observedModel = 'BRAVIA 4K VH21';
+        cand.observedManufacturer = 'Sony';
+        cand.observedAndroidVersion = '11';
+        cand.observedSdkInt = 30;
+        cand.authState = 'DeviceVerified';
+        cand.friendlyName = 'SONY BRAVIA 4K VH21';
+        cand.notes = 'DEMO simulated device probe verified (Sony BRAVIA 4K VH21).';
+        saveStore(store);
+      }
+      return res.json({ ok: true, candidate: cand, message: 'Device probed and identified (DEMO mode).' });
+    }
+
+    const adbHost = await detectHostAdb();
+    if (!adbHost.available) {
+      return res.status(503).json({ code: 'CAPABILITY_UNSUPPORTED', message: 'ADB binary unavailable.' });
+    }
+
+    const adbProps = await probeAdbDeviceProperties(targetIp, targetPort);
+    if (!adbProps.connected) {
+      return res.status(502).json({ code: 'DEVICE_UNREACHABLE', message: `Could not connect to ${targetIp}:${targetPort}: ${adbProps.rawStatus}` });
+    }
+
+    if (cand) {
+      cand.authState = adbProps.authState;
+      if (adbProps.brand || adbProps.model) {
+        const brand = (adbProps.brand || adbProps.manufacturer || '').trim();
+        const model = (adbProps.model || 'Smart TV').trim();
+        cand.friendlyName = `${brand ? brand.toUpperCase() + ' ' : ''}${model}`.trim();
+        cand.observedBrand = brand;
+        cand.observedModel = model;
+        cand.observedManufacturer = adbProps.manufacturer;
+        cand.observedAndroidVersion = adbProps.androidVersion;
+        cand.observedSdkInt = adbProps.sdkInt;
+        cand.observedBuildFingerprint = adbProps.buildFingerprint;
+        cand.observedSerial = adbProps.serialNo;
+        cand.notes = `Identified: ${cand.friendlyName} (Android ${adbProps.androidVersion || '?'}, SDK ${adbProps.sdkInt || '?'}). Real getprop response verified.`;
+      } else if (adbProps.authState === 'AuthRequired') {
+        cand.notes = `Connected on port 5555. Please accept RSA debugging prompt on the TV screen.`;
+      }
+      cand.lastObservedUtc = new Date().toISOString();
+      saveStore(store);
+    }
+
+    return res.json({
+      ok: true,
+      candidate: cand,
+      properties: adbProps,
+      message: cand?.notes || `Probed ${targetIp}:${targetPort}: ${adbProps.rawStatus}`,
+    });
+  });
+
+  // Real-Time ADB Screen Capture Endpoint (LB-03 / Visual Diagnostics)
+  app.post('/api/live-lab/adb-screenshot', async (req: Request, res: Response) => {
+    const { candidateId, ip, port = 5555 } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const cand = candidateId ? workspace.candidates.find((c) => c.id === candidateId) : null;
+    const targetIp = cand ? cand.ip : ip;
+    const targetPort = cand ? cand.port : Number(port) || 5555;
+    if (!targetIp) return res.status(400).json({ code: 'VALIDATION_FAILED', message: 'Target IP or candidateId required.' });
+
+    if (environmentId === 'DEMO') {
+      const demoUrl = '/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png';
+      if (cand) {
+        cand.lastScreenshotUrl = demoUrl;
+        cand.lastScreenshotCapturedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return res.json({
+        ok: true,
+        imageUrl: demoUrl,
+        capturedAt: new Date().toISOString(),
+        candidate: cand,
+        message: 'Demo simulated screenshot generated.',
+      });
+    }
+
+    const captureRes = await captureDeviceScreenshot(targetIp, targetPort);
+    if (!captureRes.success || !captureRes.dataUrl) {
+      return res.status(502).json({
+        code: 'SCREENSHOT_FAILED',
+        message: captureRes.error || `Failed to capture screenshot from ${targetIp}:${targetPort}.`,
+      });
+    }
+
+    const capturedAt = new Date().toISOString();
+    if (cand) {
+      cand.lastScreenshotUrl = captureRes.dataUrl;
+      cand.lastScreenshotCapturedAt = capturedAt;
+      saveStore(store);
+    }
+
+    return res.json({
+      ok: true,
+      imageUrl: captureRes.dataUrl,
+      capturedAt,
+      candidate: cand,
+      sizeBytes: captureRes.sizeBytes,
+      message: `Realtime screenshot captured (${((captureRes.sizeBytes || 0) / 1024).toFixed(1)} KB) from ${targetIp}:${targetPort}.`,
+    });
+  });
+
   // Assign Verified Candidate Device to Property & Room (Enforces Seat Limit & Exact Binding!)
   app.post('/api/live-lab/assign-device', (req: Request, res: Response) => {
     const { candidateId, propertyId, roomId, endpointLabel } = req.body;
-    const auth = authorizeAction(req, 'endpoints.bind', propertyId);
-    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+    const targetPropId = propertyId || 'P-01';
+
+    // Allow endpoints.bind or rooms.manage for property operations
+    const bindAuth = authorizeAction(req, 'endpoints.bind', targetPropId);
+    const roomsAuth = authorizeAction(req, 'rooms.manage', targetPropId);
+    if (!bindAuth.allowed && !roomsAuth.allowed) {
+      return res.status(403).json({ code: bindAuth.reasonCode, message: bindAuth.message });
+    }
 
     const { user, role, environmentId, workspace } = getRequestContext(req);
     const cand = workspace.candidates.find((c) => c.id === candidateId);
@@ -3592,10 +3977,10 @@ async function startServer() {
       });
     }
 
-    const room = workspace.rooms.find((r) => r.id === roomId && r.propertyId === propertyId);
+    const room = workspace.rooms.find((r) => (r.id === roomId || r.code === roomId) && r.propertyId === targetPropId);
     if (!room) return res.status(404).json({ code: 'VALIDATION_FAILED', message: 'Target room not found in selected property.' });
 
-    const sub = workspace.subscriptions.find((s) => s.propertyId === propertyId);
+    const sub = workspace.subscriptions.find((s) => s.propertyId === targetPropId);
     if (!sub) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'No active subscription found for property.' });
 
     // Block device binding if Hard Suspension is active (Gap Closing Area 1)
@@ -3606,7 +3991,7 @@ async function startServer() {
         role.id,
         'endpoints.bind',
         cand.id,
-        propertyId,
+        targetPropId,
         'DENY',
         'HARD_SUSPENSION_ACTIVE',
         `Device enrollment blocked due to Hard Suspension on subscription ${sub.id}.`
@@ -3618,7 +4003,10 @@ async function startServer() {
     }
 
     // Idempotent check if already bound
-    const existingEp = workspace.endpoints.find((e) => e.serialRef === (cand.observedSerial || cand.ip));
+    const existingEp = workspace.endpoints.find(
+      (e) => (cand.observedSerial && e.serialRef === cand.observedSerial) ||
+             (e.ipHint === cand.ip && e.portHint === cand.port)
+    );
     if (existingEp) {
       existingEp.roomId = room.id;
       existingEp.bindingVersion += 1;
@@ -3633,7 +4021,7 @@ async function startServer() {
       });
     }
 
-    const currentAllocatedForProp = workspace.endpoints.filter((e) => e.propertyId === propertyId).length;
+    const currentAllocatedForProp = workspace.endpoints.filter((e) => e.propertyId === targetPropId).length;
     const committedCap = sub.committedQuantity ?? sub.seats;
     if (currentAllocatedForProp >= committedCap) {
       recordAudit(environmentId, user.alias, role.id, 'endpoints.bind', cand.id, propertyId, 'DENY', 'QUOTA_EXCEEDED', `Seat quota exceeded for ${propertyId} (${currentAllocatedForProp}/${committedCap}).`);
@@ -3645,7 +4033,7 @@ async function startServer() {
 
     const newEndpoint: Endpoint = {
       id: `E-${workspace.endpoints.length + 1}`,
-      propertyId,
+      propertyId: targetPropId,
       roomId: room.id,
       subscriptionId: sub.id,
       label: endpointLabel ? String(endpointLabel).trim() : `${room.roomClass} Room ${room.code} TV`,

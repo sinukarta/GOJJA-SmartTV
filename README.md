@@ -11,6 +11,10 @@ Fitur **LIVE_LAB** pada GOJJA SmartTV dirancang untuk berinteraksi langsung deng
 ### Mengapa Membutuhkan Local Connector CLI?
 Jika aplikasi GOJJA SmartTV diakses dari Cloud (seperti Vercel atau VPS), server cloud **tidak dapat memindai alamat IP privat lokal** (seperti `192.168.1.x`) di router Wi-Fi properti Anda. Skrip pendamping `gojja-connector.mjs` dijalankan di laptop installer yang berada di jaringan Wi-Fi yang sama dengan TV untuk memindai port ADB dan melaporkan kandidat TV ke dashboard.
 
+> [!TIP]
+> **Deteksi Langsung dari Dashboard (Zero-Console Mode)**:  
+> Jika Anda menjalankan aplikasi secara lokal (`npm run dev` di `http://localhost:3000`), server telah dibekali Google ADB Platform-Tools internal (`bin/platform-tools/`). Anda **tidak perlu membuka terminal atau menjalankan skrip terpisah sama sekali**! Cukup masukkan IP TV di formulir *Add Manual Target* atau klik *Scan Authorized Network* langsung dari browser, dan sistem akan langsung mendeteksi merk (seperti **MediaTek Smart TV**), model, OS, hingga mengambil screenshot realtime.
+
 ```
 ┌─────────────────────────┐               ┌─────────────────────────┐
 │     Android TV Fisik    │               │      Laptop Installer   │
@@ -24,6 +28,16 @@ Jika aplikasi GOJJA SmartTV diakses dari Cloud (seperti Vercel atau VPS), server
                                           │   (Cloud / Localhost)   │
                                           └─────────────────────────┘
 ```
+
+---
+
+### ⚡ Fitur Baru: Pengenalan Merk TV & Real-Time Screen Capture (Dashboard-Native)
+
+Di dashboard CMS pada menu **Device Discovery & Fleet Control (LIVE_LAB)**:
+1. **Pengenalan Merk & Model Otomatis**:  
+   Saat TV terhubung pada port 5555, sistem menjalankan query `getprop` otomatis (`ro.product.brand`, `ro.product.model`, `ro.product.manufacturer`, `ro.build.version.release`). TV Anda langsung dikenali sebagai misalnya **`MEDIATEK Smart TV (Android 11)`** atau **`XIAOMI MiTV-4A`** lengkap dengan badge pabrikan dan nomor seri tanpa tebak-tebakan.
+2. **Ambil Tangkapan Layar Realtime (Route C)**:  
+   Tersedia tombol **"Ambil Screenshot Realtime"** dan toggle **"Auto-refresh (5s)"** di panel inspektor perangkat. Dashboard mengambil frame buffer layar TV secara langsung over-the-network via ADB stream dan menampilkannya di dalam bingkai TV interaktif serta modal layar penuh tanpa perlu menyentuh command prompt cmd.
 
 ---
 

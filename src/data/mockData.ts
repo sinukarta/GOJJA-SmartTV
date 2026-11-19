@@ -878,12 +878,15 @@ export interface DiscoveryCandidate {
     | 'Enrolled'
     | 'Unsupported';
   confidence: 'High' | 'Medium' | 'Low';
+  observedBrand?: string;
   observedModel?: string;
   observedManufacturer?: string;
   observedAndroidVersion?: string;
   observedSdkInt?: number;
   observedBuildFingerprint?: string;
   observedSerial?: string;
+  lastScreenshotUrl?: string;
+  lastScreenshotCapturedAt?: string;
   assignedRoomId?: string | null;
   lastObservedUtc: string;
   origin: 'SEEDED' | 'LIVE_OBSERVATION' | 'SIMULATION_EVENT';
@@ -984,6 +987,8 @@ export const ROLES_CATALOG: RoleDefinition[] = [
       'campaigns.publish',
       'contracts.read',
       'contracts.verify',
+      'endpoints.bind',
+      'network.scan',
       'audit.read',
     ],
     exclusions: ['releases.technicalapprove', 'payments.verify', 'adb.connect', 'guests.name.read'],
@@ -1091,6 +1096,8 @@ export const ROLES_CATALOG: RoleDefinition[] = [
       'rooms.read',
       'rooms.manage',
       'endpoints.read',
+      'endpoints.bind',
+      'network.scan',
       'branding.read',
       'branding.edit',
       'branding.publish',
@@ -1118,6 +1125,8 @@ export const ROLES_CATALOG: RoleDefinition[] = [
       'rooms.read',
       'rooms.manage',
       'endpoints.read',
+      'endpoints.bind',
+      'network.scan',
       'branding.read',
       'branding.edit',
       'branding.publish',

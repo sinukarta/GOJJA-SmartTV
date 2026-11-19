@@ -675,12 +675,20 @@ export default function App() {
   const [newCmpCta, setNewCmpCta] = useState<string>('Reserve via Concierge');
 
   // Room & Stay creation state
+  const [roomsSubNav, setRoomsSubNav] = useState<'rooms' | 'guests' | 'groups' | 'pms'>('rooms');
   const [newRoomCode, setNewRoomCode] = useState<string>('');
   const [newRoomClass, setNewRoomClass] = useState<'Standard' | 'Deluxe' | 'Suite' | 'Studio'>('Standard');
   const [checkInRoomId, setCheckInRoomId] = useState<string>('ROOM-201');
+  const [checkInSalutation, setCheckInSalutation] = useState<string>('Mr.');
   const [checkInGuestName, setCheckInGuestName] = useState<string>('');
   const [checkInLocale, setCheckInLocale] = useState<GuestLocale>('id');
   const [checkInGroupId, setCheckInGroupId] = useState<string>('');
+
+  // Corporate Group creation state
+  const [newGroupName, setNewGroupName] = useState<string>('');
+  const [newGroupBadge, setNewGroupBadge] = useState<string>('VIP Tour Delegation');
+  const [newGroupMessageId, setNewGroupMessageId] = useState<string>('Selamat Datang, Rombongan Tamu Terhormat');
+  const [newGroupMessageEn, setNewGroupMessageEn] = useState<string>('Welcome, Distinguished Guests & Tour Delegation');
 
   // Finance Payment Verification form state
   const [paymentTxRef, setPaymentTxRef] = useState<string>('TRX-ALPHA-20261102-901');
@@ -879,6 +887,42 @@ export default function App() {
           };
         });
         return { ok: true, message: `Status pesanan diubah menjadi ${body.status}.` };
+      }
+
+      if (url.includes('/api/live-lab/scan')) {
+        const run: DiscoveryRun = {
+          id: `RUN-DEMO-${Date.now().toString().slice(-4)}`,
+          environmentId: 'DEMO',
+          connectorId: 'CON-DEMO-P-01',
+          propertyId: body.propertyId || 'P-01',
+          interfaceName: 'eth0',
+          subnetCidr: body.subnetCidr || '192.168.10.0/24',
+          portsProbed: body.ports || [5555],
+          startedAtUtc: new Date().toISOString(),
+          completedAtUtc: new Date().toISOString(),
+          hostsAttempted: 254,
+          candidatesFound: 3,
+          executionMode: 'SIMULATED',
+          status: 'Completed',
+          summaryText: `Simulated scan on ${body.subnetCidr || '192.168.10.0/24'} completed.`,
+        };
+        return { ok: true, run, message: run.summaryText };
+      }
+
+      if (url.includes('/api/live-lab/adb-screenshot')) {
+        return {
+          ok: true,
+          imageUrl: '/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png',
+          capturedAt: new Date().toISOString(),
+          message: 'Tangkapan layar TV simulasi (Vercel Mode).',
+        };
+      }
+
+      if (url.includes('/api/live-lab/adb-probe')) {
+        return {
+          ok: true,
+          message: 'Perangkat berhasil di-probe (Vercel Mode).',
+        };
       }
 
       return { ok: true, message: 'Aksi disimulasikan (Vercel Client Mode).' };
@@ -1186,8 +1230,31 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
   const propOnlineCount = propEndpoints.filter((e) => e.connection === 'Online').length;
   const propOfflineCount = propEndpoints.filter((e) => e.connection === 'Offline').length;
 
-  // TV Modal lookup
-  const modalEndpoint = data.endpoints.find((e) => e.id === tvModalEndpointId) || propEndpoints[0] || data.endpoints[0];
+  // TV Modal lookup & Fallback Preview Endpoint (Prevents crash in empty LIVE_LAB)
+  const defaultPreviewEndpoint: Endpoint = {
+    id: 'E-PREVIEW',
+    propertyId: activeProperty.id,
+    roomId: propRooms[0]?.id || 'ROOM-101',
+    subscriptionId: propSubscription?.id || 'SUB-01',
+    label: `${activeProperty.name} Preview TV`,
+    connection: 'Online',
+    capabilityProfile: 'LIVE-VERIFIED',
+    modelName: 'SmartTV Preview',
+    manufacturer: 'GOJJA Preview',
+    androidVersion: '12',
+    sdkInt: 31,
+    appVersion: '2.4.1',
+    desiredVersion: '2.4.1',
+    appliedConfigVersion: 4,
+    lastSeenUtc: new Date().toISOString(),
+    ipHint: '127.0.0.1',
+    portHint: 5555,
+    serialRef: 'SN-PREVIEW',
+    bindingVersion: 1,
+    origin: 'MANUAL',
+    verificationLevel: 'DEVICE_VERIFIED',
+  };
+  const modalEndpoint = data.endpoints.find((e) => e.id === tvModalEndpointId) || propEndpoints[0] || data.endpoints[0] || defaultPreviewEndpoint;
   const modalRoom =
     data.rooms.find((r) => r.id === modalEndpoint?.roomId) ||
     propRooms[0] || {
@@ -2349,9 +2416,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
           )}
 
           {/* ===================================================================== */}
-          {/* TAB 2: ROOMS & TVs (PR-02..05, Multi-TV Suite & Housekeeping Matrix) */}
+          {/* TAB 2: ROOMS, GUESTS & CORPORATE GROUPS                               */}
           {/* ===================================================================== */}
-          {activeTab === 'rooms' && (
+          {(activeTab === 'rooms' || activeTab === 'guests') && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -2361,422 +2428,778 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                   </p>
                 </div>
 
-                {/* Add Room Form (Validates Duplicate Room Code per Property — F-006) */}
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      await apiCall('/api/rooms/create', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                          propertyId: activeProperty.id,
-                          code: newRoomCode,
-                          roomClass: newRoomClass,
-                          floor: 1,
-                        }),
-                      });
-                      setNewRoomCode('');
-                      await fetchBootstrap();
-                      showNotice('success', `Room ${newRoomCode} added to ${activeProperty.name}.`);
-                    } catch (err: unknown) {
-                      showNotice('error', err instanceof Error ? err.message : 'Failed to create room');
-                    }
-                  }}
-                  className="flex flex-wrap items-center gap-2 text-xs"
-                >
-                  <input
-                    type="text"
-                    value={newRoomCode}
-                    onChange={(e) => setNewRoomCode(e.target.value)}
-                    placeholder="New Room Code (e.g. 104)"
-                    className="px-3 py-2 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-control-border)] font-mono-tabular"
-                  />
-                  <select
-                    value={newRoomClass}
-                    onChange={(e) => setNewRoomClass(e.target.value as 'Standard' | 'Deluxe' | 'Suite' | 'Studio')}
-                    className="px-3 py-2 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-control-border)]"
+                {roomsSubNav === 'rooms' && (
+                  /* Add Room Form (Validates Duplicate Room Code per Property — F-006) */
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      try {
+                        await apiCall('/api/rooms/create', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            propertyId: activeProperty.id,
+                            code: newRoomCode,
+                            roomClass: newRoomClass,
+                            floor: 1,
+                          }),
+                        });
+                        setNewRoomCode('');
+                        await fetchBootstrap();
+                        showNotice('success', `Room ${newRoomCode} added to ${activeProperty.name}.`);
+                      } catch (err: unknown) {
+                        showNotice('error', err instanceof Error ? err.message : 'Failed to create room');
+                      }
+                    }}
+                    className="flex flex-wrap items-center gap-2 text-xs"
                   >
-                    <option value="Standard">Standard</option>
-                    <option value="Deluxe">Deluxe</option>
-                    <option value="Suite">Suite</option>
-                    <option value="Studio">Studio</option>
-                  </select>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-[#0050F5] text-white font-semibold inline-flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{ct.addRoomBtn}</span>
-                  </button>
-                </form>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
-                      <th className="py-2.5 pr-3">Room</th>
-                      <th className="py-2.5 px-3">Class</th>
-                      <th className="py-2.5 px-3">Occupancy (Stay)</th>
-                      <th className="py-2.5 px-3">{ct.roomTvLocaleLabel}</th>
-                      <th className="py-2.5 px-3">Housekeeping Readiness</th>
-                      <th className="py-2.5 px-3">Bound TV Endpoints</th>
-                      <th className="py-2.5 pl-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--cms-divider)]">
-                    {propRooms
-                      .filter(
-                        (r) =>
-                          !searchQuery ||
-                          r.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          r.roomClass.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      .map((room) => {
-                        const stay = propStays.find((s) => s.roomId === room.id && s.status === 'InHouse');
-                        const eps = propEndpoints.filter((e) => e.roomId === room.id);
-                        const activeRoomLocale: GuestLocale = stay?.locale || activeProperty.defaultLocale || 'id';
-                        return (
-                          <tr key={room.id} className="hover:bg-black/5 dark:hover:bg-white/5">
-                            <td className="py-3 pr-3 font-mono-tabular font-bold text-sm">Room {room.code}</td>
-                            <td className="py-3 px-3">{room.roomClass}</td>
-                            <td className="py-3 px-3">
-                              {stay ? (
-                                <span className="font-semibold text-blue-700 dark:text-blue-300">
-                                  InHouse ({stay.displayName || 'Anonymous Guest'} · {stay.locale})
-                                </span>
-                              ) : (
-                                <span className="text-[var(--cms-text-secondary)]">Vacant</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-3">
-                              <div className="inline-flex items-center gap-1 rounded-xl bg-[var(--cms-bg)] p-1 border border-[var(--cms-divider)]">
-                                {(
-                                  [
-                                    { code: 'en', short: 'EN' },
-                                    { code: 'id', short: 'ID' },
-                                    { code: 'zh-CN', short: '中文' },
-                                    { code: 'ja-JP', short: '日本語' },
-                                  ] as Array<{ code: GuestLocale; short: string }>
-                                ).map((loc) => (
-                                  <button
-                                    key={loc.code}
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        const res = await apiCall('/api/stays/locale', {
-                                          method: 'POST',
-                                          body: JSON.stringify({
-                                            propertyId: activeProperty.id,
-                                            roomId: room.id,
-                                            stayId: stay?.id,
-                                            locale: loc.code,
-                                            updatePropertyDefault: !stay,
-                                          }),
-                                        });
-                                        setBrandLocaleTab(loc.code);
-                                        await fetchBootstrap();
-                                        showNotice('success', res.message || `Room ${room.code} TV language set to ${loc.short} (${loc.code}).`);
-                                      } catch (err: unknown) {
-                                        showNotice('error', err instanceof Error ? err.message : 'Failed to update TV language');
-                                      }
-                                    }}
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
-                                      activeRoomLocale === loc.code
-                                        ? 'bg-[#0050F5] text-white shadow-xs'
-                                        : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
-                                    }`}
-                                    title={`Set Room ${room.code} SmartTV Language to ${loc.short} (${loc.code})`}
-                                  >
-                                    {loc.short}
-                                  </button>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="py-3 px-3">
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const nextHk = room.housekeeping === 'Ready' ? 'Dirty' : 'Ready';
-                                    await apiCall('/api/rooms/readiness', {
-                                      method: 'POST',
-                                      body: JSON.stringify({
-                                        roomId: room.id,
-                                        housekeeping: nextHk,
-                                        maintenanceAuthorized: nextHk === 'Ready',
-                                      }),
-                                    });
-                                    await fetchBootstrap();
-                                    showNotice('info', `Room ${room.code} housekeeping set to ${nextHk}.`);
-                                  } catch (err: unknown) {
-                                    showNotice('error', err instanceof Error ? err.message : 'Action denied');
-                                  }
-                                }}
-                                className={`px-2.5 py-1 rounded-lg font-semibold ${
-                                  room.housekeeping === 'Ready'
-                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                    : 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
-                                }`}
-                              >
-                                {room.housekeeping} (Click to Toggle)
-                              </button>
-                            </td>
-                            <td className="py-3 px-3 space-y-1">
-                              {eps.length === 0 ? (
-                                <span className="text-[var(--cms-text-secondary)]">No Endpoint Bound</span>
-                              ) : (
-                                eps.map((ep) => (
-                                  <div key={ep.id} className="flex items-center gap-2 font-mono-tabular">
-                                    <span className="font-semibold">{ep.id}</span>
-                                    <span>·</span>
-                                    <span>{ep.label}</span>
-                                    <span>·</span>
-                                    <span
-                                      className={
-                                        ep.connection === 'Online'
-                                          ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
-                                          : 'text-rose-700 dark:text-rose-300 font-semibold'
-                                      }
-                                    >
-                                      {ep.connection}
-                                    </span>
-                                    <span>·</span>
-                                    <span className="text-[11px] text-[var(--cms-text-secondary)]">
-                                      {ep.capabilityProfile} (v{ep.appVersion})
-                                    </span>
-                                  </div>
-                                ))
-                              )}
-                            </td>
-                            <td className="py-3 pl-3 text-right">
-                              {eps.map((ep) => (
-                                <button
-                                  key={ep.id}
-                                  onClick={() => {
-                                    setBrandLocaleTab(activeRoomLocale);
-                                    setTvModalEndpointId(ep.id);
-                                  }}
-                                  className="ml-1.5 px-2.5 py-1 rounded-lg bg-[#0050F5] text-white font-semibold hover:bg-[#0040C8]"
-                                >
-                                  Preview {ep.id}
-                                </button>
-                              ))}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ===================================================================== */}
-          {/* TAB 3: GUESTS & CORPORATE GROUPS (PR-12..14, Manual Stay Lifecycle)  */}
-          {/* ===================================================================== */}
-          {activeTab === 'guests' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold">Guest Stays & Corporate Groups (No PMS Required)</h1>
-                <p className="text-xs text-[var(--cms-text-secondary)]">
-                  Front Office can manage check-in, corporate group greetings, and checkout session resets directly. Guest names are optional and masked for unauthorized roles (BR08).
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Manual Check-In Form */}
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      await apiCall('/api/stays/checkin', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                          propertyId: activeProperty.id,
-                          roomId: checkInRoomId,
-                          displayName: checkInGuestName || null,
-                          locale: checkInLocale,
-                          groupId: checkInGroupId || null,
-                        }),
-                      });
-                      setCheckInGuestName('');
-                      await fetchBootstrap();
-                      showNotice('success', `Checked in guest to ${checkInRoomId} with locale ${checkInLocale}.`);
-                    } catch (err: unknown) {
-                      showNotice('error', err instanceof Error ? err.message : 'Check-in denied');
-                    }
-                  }}
-                  className="lg:col-span-4 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-3.5 text-xs"
-                >
-                  <h2 className="text-base font-bold">Manual Guest Check-In (FR06-01)</h2>
-                  <div>
-                    <label className="block font-medium mb-1">Target Room</label>
-                    <select
-                      value={checkInRoomId}
-                      onChange={(e) => setCheckInRoomId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
-                    >
-                      {propRooms.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          Room {r.code} ({r.roomClass})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-medium mb-1">Optional Guest Display Name (Safe Greeting)</label>
                     <input
                       type="text"
-                      value={checkInGuestName}
-                      onChange={(e) => setCheckInGuestName(e.target.value)}
-                      placeholder="Leave blank for anonymous welcome"
-                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                      value={newRoomCode}
+                      onChange={(e) => setNewRoomCode(e.target.value)}
+                      placeholder="New Room Code (e.g. 104)"
+                      className="px-3 py-2 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-control-border)] font-mono-tabular"
                     />
-                  </div>
-                  <div>
-                    <label className="block font-medium mb-1">Initial Guest TV Locale (4 Languages)</label>
                     <select
-                      value={checkInLocale}
-                      onChange={(e) => setCheckInLocale(e.target.value as GuestLocale)}
-                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                      value={newRoomClass}
+                      onChange={(e) => setNewRoomClass(e.target.value as 'Standard' | 'Deluxe' | 'Suite' | 'Studio')}
+                      className="px-3 py-2 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-control-border)]"
                     >
-                      <option value="en">English (en)</option>
-                      <option value="id">Bahasa Indonesia (id)</option>
-                      <option value="zh-CN">简体中文 Chinese (zh-CN)</option>
-                      <option value="ja-JP">日本語 Japanese (ja-JP)</option>
+                      <option value="Standard">Standard</option>
+                      <option value="Deluxe">Deluxe</option>
+                      <option value="Suite">Suite</option>
+                      <option value="Studio">Studio</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block font-medium mb-1">Corporate Group Assignment (Optional)</label>
-                    <select
-                      value={checkInGroupId}
-                      onChange={(e) => setCheckInGroupId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-[#0050F5] text-white font-semibold inline-flex items-center gap-1.5"
                     >
-                      <option value="">None (Individual Stay)</option>
-                      {data.corporateGroups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.id} — {g.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 px-4 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold"
-                  >
-                    Commit Check-In
-                  </button>
-                </form>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{ct.addRoomBtn}</span>
+                    </button>
+                  </form>
+                )}
+              </div>
 
-                {/* Active Stays Board */}
-                <div className="lg:col-span-8 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold">Active Stays & Context Versions ({propStays.length})</h2>
-                    <span className="text-xs text-[var(--cms-text-secondary)]">
-                      Role <code className="font-mono-tabular">{currentRole.id}</code> Guest Name Read:{' '}
-                      <strong>{currentRole.permissions.includes('guests.name.read') ? 'Permitted' : 'Redacted'}</strong>
-                    </span>
-                  </div>
+              {/* Sub-Navigation Bar for Rooms & Guests Suite */}
+              <div className="flex items-center gap-2 border-b border-[var(--cms-divider)] pb-3 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setRoomsSubNav('rooms')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                    roomsSubNav === 'rooms'
+                      ? 'bg-[#0050F5] text-white shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Bed className="w-4 h-4" />
+                  <span>Kamar & TV ({propRooms.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoomsSubNav('guests')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                    roomsSubNav === 'guests'
+                      ? 'bg-[#0050F5] text-white shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Daftar Tamu & Check-In ({propStays.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoomsSubNav('groups')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                    roomsSubNav === 'groups'
+                      ? 'bg-[#0050F5] text-white shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Grup Tour & Korporat VIP ({data.corporateGroups.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoomsSubNav('pms')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                    roomsSubNav === 'pms'
+                      ? 'bg-[#0050F5] text-white shadow-xs'
+                      : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)] hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Integrasi PMS Hotel</span>
+                </button>
+              </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
-                          <th className="py-2 pr-3">Stay ID</th>
-                          <th className="py-2 px-3">Room</th>
-                          <th className="py-2 px-3">Display Name</th>
-                          <th className="py-2 px-3">TV Language (4)</th>
-                          <th className="py-2 px-3">Group</th>
-                          <th className="py-2 px-3">Context Ver</th>
-                          <th className="py-2 px-3">Status</th>
-                          <th className="py-2 pl-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--cms-divider)]">
-                        {propStays.map((st) => {
-                          const rm = propRooms.find((r) => r.id === st.roomId);
+              {/* VIEW 1: KAMAR & TV (Rooms Table & Endpoint Binding) */}
+              {roomsSubNav === 'rooms' && (
+                <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
+                        <th className="py-2.5 pr-3">Room</th>
+                        <th className="py-2.5 px-3">Class</th>
+                        <th className="py-2.5 px-3">Occupancy (Stay)</th>
+                        <th className="py-2.5 px-3">{ct.roomTvLocaleLabel}</th>
+                        <th className="py-2.5 px-3">Housekeeping Readiness</th>
+                        <th className="py-2.5 px-3">Bound TV Endpoints</th>
+                        <th className="py-2.5 pl-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--cms-divider)]">
+                      {propRooms
+                        .filter(
+                          (r) =>
+                            !searchQuery ||
+                            r.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            r.roomClass.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((room) => {
+                          const stay = propStays.find((s) => s.roomId === room.id && s.status === 'InHouse');
+                          const eps = propEndpoints.filter((e) => e.roomId === room.id);
+                          const activeRoomLocale: GuestLocale = stay?.locale || activeProperty.defaultLocale || 'id';
+                          const corpGroup = stay?.groupId ? data.corporateGroups.find((g) => g.id === stay.groupId) : null;
                           return (
-                            <tr key={st.id}>
-                              <td className="py-3 pr-3 font-mono-tabular font-semibold">{st.id}</td>
-                              <td className="py-3 px-3 font-mono-tabular">Room {rm?.code || st.roomId}</td>
-                              <td className="py-3 px-3 font-medium">
-                                {st.displayName || <span className="text-[var(--cms-text-secondary)]">Generic Greeting</span>}
+                            <tr key={room.id} className="hover:bg-black/5 dark:hover:bg-white/5">
+                              <td className="py-3 pr-3 font-mono-tabular font-bold text-sm">Room {room.code}</td>
+                              <td className="py-3 px-3">{room.roomClass}</td>
+                              <td className="py-3 px-3">
+                                {stay ? (
+                                  <div className="space-y-1">
+                                    <div className="font-semibold text-blue-700 dark:text-blue-300">
+                                      InHouse ({stay.displayName || 'Tamu Terhormat'})
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                        TV: {stay.locale.toUpperCase()}
+                                      </span>
+                                      {corpGroup && (
+                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                          🌟 {corpGroup.name}
+                                        </span>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            await apiCall('/api/stays/checkout', {
+                                              method: 'POST',
+                                              body: JSON.stringify({
+                                                stayId: stay.id,
+                                                expectedContextVersion: stay.contextVersion,
+                                              }),
+                                            });
+                                            await fetchBootstrap();
+                                            showNotice('success', `Check-out ${stay.id} berhasil. PII tamu dibersihkan.`);
+                                          } catch (err: unknown) {
+                                            showNotice('error', err instanceof Error ? err.message : 'Check-out gagal');
+                                          }
+                                        }}
+                                        className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-700 dark:text-rose-300 hover:bg-rose-500/25 cursor-pointer"
+                                      >
+                                        Check-Out
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[var(--cms-text-secondary)]">Vacant</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setCheckInRoomId(room.id);
+                                        setRoomsSubNav('guests');
+                                      }}
+                                      className="px-2 py-1 rounded-lg bg-[#0050F5]/10 hover:bg-[#0050F5]/20 text-[#0050F5] dark:text-[#C7B9FF] font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      <span>Check-In Tamu</span>
+                                    </button>
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 px-3">
-                                <select
-                                  value={st.locale}
-                                  onChange={async (e) => {
-                                    const nextLoc = e.target.value as GuestLocale;
+                                <div className="inline-flex items-center gap-1 rounded-xl bg-[var(--cms-bg)] p-1 border border-[var(--cms-divider)]">
+                                  {(
+                                    [
+                                      { code: 'en', short: 'EN' },
+                                      { code: 'id', short: 'ID' },
+                                      { code: 'zh-CN', short: '中文' },
+                                      { code: 'ja-JP', short: '日本語' },
+                                    ] as Array<{ code: GuestLocale; short: string }>
+                                  ).map((loc) => (
+                                    <button
+                                      key={loc.code}
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await apiCall('/api/stays/locale', {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                              propertyId: activeProperty.id,
+                                              roomId: room.id,
+                                              stayId: stay?.id,
+                                              locale: loc.code,
+                                              updatePropertyDefault: !stay,
+                                            }),
+                                          });
+                                          setBrandLocaleTab(loc.code);
+                                          await fetchBootstrap();
+                                          showNotice('success', res.message || `Room ${room.code} TV language set to ${loc.short} (${loc.code}).`);
+                                        } catch (err: unknown) {
+                                          showNotice('error', err instanceof Error ? err.message : 'Failed to update TV language');
+                                        }
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                                        activeRoomLocale === loc.code
+                                          ? 'bg-[#0050F5] text-white shadow-xs'
+                                          : 'text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                                      }`}
+                                      title={`Set Room ${room.code} SmartTV Language to ${loc.short} (${loc.code})`}
+                                    >
+                                      {loc.short}
+                                    </button>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
                                     try {
-                                      const res = await apiCall('/api/stays/locale', {
+                                      const nextHk = room.housekeeping === 'Ready' ? 'Dirty' : 'Ready';
+                                      await apiCall('/api/rooms/readiness', {
                                         method: 'POST',
                                         body: JSON.stringify({
-                                          propertyId: activeProperty.id,
-                                          roomId: st.roomId,
-                                          stayId: st.id,
-                                          locale: nextLoc,
+                                          roomId: room.id,
+                                          housekeeping: nextHk,
+                                          maintenanceAuthorized: nextHk === 'Ready',
                                         }),
                                       });
-                                      setBrandLocaleTab(nextLoc);
                                       await fetchBootstrap();
-                                      showNotice('success', res.message || `Updated stay ${st.id} TV locale to ${nextLoc}.`);
+                                      showNotice('info', `Room ${room.code} housekeeping set to ${nextHk}.`);
                                     } catch (err: unknown) {
-                                      showNotice('error', err instanceof Error ? err.message : 'Locale update failed');
+                                      showNotice('error', err instanceof Error ? err.message : 'Action denied');
                                     }
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-control-border)] font-mono-tabular text-xs font-bold"
+                                  className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer ${
+                                    room.housekeeping === 'Ready'
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                      : 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
+                                  }`}
                                 >
-                                  <option value="en">EN (English)</option>
-                                  <option value="id">ID (Indonesia)</option>
-                                  <option value="zh-CN">中文 (zh-CN)</option>
-                                  <option value="ja-JP">日本語 (ja-JP)</option>
-                                </select>
+                                  {room.housekeeping} (Click to Toggle)
+                                </button>
                               </td>
-                              <td className="py-3 px-3">{st.groupId || '—'}</td>
-                              <td className="py-3 px-3 font-mono-tabular">v{st.contextVersion}</td>
-                              <td className="py-3 px-3 font-semibold">
-                                {st.status === 'InHouse' ? (
-                                  <span className="text-emerald-700 dark:text-emerald-300">InHouse</span>
+                              <td className="py-3 px-3 space-y-1">
+                                {eps.length === 0 ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[var(--cms-text-secondary)]">Belum Ada TV Terikat</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setActiveTab('discovery')}
+                                      className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold text-[10px] hover:bg-amber-500/25 cursor-pointer"
+                                    >
+                                      + Pasangkan TV
+                                    </button>
+                                  </div>
                                 ) : (
-                                  <span className="text-[var(--cms-text-secondary)]">{st.status}</span>
+                                  eps.map((ep) => (
+                                    <div key={ep.id} className="flex items-center gap-2 font-mono-tabular">
+                                      <span className="font-semibold">{ep.id}</span>
+                                      <span>·</span>
+                                      <span>{ep.label || ep.modelName}</span>
+                                      <span>·</span>
+                                      <span
+                                        className={
+                                          ep.connection === 'Online'
+                                            ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
+                                            : 'text-rose-700 dark:text-rose-300 font-semibold'
+                                        }
+                                      >
+                                        {ep.connection}
+                                      </span>
+                                      <span>·</span>
+                                      <span className="text-[11px] text-[var(--cms-text-secondary)]">
+                                        {ep.capabilityProfile} (v{ep.appVersion})
+                                      </span>
+                                    </div>
+                                  ))
                                 )}
                               </td>
                               <td className="py-3 pl-3 text-right">
-                                {st.status === 'InHouse' && (
+                                {eps.map((ep) => (
                                   <button
-                                    onClick={async () => {
-                                      try {
-                                        await apiCall('/api/stays/checkout', {
-                                          method: 'POST',
-                                          body: JSON.stringify({
-                                            stayId: st.id,
-                                            expectedContextVersion: st.contextVersion,
-                                          }),
-                                        });
-                                        await fetchBootstrap();
-                                        showNotice(
-                                          'success',
-                                          `Checked out ${st.id}. Personal GOJJA context purged; room marked Dirty until housekeeping Ready.`
-                                        );
-                                      } catch (err: unknown) {
-                                        showNotice('error', err instanceof Error ? err.message : 'Checkout denied');
-                                      }
+                                    key={ep.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setBrandLocaleTab(activeRoomLocale);
+                                      setTvModalEndpointId(ep.id);
                                     }}
-                                    className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/25"
+                                    className="ml-1.5 px-2.5 py-1 rounded-lg bg-[#0050F5] text-white font-semibold hover:bg-[#0040C8] cursor-pointer"
                                   >
-                                    Checkout & Purge
+                                    Preview {ep.id}
                                   </button>
-                                )}
+                                ))}
                               </td>
                             </tr>
                           );
                         })}
-                      </tbody>
-                    </table>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* VIEW 2: DAFTAR TAMU & MANUAL CHECK-IN */}
+              {roomsSubNav === 'guests' && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold">Guest Stays & Check-In Mandiri (Front Office Lifecycle)</h2>
+                    <p className="text-xs text-[var(--cms-text-secondary)]">
+                      Front Office dapat melakukan check-in tamu, menentukan gelar/salutation sapaan TV, memilih bahasa antarmuka TV, serta menghubungkan tamu ke rombongan grup tour atau corporate VIP.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Manual Check-In Form */}
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const fullDisplayName = checkInGuestName.trim()
+                          ? (checkInSalutation ? `${checkInSalutation} ${checkInGuestName.trim()}` : checkInGuestName.trim())
+                          : null;
+                        try {
+                          await apiCall('/api/stays/checkin', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              propertyId: activeProperty.id,
+                              roomId: checkInRoomId,
+                              displayName: fullDisplayName,
+                              locale: checkInLocale,
+                              groupId: checkInGroupId || null,
+                            }),
+                          });
+                          setCheckInGuestName('');
+                          await fetchBootstrap();
+                          showNotice('success', `Check-in berhasil untuk ${checkInRoomId}: ${fullDisplayName || 'Tamu Terhormat'} (Bahasa: ${checkInLocale.toUpperCase()}).`);
+                        } catch (err: unknown) {
+                          showNotice('error', err instanceof Error ? err.message : 'Check-in denied');
+                        }
+                      }}
+                      className="lg:col-span-4 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-3.5 text-xs"
+                    >
+                      <h3 className="text-base font-bold flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#0050F5]" />
+                        <span>Formulir Check-In Tamu (Front Desk)</span>
+                      </h3>
+
+                      <div>
+                        <label className="block font-medium mb-1">Pilih Kamar Target</label>
+                        <select
+                          value={checkInRoomId}
+                          onChange={(e) => setCheckInRoomId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-mono-tabular"
+                        >
+                          {propRooms.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              Room {r.code} ({r.roomClass})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block font-medium mb-1">Gelar / Salutation</label>
+                          <select
+                            value={checkInSalutation}
+                            onChange={(e) => setCheckInSalutation(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-semibold"
+                          >
+                            <option value="Mr.">Mr. (Pria)</option>
+                            <option value="Mrs.">Mrs. (Wanita Menikah)</option>
+                            <option value="Ms.">Ms. (Wanita)</option>
+                            <option value="Dr.">Dr. (Dokter/Akademisi)</option>
+                            <option value="Bapak">Bapak (ID Formal)</option>
+                            <option value="Ibu">Ibu (ID Formal)</option>
+                            <option value="">(Tanpa Gelar)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-1">Bahasa TV (4 Bahasa)</label>
+                          <select
+                            value={checkInLocale}
+                            onChange={(e) => setCheckInLocale(e.target.value as GuestLocale)}
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-bold"
+                          >
+                            <option value="id">🇮🇩 Indonesia</option>
+                            <option value="en">🇬🇧 English</option>
+                            <option value="zh-CN">🇨🇳 简体中文</option>
+                            <option value="ja-JP">🇯🇵 日本語</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-1">Nama Tamu (Guest Name)</label>
+                        <input
+                          type="text"
+                          value={checkInGuestName}
+                          onChange={(e) => setCheckInGuestName(e.target.value)}
+                          placeholder="Contoh: David Wilson / Hendra Pratama"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-medium"
+                        />
+                      </div>
+
+                      {/* Live TV Greeting Preview */}
+                      <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] space-y-1">
+                        <div className="font-semibold text-blue-900 dark:text-blue-200">Pratinjau Sapaan di Layar TV:</div>
+                        <div className="font-bold text-sm text-[#0050F5] dark:text-[#C7B9FF]">
+                          {checkInGuestName.trim()
+                            ? `${checkInSalutation ? checkInSalutation + ' ' : ''}${checkInGuestName.trim()}`
+                            : 'Selamat Datang di Arunika'}
+                        </div>
+                        {checkInGroupId && (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                            🌟 Terikat Rombongan: {data.corporateGroups.find((g) => g.id === checkInGroupId)?.name}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-1">Rombongan / Grup Korporat (Opsional)</label>
+                        <select
+                          value={checkInGroupId}
+                          onChange={(e) => setCheckInGroupId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                        >
+                          <option value="">Tidak Ada (Tamu Perorangan)</option>
+                          {data.corporateGroups.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name} ({g.badgeText})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold cursor-pointer"
+                      >
+                        Selesaikan Check-In Tamu
+                      </button>
+                    </form>
+
+                    {/* Active Stays Board */}
+                    <div className="lg:col-span-8 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-base font-bold">Daftar Tamu Menginap ({propStays.length} Sesi Aktif)</h3>
+                        <span className="text-xs text-[var(--cms-text-secondary)]">
+                          Masking PII: <strong>{currentRole.permissions.includes('guests.name.read') ? 'Akses Penuh' : 'Tersensor (Zero-PII)'}</strong>
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
+                              <th className="py-2 pr-3">Stay ID</th>
+                              <th className="py-2 px-3">Room</th>
+                              <th className="py-2 px-3">Nama Tamu & Gelar</th>
+                              <th className="py-2 px-3">Bahasa TV</th>
+                              <th className="py-2 px-3">Rombongan Grup</th>
+                              <th className="py-2 px-3">Status</th>
+                              <th className="py-2 pl-3 text-right">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--cms-divider)]">
+                            {propStays.length === 0 ? (
+                              <tr>
+                                <td colSpan={7} className="py-8 text-center text-[var(--cms-text-secondary)]">
+                                  Belum ada tamu menginap aktif saat ini.
+                                </td>
+                              </tr>
+                            ) : (
+                              propStays.map((st) => {
+                                const rm = propRooms.find((r) => r.id === st.roomId);
+                                const grp = data.corporateGroups.find((g) => g.id === st.groupId);
+                                return (
+                                  <tr key={st.id}>
+                                    <td className="py-3 pr-3 font-mono-tabular font-semibold">{st.id}</td>
+                                    <td className="py-3 px-3 font-mono-tabular">Room {rm?.code || st.roomId}</td>
+                                    <td className="py-3 px-3 font-medium">
+                                      {st.displayName || <span className="text-[var(--cms-text-secondary)]">Sapaan Standar</span>}
+                                    </td>
+                                    <td className="py-3 px-3">
+                                      <select
+                                        value={st.locale}
+                                        onChange={async (e) => {
+                                          const nextLoc = e.target.value as GuestLocale;
+                                          try {
+                                            const res = await apiCall('/api/stays/locale', {
+                                              method: 'POST',
+                                              body: JSON.stringify({
+                                                propertyId: activeProperty.id,
+                                                roomId: st.roomId,
+                                                stayId: st.id,
+                                                locale: nextLoc,
+                                              }),
+                                            });
+                                            setBrandLocaleTab(nextLoc);
+                                            await fetchBootstrap();
+                                            showNotice('success', res.message || `Bahasa TV stay ${st.id} diubah ke ${nextLoc}.`);
+                                          } catch (err: unknown) {
+                                            showNotice('error', err instanceof Error ? err.message : 'Gagal update bahasa');
+                                          }
+                                        }}
+                                        className="px-2 py-1 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-control-border)] font-mono-tabular text-xs font-bold"
+                                      >
+                                        <option value="id">ID (Indonesia)</option>
+                                        <option value="en">EN (English)</option>
+                                        <option value="zh-CN">ZH (中文)</option>
+                                        <option value="ja-JP">JA (日本語)</option>
+                                      </select>
+                                    </td>
+                                    <td className="py-3 px-3">
+                                      {grp ? (
+                                        <span className="font-semibold text-amber-700 dark:text-amber-300">
+                                          🌟 {grp.name}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[var(--cms-text-secondary)]">—</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-3 font-semibold">
+                                      {st.status === 'InHouse' ? (
+                                        <span className="text-emerald-700 dark:text-emerald-300">InHouse</span>
+                                      ) : (
+                                        <span className="text-[var(--cms-text-secondary)]">{st.status}</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 pl-3 text-right">
+                                      {st.status === 'InHouse' && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              await apiCall('/api/stays/checkout', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  stayId: st.id,
+                                                  expectedContextVersion: st.contextVersion,
+                                                }),
+                                              });
+                                              await fetchBootstrap();
+                                              showNotice(
+                                                'success',
+                                                `Check-out ${st.id} selesai. Data PII dihapus, room diset Dirty untuk Housekeeping.`
+                                              );
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Checkout denied');
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/25 cursor-pointer"
+                                        >
+                                          Check-Out & Purge
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* VIEW 3: GRUP TOUR & KORPORAT VIP */}
+              {roomsSubNav === 'groups' && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold">Grup Tour, Delegasi & Korporat VIP (Custom Welcome Messages)</h2>
+                    <p className="text-xs text-[var(--cms-text-secondary)]">
+                      Kelola rombongan tour travel dan tamu delegasi perusahaan. Anggota rombongan yang check-in akan mendapatkan lencana VIP khusus dan ucapan selamat datang personal dalam 4 bahasa di TV kamar.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Add Group Form */}
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!newGroupName.trim()) return;
+                        try {
+                          await apiCall('/api/groups/create', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              propertyId: activeProperty.id,
+                              name: newGroupName,
+                              badgeText: newGroupBadge,
+                              message: {
+                                id: newGroupMessageId,
+                                en: newGroupMessageEn,
+                                'zh-CN': `欢迎，${newGroupName} 代表团`,
+                                'ja-JP': `${newGroupName} の皆様、ようこそ`,
+                              },
+                            }),
+                          });
+                          setNewGroupName('');
+                          await fetchBootstrap();
+                          showNotice('success', `Rombongan "${newGroupName}" berhasil didaftarkan.`);
+                        } catch (err: unknown) {
+                          showNotice('error', err instanceof Error ? err.message : 'Gagal membuat grup');
+                        }
+                      }}
+                      className="lg:col-span-4 p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-3.5 text-xs"
+                    >
+                      <h3 className="text-base font-bold flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Daftarkan Rombongan / Grup Baru</span>
+                      </h3>
+
+                      <div>
+                        <label className="block font-medium mb-1">Nama Grup / Event</label>
+                        <input
+                          type="text"
+                          value={newGroupName}
+                          onChange={(e) => setNewGroupName(e.target.value)}
+                          placeholder="Contoh: Nusantara Executive Summit 2026"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-1">Badge Sapaan VIP di TV</label>
+                        <input
+                          type="text"
+                          value={newGroupBadge}
+                          onChange={(e) => setNewGroupBadge(e.target.value)}
+                          placeholder="Contoh: Corporate Summit Delegation"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-1">Sambutan TV (Bahasa Indonesia)</label>
+                        <input
+                          type="text"
+                          value={newGroupMessageId}
+                          onChange={(e) => setNewGroupMessageId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-1">Sambutan TV (English)</label>
+                        <input
+                          type="text"
+                          value={newGroupMessageEn}
+                          onChange={(e) => setNewGroupMessageEn(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)]"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold cursor-pointer"
+                      >
+                        Simpan Rombongan Baru
+                      </button>
+                    </form>
+
+                    {/* Groups List */}
+                    <div className="lg:col-span-8 space-y-4">
+                      <h3 className="text-base font-bold">Rombongan Terdaftar ({data.corporateGroups.length})</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {data.corporateGroups.map((grp) => {
+                          const activeInGroup = propStays.filter((s) => s.groupId === grp.id && s.status === 'InHouse');
+                          return (
+                            <div
+                              key={grp.id}
+                              className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-2.5 text-xs"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-sm text-[var(--cms-text)]">{grp.name}</span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                  {grp.badgeText}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-[var(--cms-text-secondary)] space-y-1">
+                                <div>ID: <code className="font-mono-tabular">{grp.id}</code></div>
+                                <div>Tamu Menginap Aktif: <strong className="text-emerald-600 dark:text-emerald-400">{activeInGroup.length} Kamar</strong></div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-1 text-[11px]">
+                                <div className="font-semibold text-[var(--cms-text)]">Pesan Sambutan Layar TV:</div>
+                                <div className="italic text-[var(--cms-text-secondary)]">🇮🇩 "{grp.message?.id}"</div>
+                                <div className="italic text-[var(--cms-text-secondary)]">🇬🇧 "{grp.message?.en}"</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 4: INTEGRASI PMS HOTEL */}
+              {roomsSubNav === 'pms' && (
+                <div className="p-6 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-5 text-xs">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-6 h-6 text-[#0050F5]" />
+                    <div>
+                      <h2 className="text-base font-bold">Integrasi PMS (Property Management System) & POS Hotel</h2>
+                      <p className="text-[var(--cms-text-secondary)]">
+                        Arsitektur penghubung sistem operasional hotel (Opera Cloud, Cloudbeds, VHP, Mews, Realta) dengan GOJJA SmartTV secara realtime.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-2">
+                      <div className="font-bold text-sm text-[#0050F5]">1. Check-In Otomatis</div>
+                      <p className="text-[var(--cms-text-secondary)] leading-relaxed">
+                        Saat front desk memproses check-in di Opera / Cloudbeds / VHP, webhook mengirimkan event <code>CHECK_IN</code> ke <code>/api/stays/checkin</code> dengan data kamar, nama tamu, gelar (Mr./Mrs./Bapak/Ibu), dan preferensi bahasa. Layar TV kamar otomatis menampilkan sambutan personal dalam hitungan detik.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-2">
+                      <div className="font-bold text-sm text-emerald-600 dark:text-emerald-400">2. Zero-PII Context Purge</div>
+                      <p className="text-[var(--cms-text-secondary)] leading-relaxed">
+                        Saat tamu menyelesaikan settlement folio di kasir (event <code>CHECK_OUT</code>), endpoint <code>/api/stays/checkout</code> langsung menghapus seluruh nama tamu, riwayat tontonan, dan sesi OTT dari memori TV. TV kembali ke mode hotel default dan status housekeeping berubah menjadi <strong>Dirty</strong>.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-2">
+                      <div className="font-bold text-sm text-amber-600 dark:text-amber-400">3. Fallback Front Office Mandiri</div>
+                      <p className="text-[var(--cms-text-secondary)] leading-relaxed">
+                        Jika hotel belum memiliki middleware PMS atau terjadi gangguan jaringan pihak ketiga, resepsionis hotel tetap dapat menginput check-in tamu walk-in langsung dari tab <strong>Daftar Tamu & Check-In</strong> tanpa kendala.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-2 font-mono-tabular text-[11px]">
+                    <div className="font-bold font-sans text-xs text-[var(--cms-text)]">Format Payload Integrasi Webhook PMS:</div>
+                    <pre className="p-3 rounded-lg bg-black/80 text-emerald-400 overflow-x-auto text-[11px]">
+{`POST /api/stays/checkin
+Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
+{
+  "propertyId": "${activeProperty.id}",
+  "roomId": "ROOM-101",
+  "displayName": "Mr. David Wilson",
+  "locale": "en",
+  "groupId": "G-CORP"
+}`}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3578,7 +4001,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     body: JSON.stringify(payload),
                   });
                   await fetchBootstrap();
-                  showNotice('info', res.run.summaryText);
+                  showNotice('info', res?.run?.summaryText || res?.message || 'Pemeriksaan jaringan selesai.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'Network scan failed or blocked');
                 }
@@ -3590,7 +4013,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     body: JSON.stringify(payload),
                   });
                   await fetchBootstrap();
-                  showNotice('info', res.candidate.notes);
+                  showNotice('info', res?.candidate?.notes || res?.message || 'Manual target added.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'Failed to add manual target');
                 }
@@ -3602,7 +4025,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     body: JSON.stringify(payload),
                   });
                   await fetchBootstrap();
-                  showNotice('success', res.message);
+                  showNotice('success', res?.message || 'ADB pairing succeeded.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'ADB pair failed');
                 }
@@ -3614,9 +4037,37 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     body: JSON.stringify(payload),
                   });
                   await fetchBootstrap();
-                  showNotice('success', res.message);
+                  showNotice('success', res?.message || 'ADB connect succeeded.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'ADB connect / verification failed');
+                }
+              }}
+              onAdbProbe={async (candidateId) => {
+                try {
+                  const res = await apiCall('/api/live-lab/adb-probe', {
+                    method: 'POST',
+                    body: JSON.stringify({ candidateId }),
+                  });
+                  await fetchBootstrap();
+                  showNotice('success', res?.message || 'Perangkat berhasil di-probe & dikenali.');
+                  return res;
+                } catch (err: unknown) {
+                  showNotice('error', err instanceof Error ? err.message : 'Probe perangkat gagal');
+                  throw err;
+                }
+              }}
+              onAdbScreenshot={async (candidateId) => {
+                try {
+                  const res = await apiCall('/api/live-lab/adb-screenshot', {
+                    method: 'POST',
+                    body: JSON.stringify({ candidateId }),
+                  });
+                  await fetchBootstrap();
+                  showNotice('success', res?.message || 'Tangkapan layar realtime berhasil diambil.');
+                  return res;
+                } catch (err: unknown) {
+                  showNotice('error', err instanceof Error ? err.message : 'Gagal mengambil screenshot');
+                  throw err;
                 }
               }}
               onAssignDevice={async (payload) => {
@@ -3626,7 +4077,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     body: JSON.stringify(payload),
                   });
                   await fetchBootstrap();
-                  showNotice('success', res.message);
+                  showNotice('success', res?.message || 'Perangkat berhasil ditugaskan.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'Device assignment denied');
                 }
@@ -3638,7 +4089,7 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                     body: JSON.stringify({ scenarioId }),
                   });
                   await fetchBootstrap();
-                  showNotice('info', res.message);
+                  showNotice('info', res?.message || 'Scenario executed.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'Scenario failed');
                 }
@@ -5389,71 +5840,179 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)] font-semibold">
-                      <th className="py-2.5 pr-4">Endpoint ID</th>
-                      <th className="py-2.5 px-4">Hardware Model & OS</th>
-                      <th className="py-2.5 px-4">Assigned Room</th>
-                      <th className="py-2.5 px-4">IP / Serial Ref</th>
-                      <th className="py-2.5 px-4">Connection</th>
-                      <th className="py-2.5 px-4">Config Sync</th>
-                      <th className="py-2.5 pl-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--cms-divider)]">
-                    {propEndpoints.map((ep) => {
-                      const assignedRoom = propRooms.find((r) => r.id === ep.roomId);
-                      return (
-                        <tr key={ep.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                          <td className="py-3 pr-4 font-mono-tabular font-bold">{ep.id}</td>
-                          <td className="py-3 px-4">
-                            <div className="font-semibold">{ep.manufacturer} · {ep.modelName}</div>
-                            <div className="text-[11px] text-[var(--cms-text-secondary)]">
-                              Android TV {ep.androidVersion} · App {ep.appVersion}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 font-mono-tabular">
-                            {assignedRoom ? `Room ${assignedRoom.code} (${assignedRoom.roomClass})` : 'Unassigned'}
-                          </td>
-                          <td className="py-3 px-4 font-mono-tabular text-[11px]">
-                            <div>{ep.ipHint}:{ep.portHint}</div>
-                            <div className="text-[var(--cms-text-secondary)]">{ep.serialRef}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 font-semibold ${
-                                ep.connection === 'Online'
-                                  ? 'text-emerald-700 dark:text-emerald-300'
-                                  : 'text-rose-700 dark:text-rose-300'
-                              }`}
-                            >
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  ep.connection === 'Online' ? 'bg-emerald-500' : 'bg-rose-500'
-                                }`}
-                              />
-                              {ep.connection}
+              {/* Unassigned Discovered Candidates (Ready for Room Assignment) */}
+              {(() => {
+                const pendingCandidates = data.candidates.filter(
+                  (c) => c.authState !== 'Enrolled' && !c.assignedRoomId
+                );
+                if (pendingCandidates.length === 0) return null;
+                return (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Radar className="w-5 h-5 text-amber-500 animate-pulse" />
+                        <div>
+                          <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                            📡 Perangkat TV Terdeteksi di Jaringan ({pendingCandidates.length} Siap Dimasukkan ke Kamar)
+                          </h3>
+                          <p className="text-xs text-[var(--cms-text-secondary)]">
+                            TV fisik telah ditemukan melalui scan LAN / ADB. Pilih kamar target untuk memasukkan perangkat ini ke inventaris kamar hotel.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('discovery')}
+                        className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <span>Buka Wizard Discovery</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                      {pendingCandidates.map((cand) => (
+                        <div
+                          key={cand.id}
+                          className="p-3.5 rounded-xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-2 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-bold text-[var(--cms-text)]">{cand.friendlyName || cand.observedModel || 'Android Smart TV'}</div>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                              {cand.authState}
                             </span>
-                          </td>
-                          <td className="py-3 px-4 font-mono-tabular">
-                            v{ep.appliedConfigVersion} · {ep.verificationLevel}
-                          </td>
-                          <td className="py-3 pl-4 text-right space-x-2 whitespace-nowrap">
-                            <button
-                              onClick={() => setTvModalEndpointId(ep.id)}
-                              className="px-2.5 py-1.5 rounded-lg bg-[var(--brand-indigo)] text-white font-semibold text-[11px] hover:opacity-90 cursor-pointer"
+                          </div>
+                          <div className="font-mono-tabular text-[11px] text-[var(--cms-text-secondary)] space-y-0.5">
+                            <div>IP: {cand.ip}:{cand.port}</div>
+                            <div>OS: Android TV {cand.observedAndroidVersion || '12'} (SDK {cand.observedSdkInt || 31})</div>
+                          </div>
+                          <div className="pt-1 flex items-center gap-2">
+                            <select
+                              id={`device-assign-room-${cand.id}`}
+                              defaultValue={propRooms[0]?.id || ''}
+                              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-control-border)] text-xs font-mono-tabular"
                             >
-                              Open TV Preview
+                              {propRooms.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  Room {r.code} ({r.roomClass})
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const sel = document.getElementById(`device-assign-room-${cand.id}`) as HTMLSelectElement;
+                                const targetRoom = sel?.value || propRooms[0]?.id;
+                                if (!targetRoom) return;
+                                try {
+                                  const res = await apiCall('/api/live-lab/assign-device', {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                      candidateId: cand.id,
+                                      propertyId: activeProperty.id,
+                                      roomId: targetRoom,
+                                      endpointLabel: `${cand.observedModel || 'MediaTek Smart TV'}`,
+                                    }),
+                                  });
+                                  await fetchBootstrap();
+                                  showNotice('success', res.message || `Perangkat berhasil dimasukkan ke kamar.`);
+                                } catch (err: unknown) {
+                                  showNotice('error', err instanceof Error ? err.message : 'Gagal menugaskan kamar');
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-xs whitespace-nowrap cursor-pointer"
+                            >
+                              Tugaskan ke Kamar
                             </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {propEndpoints.length === 0 ? (
+                <div className="p-10 text-center rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-3">
+                  <Tv className="w-12 h-12 mx-auto text-[var(--cms-text-secondary)] opacity-50" />
+                  <h3 className="text-base font-bold">Belum Ada TV Terdaftar di Inventaris</h3>
+                  <p className="text-xs text-[var(--cms-text-secondary)] max-w-md mx-auto">
+                    Pindai jaringan LAN hotel untuk mendeteksi perangkat SmartTV atau hubungkan perangkat Android TV menggunakan wizard discovery.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('discovery')}
+                    className="px-4 py-2 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-xs inline-flex items-center gap-2 shadow-xs cursor-pointer"
+                  >
+                    <Radar className="w-4 h-4" />
+                    <span>Scan Jaringan LAN / Pasangkan TV</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)] font-semibold">
+                        <th className="py-2.5 pr-4">Endpoint ID</th>
+                        <th className="py-2.5 px-4">Hardware Model & OS</th>
+                        <th className="py-2.5 px-4">Assigned Room</th>
+                        <th className="py-2.5 px-4">IP / Serial Ref</th>
+                        <th className="py-2.5 px-4">Connection</th>
+                        <th className="py-2.5 px-4">Config Sync</th>
+                        <th className="py-2.5 pl-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--cms-divider)]">
+                      {propEndpoints.map((ep) => {
+                        const assignedRoom = propRooms.find((r) => r.id === ep.roomId);
+                        return (
+                          <tr key={ep.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                            <td className="py-3 pr-4 font-mono-tabular font-bold">{ep.id}</td>
+                            <td className="py-3 px-4">
+                              <div className="font-semibold">{ep.manufacturer} · {ep.modelName}</div>
+                              <div className="text-[11px] text-[var(--cms-text-secondary)]">
+                                Android TV {ep.androidVersion} · App {ep.appVersion}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-mono-tabular">
+                              {assignedRoom ? `Room ${assignedRoom.code} (${assignedRoom.roomClass})` : 'Unassigned'}
+                            </td>
+                            <td className="py-3 px-4 font-mono-tabular text-[11px]">
+                              <div>{ep.ipHint}:{ep.portHint}</div>
+                              <div className="text-[var(--cms-text-secondary)]">{ep.serialRef}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center gap-1.5 font-semibold ${
+                                  ep.connection === 'Online'
+                                    ? 'text-emerald-700 dark:text-emerald-300'
+                                    : 'text-rose-700 dark:text-rose-300'
+                                }`}
+                              >
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    ep.connection === 'Online' ? 'bg-emerald-500' : 'bg-rose-500'
+                                  }`}
+                                />
+                                {ep.connection}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono-tabular">
+                              v{ep.appliedConfigVersion} · {ep.verificationLevel}
+                            </td>
+                            <td className="py-3 pl-4 text-right space-x-2 whitespace-nowrap">
+                              <button
+                                onClick={() => setTvModalEndpointId(ep.id)}
+                                className="px-2.5 py-1.5 rounded-lg bg-[var(--brand-indigo)] text-white font-semibold text-[11px] hover:opacity-90 cursor-pointer"
+                              >
+                                Open TV Preview
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

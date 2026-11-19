@@ -17,6 +17,10 @@ import {
   ArrowRight,
   Lock,
   Play,
+  Camera,
+  Tv,
+  Maximize2,
+  Zap,
 } from 'lucide-react';
 import {
   EnvironmentId,
@@ -67,6 +71,8 @@ interface DeviceDiscoveryViewProps {
     endpointLabel: string;
   }) => Promise<void>;
   onRunScenario: (scenarioId: string) => Promise<void>;
+  onAdbProbe?: (candidateId: string) => Promise<any>;
+  onAdbScreenshot?: (candidateId: string) => Promise<any>;
   statusBanner: { type: 'success' | 'error' | 'info'; text: string } | null;
 }
 
@@ -87,6 +93,8 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   onAdbConnect,
   onAssignDevice,
   onRunScenario,
+  onAdbProbe,
+  onAdbScreenshot,
   statusBanner,
 }) => {
   const defaultIface =
@@ -105,6 +113,8 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   );
   const [portsInput, setPortsInput] = useState<string>('5555');
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [screenshotModalUrl, setScreenshotModalUrl] = useState<string | null>(null);
+  const [autoRefreshScreenshot, setAutoRefreshScreenshot] = useState<boolean>(false);
 
   // Manual Target Form
   const [manualIp, setManualIp] = useState<string>(environmentId === 'DEMO' ? '192.168.10.108' : '');
@@ -134,6 +144,18 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
       setBusyAction(null);
     }
   };
+
+  React.useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    if (autoRefreshScreenshot && selectedCandidate && onAdbScreenshot) {
+      timer = setInterval(() => {
+        onAdbScreenshot(selectedCandidate.id).catch(() => {});
+      }, 5000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [autoRefreshScreenshot, selectedCandidate?.id, onAdbScreenshot]);
 
   return (
     <div className="space-y-6">
@@ -442,17 +464,18 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
-                      <th className="py-2.5 pr-3 font-medium">Candidate / Hint</th>
+                      <th className="py-2.5 pr-3 font-medium">Candidate / Brand & Model</th>
                       <th className="py-2.5 px-3 font-medium">IP : Port</th>
                       <th className="py-2.5 px-3 font-medium">Source</th>
                       <th className="py-2.5 px-3 font-medium">Reachability</th>
                       <th className="py-2.5 px-3 font-medium">Verification State</th>
-                      <th className="py-2.5 pl-3 text-right font-medium">Select</th>
+                      <th className="py-2.5 pl-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--cms-divider)]">
                     {propertyCandidates.map((cand) => {
                       const isSel = selectedCandidate?.id === cand.id;
+                      const hasBrand = Boolean(cand.observedBrand || cand.observedManufacturer);
                       return (
                         <tr
                           key={cand.id}
@@ -462,8 +485,22 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                           }`}
                         >
                           <td className="py-3 pr-3">
-                            <div className="font-semibold">{cand.friendlyName}</div>
-                            <div className="text-[11px] text-[var(--cms-text-secondary)]">{cand.serviceHint}</div>
+                            <div className="flex items-center gap-2">
+                              <Tv className="w-4 h-4 text-[#0050F5] shrink-0" />
+                              <div>
+                                <div className="font-semibold flex items-center gap-1.5">
+                                  <span>{cand.friendlyName}</span>
+                                  {hasBrand && (
+                                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                      {cand.observedBrand || cand.observedManufacturer}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-[var(--cms-text-secondary)]">
+                                  {cand.observedModel ? `${cand.observedModel} • Android ${cand.observedAndroidVersion || '?'}` : cand.serviceHint}
+                                </div>
+                              </div>
+                            </div>
                           </td>
                           <td className="py-3 px-3 font-mono-tabular">
                             {cand.ip}:{cand.port}
@@ -480,8 +517,8 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                             <span
                               className={`font-medium ${
                                 cand.reachability === 'Reachable'
-                                  ? 'text-emerald-700 dark:text-emerald-300'
-                                  : 'text-rose-700 dark:text-rose-300'
+                                   ? 'text-emerald-700 dark:text-emerald-300'
+                                   : 'text-rose-700 dark:text-rose-300'
                               }`}
                             >
                               {cand.reachability}
@@ -497,19 +534,49 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                             )}
                           </td>
                           <td className="py-3 pl-3 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCandidateId(cand.id);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                                isSel
-                                  ? 'bg-[#0050F5] text-white'
-                                  : 'bg-[var(--cms-bg)] border border-[var(--cms-control-border)]'
-                              }`}
-                            >
-                              {isSel ? 'Selected' : 'Inspect'}
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              {onAdbProbe && cand.port === 5555 && (
+                                <button
+                                  title="Probe & Kenali TV"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedCandidateId(cand.id);
+                                    wrapBusy(`probe-${cand.id}`, () => onAdbProbe(cand.id));
+                                  }}
+                                  className="px-2 py-1 rounded-lg text-xs bg-[var(--cms-bg)] hover:bg-[#0050F5]/10 border border-[var(--cms-control-border)] text-[var(--cms-text)] flex items-center gap-1"
+                                >
+                                  <Zap className={`w-3 h-3 text-amber-500 ${busyAction === `probe-${cand.id}` ? 'animate-spin' : ''}`} />
+                                  <span>{busyAction === `probe-${cand.id}` ? 'Probing...' : 'Probe'}</span>
+                                </button>
+                              )}
+                              {onAdbScreenshot && cand.port === 5555 && (
+                                <button
+                                  title="Ambil Screenshot Realtime"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedCandidateId(cand.id);
+                                    wrapBusy(`snap-${cand.id}`, () => onAdbScreenshot(cand.id));
+                                  }}
+                                  className="px-2 py-1 rounded-lg text-xs bg-[var(--cms-bg)] hover:bg-[#0050F5]/10 border border-[var(--cms-control-border)] text-[var(--cms-text)] flex items-center gap-1"
+                                >
+                                  <Camera className={`w-3 h-3 text-[#0050F5] ${busyAction === `snap-${cand.id}` ? 'animate-pulse' : ''}`} />
+                                  <span>{busyAction === `snap-${cand.id}` ? 'Snap...' : 'Screenshot'}</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCandidateId(cand.id);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                  isSel
+                                    ? 'bg-[#0050F5] text-white'
+                                    : 'bg-[var(--cms-bg)] border border-[var(--cms-control-border)]'
+                                }`}
+                              >
+                                {isSel ? 'Selected' : 'Inspect'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -521,13 +588,13 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
           </div>
 
           {/* Latest Discovery Run Coverage Log */}
-          {discoveryRuns.length > 0 && (
+          {discoveryRuns.length > 0 && discoveryRuns[0] && (
             <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-xs space-y-1">
               <div className="flex items-center justify-between font-mono-tabular text-[11px] text-[var(--cms-text-secondary)]">
-                <span>Latest Run: {discoveryRuns[0].id} ({discoveryRuns[0].executionMode})</span>
-                <span>Subnet: {discoveryRuns[0].subnetCidr} • Attempted: {discoveryRuns[0].hostsAttempted} hosts</span>
+                <span>Latest Run: {discoveryRuns[0]?.id || '-'} ({discoveryRuns[0]?.executionMode || '-'})</span>
+                <span>Subnet: {discoveryRuns[0]?.subnetCidr || '-'} • Attempted: {discoveryRuns[0]?.hostsAttempted || 0} hosts</span>
               </div>
-              <div className="font-medium">{discoveryRuns[0].summaryText}</div>
+              <div className="font-medium">{discoveryRuns[0]?.summaryText || 'Scan run completed.'}</div>
             </div>
           )}
         </div>
@@ -682,6 +749,74 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Route C: Live Remote Visual TV Screen Capture & Diagnostics (Zero-Console Realtime View) */}
+            <div className="p-4 rounded-xl border border-[var(--cms-divider)] space-y-3 text-xs bg-[var(--cms-bg)]/40">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="font-semibold flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-[#0050F5]" />
+                  <span>Route C — Real-Time Visual Screen Capture & Live Remote View</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-[var(--cms-text-secondary)]">
+                    <input
+                      type="checkbox"
+                      checked={autoRefreshScreenshot}
+                      onChange={(e) => setAutoRefreshScreenshot(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span>Auto-refresh (5s)</span>
+                  </label>
+                  <button
+                    disabled={busyAction !== null}
+                    onClick={() =>
+                      wrapBusy('screenshot', async () => {
+                        if (onAdbScreenshot) {
+                          await onAdbScreenshot(selectedCandidate.id);
+                        }
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Camera className={`w-3.5 h-3.5 ${busyAction === 'screenshot' ? 'animate-pulse' : ''}`} />
+                    <span>{busyAction === 'screenshot' ? 'Capturing Frame...' : 'Ambil Screenshot Realtime'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* TV Screen Display with Realistic TV Bezel Frame */}
+              <div className="relative rounded-2xl border-4 border-slate-900 bg-black overflow-hidden shadow-2xl aspect-video flex items-center justify-center group">
+                {selectedCandidate.lastScreenshotUrl ? (
+                  <>
+                    <img
+                      src={selectedCandidate.lastScreenshotUrl}
+                      alt={`Live screen of ${selectedCandidate.friendlyName}`}
+                      className="w-full h-full object-contain cursor-pointer transition-transform duration-200"
+                      onClick={() => setScreenshotModalUrl(selectedCandidate.lastScreenshotUrl || null)}
+                    />
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md bg-black/75 backdrop-blur text-[10px] text-white font-mono flex items-center gap-2 border border-white/10">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                      <span>LIVE TV • {selectedCandidate.lastScreenshotCapturedAt ? new Date(selectedCandidate.lastScreenshotCapturedAt).toLocaleTimeString() : 'Current'}</span>
+                    </div>
+                    <button
+                      onClick={() => setScreenshotModalUrl(selectedCandidate.lastScreenshotUrl || null)}
+                      className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-md bg-black/70 hover:bg-black text-white text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 backdrop-blur border border-white/10"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>Perbesar Layar</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-center p-6 space-y-2.5 text-slate-400">
+                    <Tv className="w-12 h-12 mx-auto opacity-30 text-slate-400" />
+                    <div className="text-xs font-semibold text-slate-300">Belum ada screenshot TV yang diambil</div>
+                    <p className="text-[11px] text-slate-400 max-w-sm mx-auto leading-relaxed">
+                      Klik <strong>"Ambil Screenshot Realtime"</strong> di atas untuk menangkap tampilan fisik layar TV {selectedCandidate.friendlyName} secara langsung tanpa membuka command prompt.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -891,6 +1026,55 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen TV Screenshot Modal */}
+      {screenshotModalUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
+          onClick={() => setScreenshotModalUrl(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <Tv className="w-5 h-5 text-[#0050F5]" />
+                <span className="font-bold text-sm">
+                  {selectedCandidate ? `${selectedCandidate.friendlyName} (${selectedCandidate.ip}:${selectedCandidate.port})` : 'Live TV Screen'}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono">
+                  REALTIME CAPTURE
+                </span>
+              </div>
+              <button
+                onClick={() => setScreenshotModalUrl(null)}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold"
+              >
+                Tutup (Esc)
+              </button>
+            </div>
+            <div className="p-2 bg-black flex items-center justify-center">
+              <img
+                src={screenshotModalUrl}
+                alt="Fullscreen TV Capture"
+                className="max-h-[75vh] w-auto object-contain rounded-lg"
+              />
+            </div>
+            <div className="p-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Resolution: Direct Framebuffer Stream</span>
+              <a
+                href={screenshotModalUrl}
+                download={`tv_screenshot_${selectedCandidate?.ip || 'capture'}.png`}
+                className="text-[#0050F5] hover:underline flex items-center gap-1 font-sans"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Simpan Gambar PNG</span>
+              </a>
+            </div>
           </div>
         </div>
       )}

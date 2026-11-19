@@ -24,7 +24,8 @@ const STATUS:Record<string,Record<GuestLocale,string>>={Requested:{id:'Diterima'
 const languageNames=['Indonesia','English','中文','日本語'];
 
 export function ArunikaTvExperience(props:TvGuestAppProps){
-  const {property,room,endpoint,stay,channels,contracts,marketplaceItems=[],serviceOrders=[],embedded=false,onClose,onSelectLocale,onOpenChannelCheck,onRequestServiceOrder,onEvaluateCampaign}=props;
+  const {property,room,stay,corporateGroup,channels,contracts,marketplaceItems=[],serviceOrders=[],embedded=false,onClose,onSelectLocale,onOpenChannelCheck,onRequestServiceOrder,onEvaluateCampaign}=props;
+  const endpoint = props.endpoint || ({ id: 'E-PREVIEW', appliedConfigVersion: 4, desiredVersion: '2.4.1', modelName: 'SmartTV Preview', manufacturer: 'GOJJA Preview' } as any);
   const settings=resolveTvExperience(property.tvExperience,property.wifiSsid);
   const [locale,setLocale]=useState<GuestLocale>(props.forcedLocale||stay?.locale||property.defaultLocale||'id');
   const [screen,setScreen]=useState<Screen>('welcome');const [overlay,setOverlay]=useState<Overlay>('none');
@@ -102,8 +103,10 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
   };
   const focusProps=(id:string)=>({'data-tv-focus':id,'data-focused':focus===id,'tabIndex':focus===id?0:-1,onFocus:()=>setFocus(id)});
   const stageClick=(e:React.MouseEvent)=>{if((e.target as HTMLElement).closest('button'))root.current?.focus({preventScroll:true});};
-  const headline=property.welcomeHeadline?.[locale]||c.welcome;
-  const subline=property.welcomeSubline?.[locale]||c.sub;
+  const groupBadge = corporateGroup?.badgeText || corporateGroup?.name;
+  const groupMessage = corporateGroup?.message?.[locale];
+  const headline = corporateGroup ? (groupBadge || c.welcome) : (property.welcomeHeadline?.[locale] || c.welcome);
+  const subline = groupMessage || property.welcomeSubline?.[locale] || c.sub;
   const hotelName=property.logoText||property.name;const greeting=stay?.status==='InHouse'?stay.displayName:null;
   const dateLocale=locale==='id'?'id-ID':locale==='en'?'en-GB':locale;
   const timeText=new Intl.DateTimeFormat(dateLocale,{hour:'2-digit',minute:'2-digit',timeZone:property.timezone||'Asia/Jakarta',hour12:false}).format(time);
@@ -113,8 +116,12 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
   const launchApp=async(app:typeof ENTERTAINMENT_APPS[number])=>{const sequence=++appRequest.current;setSelectedApp(app);setAppUrl('');setAppError('');openDialog('app');try{const result=await props.onOpenEntertainmentApp?.(app.id);if(sequence===appRequest.current){if(result?.mode==='NATIVE_MANAGED_REQUIRED')setAppError(locale==='id'?'Akun dikelola hotel / ISP. Hubungi resepsionis untuk aktivasi aplikasi pada TV ini.':locale==='en'?'Account managed by hotel / ISP. Contact reception to activate this app on this TV.':locale==='zh-CN'?'账户由酒店 / ISP 管理。请联系前台激活此电视上的应用。':'アカウントはホテル / ISP が管理しています。テレビでの有効化はフロントへお問い合わせください。');else if(result?.url===app.url)setAppUrl(result.url);else setAppError(appsText.locked);}}catch(error){if(sequence===appRequest.current)setAppError(error instanceof Error?error.message:appsText.locked);}};
   const dialogTitle=dialog==='explore'?(selectedPlace?.localeContent[locale]?.title||selectedPlace?.title||exploreCopy.title):dialog==='app'?(selectedApp?.name||appsText.title):typeof dialog==='object'&&dialog?dialog.localeContent[locale]?.title||dialog.title:dialog==='messages'?c.messages:dialog==='wifi'?c.wifi:dialog==='audio'?c.audio:dialog==='epg'?c.epg:dialog==='hotel'?property.name:c.nav[6];
   const configuredPromo=screen==='internal'?property.promoMediaUrl:undefined;
-  const mediaSource=resolveLegacyDemoMedia(configuredPromo||campaign?.mediaUrl||campaign?.imageUrl||'/assets/tv/demo-flower.mp4');
-  const mediaType=configuredPromo?(property.promoMediaType||'video'):campaign?.mediaType||'video';
+  const isVideoSource = (url: string) => /\.(mp4|webm|m3u8|mov)(?:[?#]|$)/i.test(url) || url.includes('youtube.com') || url.includes('youtu.be');
+  const chosenMedia = configuredPromo || campaign?.mediaUrl || campaign?.imageUrl || '/assets/tv/demo-flower.mp4';
+  const mediaSource = resolveLegacyDemoMedia(chosenMedia);
+  const mediaType = configuredPromo
+    ? (property.promoMediaType || (isVideoSource(chosenMedia) ? 'video' : 'image'))
+    : (campaign?.mediaType || (isVideoSource(chosenMedia) ? 'video' : 'image'));
   const disableUnderlying=!!dialog;
   return <div className={embedded?'tv-review-shell embedded':'tv-review-modal'}><div className="tv-review-shell">
     <header className="tv-review-bar"><strong>TV Preview · {c.room} {room.code}</strong><div className="tv-review-languages">{TV_LOCALES.map((loc,i)=><button key={loc} aria-pressed={locale===loc} onClick={()=>changeLocale(loc)}>{languageNames[i]}</button>)}</div>{onClose?<button className="tv-review-close" onClick={onClose}>Close</button>:null}
@@ -133,9 +140,9 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
         <div className="premium-shade"/>
         <header className={'premium-header status-'+settings.welcome.statusSide}>
           <div className={'premium-brand brand-'+settings.welcome.brandLayout}>{property.logoImageUrl&&settings.welcome.brandLayout!=='text'?<img src={property.logoImageUrl} alt={hotelName}/>:null}{settings.welcome.brandLayout!=='logo'||!property.logoImageUrl?<div>{hotelName}<small>{property.logoSubtitle||property.city}</small></div>:null}</div>
-          <div className="premium-status"><div className="premium-room-group"><span className="premium-room"><BedDouble/>{c.room} {room.code}</span>{settings.welcome.weatherLabel?<small><CloudSun/>{settings.welcome.weatherLabel}</small>:null}</div><button {...focusProps('language-open')} aria-label={c.choose} onClick={()=>go('language','language-'+locale)}><Globe/><span>{({id:'ID',en:'EN','zh-CN':'中文','ja-JP':'日本語'})[locale]}</span></button>{settings.showMessages?<button {...focusProps('notify')} aria-label={`${c.messages} (${notificationCount})`} onClick={()=>openDialog('messages')}><Bell/>{notificationCount>0?<span className="premium-badge">{notificationCount}</span>:null}</button>:null}<div className="premium-clock"><strong>{timeText}</strong><small>{dateText}</small></div></div>
+          <div className="premium-status"><div className="premium-room-group"><span className="premium-room"><BedDouble/>{c.room} {room.code}</span>{corporateGroup?<small style={{color:'#dfbc78',fontWeight:600}}><Sparkles style={{width:16,height:16,flexShrink:0}}/><span>{corporateGroup.name}</span></small>:settings.welcome.weatherLabel?<small><CloudSun/>{settings.welcome.weatherLabel}</small>:null}</div><button {...focusProps('language-open')} aria-label={c.choose} onClick={()=>go('language','language-'+locale)}><Globe/><span>{({id:'ID',en:'EN','zh-CN':'中文','ja-JP':'日本語'})[locale]}</span></button>{settings.showMessages?<button {...focusProps('notify')} aria-label={`${c.messages} (${notificationCount})`} onClick={()=>openDialog('messages')}><Bell/>{notificationCount>0?<span className="premium-badge">{notificationCount}</span>:null}</button>:null}<div className="premium-clock"><strong>{timeText}</strong><small>{dateText}</small></div></div>
         </header>
-        <main className={'premium-copy type-'+settings.welcome.typography}><p className="premium-eyebrow">{headline}</p><h1 style={{fontSize:(greeting||headline).length>35?60:(greeting||headline).length>24?76:undefined}} title={greeting||headline}>{greeting||c.welcome}</h1><p>{subline}</p></main>
+        <main className={'premium-copy type-'+settings.welcome.typography}><p className="premium-eyebrow">{corporateGroup?<span style={{display:'inline-flex',alignItems:'center',gap:8,color:'#dfbc78'}}><Sparkles style={{width:18,height:18}}/>{groupBadge}</span>:headline}</p><h1 style={{fontSize:(greeting||headline).length>35?60:(greeting||headline).length>24?76:undefined}} title={greeting||headline}>{greeting||c.welcome}</h1><p>{subline}</p></main>
         {settings.showWifi?<aside className="premium-wifi"><h2><Wifi/>{c.wifi}</h2><div className="premium-wifi-content"><TvWifiQr wifi={settings.wifi} locale={locale}/><div><strong>{settings.wifi.ssid||property.name}</strong><p>{c.scan}</p></div></div><button {...focusProps('wifi')} onClick={()=>openDialog('wifi')}>{c.connect}<ChevronRight/></button></aside>:null}
         {settings.showDock?<nav className="premium-dock" aria-label={c.services} style={{gridTemplateColumns:`repeat(${Math.max(1,shortcuts.length)},minmax(0,1fr))`}}>{shortcuts.map(id=>{const i=['tv','hotel','services','entertainment','offers','explore','help','wifi'].indexOf(id);const app=ENTERTAINMENT_APPS.find(app=>id==='app:'+app.id);const Icon=[Monitor,Building2,ConciergeBell,Clapperboard,Tag,Landmark,Headset,Wifi][i]||(app?.id==='youtube'?Youtube:Clapperboard);return <button key={id} {...focusProps('shortcut-'+id)} onClick={()=>shortcut(id)}><Icon/><strong>{app?.name||(i===7?c.wifi:c.nav[i])}</strong><small>{app?(locale==='id'?'Dikelola hotel / ISP':locale==='en'?'Managed by hotel / ISP':locale==='zh-CN'?'由酒店 / ISP 管理':'ホテル / ISP 管理'):id==='wifi'?settings.wifi.ssid:property.name}</small></button>;})}</nav>:null}
         <footer className="premium-footer">{settings.showTicker?<div className="tv-ticker-window" aria-label={c.info}><div className="tv-ticker-track" style={{animationDuration:`${settings.tickerSeconds}s`}}><span>{settings.ticker[locale]}</span><span aria-hidden="true">{settings.ticker[locale]}</span></div></div>:<small>{c.help}</small>}<img src="/assets/gojja-smarttv-official-logo.svg" alt="GOJJA SmartTV"/></footer>

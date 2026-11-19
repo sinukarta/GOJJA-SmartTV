@@ -16,6 +16,9 @@ import net from 'node:net';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 const execFileAsync = promisify(execFile);
 
 const args = process.argv.slice(2);
@@ -29,14 +32,64 @@ const PROPERTY_ID = getArg('--property', 'P-01');
 const SUBNET_CIDR = getArg('--subnet', '');
 const CONNECTOR_NAME = getArg('--name', `${os.hostname()}-Connector`);
 
-async function detectAdb() {
-  try {
-    const { stdout } = await execFileAsync('adb', ['version'], { timeout: 4000, windowsHide: true });
-    const firstLine = stdout.split(/\r?\n/)[0]?.trim() || 'adb detected';
-    return { available: true, version: firstLine };
-  } catch {
-    return { available: false, version: 'Not found in PATH (Install Android SDK Platform-Tools)' };
+function resolveLocalAdbBin() {
+  const candidates = [
+    path.join(process.cwd(), 'bin', 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb'),
+    path.join(process.cwd(), 'bin', process.platform === 'win32' ? 'adb.exe' : 'adb'),
+    'adb',
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
   }
+  return 'adb';
+}
+
+async function detectAdb() {
+  const adbBin = resolveLocalAdbBin();
+  try {
+    const { stdout } = await execFileAsync(adbBin, ['version'], { timeout: 4000, windowsHide: true });
+    const firstLine = stdout.split(/\r?\n/)[0]?.trim() || 'adb detected';
+    return { available: true, version: firstLine, path: adbBin };
+  } catch {
+    return { available: false, version: 'Not found in PATH (Install Android SDK Platform-Tools)', path: 'adb' };
+  }
+}
+
+async function probeAdbProperties(ip, port = 5555, adbBin = 'adb') {
+  const target = `${ip}:${port}`;
+  try {
+    await execFileAsync(adbBin, ['connect', target], { timeout: 4000, windowsHide: true });
+    const { stdout: stateOut } = await execFileAsync(adbBin, ['-s', target, 'get-state'], { timeout: 3000, windowsHide: true });
+    const state = stateOut.trim();
+    if (state === 'device') {
+      const getP = async (k) => {
+        try {
+          const { stdout } = await execFileAsync(adbBin, ['-s', target, 'shell', 'getprop', k], { timeout: 2500, windowsHide: true });
+          return stdout.trim();
+        } catch {
+          return '';
+        }
+      };
+      const [brand, model, manufacturer, release, sdk] = await Promise.all([
+        getP('ro.product.brand'),
+        getP('ro.product.model'),
+        getP('ro.product.manufacturer'),
+        getP('ro.build.version.release'),
+        getP('ro.build.version.sdk'),
+      ]);
+      return {
+        brand: brand || manufacturer,
+        model: model || 'Smart TV',
+        manufacturer: manufacturer || brand,
+        release,
+        sdk,
+        verified: true,
+      };
+    }
+  } catch {
+    // connect or query failed
+  }
+  return null;
 }
 
 function getLocalInterfaces() {
@@ -154,7 +207,31 @@ async function main() {
   if (args.includes('--scan-now')) {
     console.log(`→ Scanning bounded subnet ${selectedCidr} on port 5555...`);
     const candidates = await runBoundedSubnetScan(selectedCidr, [5555]);
-    console.log(`✓ Scan completed. Found ${candidates.length} reachable endpoint(s). Reporting to server...`);
+    console.log(`✓ TCP scan found ${candidates.length} reachable endpoint(s).`);
+
+    if (adbInfo.available && candidates.length > 0) {
+      console.log('→ Probing device properties via ADB getprop...');
+      for (const cand of candidates) {
+        if (cand.port === 5555) {
+          const props = await probeAdbProperties(cand.ip, cand.port, adbInfo.path);
+          if (props && props.verified) {
+            const brand = (props.brand || '').trim();
+            const model = (props.model || '').trim();
+            cand.friendlyName = `${brand ? brand.toUpperCase() + ' ' : ''}${model}`.trim();
+            cand.serviceHint = `${brand} ${model} • Android ${props.release || '?'}`;
+            cand.authState = 'DeviceVerified';
+            cand.observedBrand = brand;
+            cand.observedModel = model;
+            cand.observedManufacturer = props.manufacturer;
+            cand.observedAndroidVersion = props.release;
+            cand.observedSdkInt = Number(props.sdk) || 0;
+            console.log(`  ✓ Identified: ${cand.friendlyName} (${cand.ip}:${cand.port})`);
+          }
+        }
+      }
+    }
+
+    console.log(`→ Reporting ${candidates.length} candidate(s) to server...`);
     await fetch(`${SERVER_URL}/api/live-lab/connector/report-scan`, {
       method: 'POST',
       headers: {

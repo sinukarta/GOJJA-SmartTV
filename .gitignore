@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+bin/
+.gojja-ssot-store.json
+screenshots/
+
