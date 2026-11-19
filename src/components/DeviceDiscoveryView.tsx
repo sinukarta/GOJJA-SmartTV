@@ -464,12 +464,12 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)]">
-                      <th className="py-2.5 pr-3 font-medium">Candidate / Brand & Model</th>
+                      <th className="py-2.5 px-4 font-medium">Candidate / Brand & Model</th>
                       <th className="py-2.5 px-3 font-medium">IP : Port</th>
                       <th className="py-2.5 px-3 font-medium">Source</th>
                       <th className="py-2.5 px-3 font-medium">Reachability</th>
                       <th className="py-2.5 px-3 font-medium">Verification State</th>
-                      <th className="py-2.5 pl-3 text-right font-medium">Actions</th>
+                      <th className="py-2.5 px-4 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--cms-divider)]">
@@ -484,7 +484,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                             isSel ? 'bg-[#0050F5]/10' : 'hover:bg-black/5 dark:hover:bg-white/5'
                           }`}
                         >
-                          <td className="py-3 pr-3">
+                          <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <Tv className="w-4 h-4 text-[#0050F5] shrink-0" />
                               <div>
@@ -533,7 +533,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                               <span className="text-amber-700 dark:text-amber-300">{cand.authState}</span>
                             )}
                           </td>
-                          <td className="py-3 pl-3 text-right">
+                          <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {onAdbProbe && cand.port === 5555 && (
                                 <button

@@ -35,7 +35,7 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
   const [campaign,setCampaign]=useState<Campaign|null>(null);const [seconds,setSeconds]=useState(0);const [duration,setDuration]=useState(30);
   const [sending,setSending]=useState(false);const [requestResult,setRequestResult]=useState('');const [localRequests,setLocalRequests]=useState<string[]>([]);
   const [selectedApp,setSelectedApp]=useState<typeof ENTERTAINMENT_APPS[number]|null>(null);const [appUrl,setAppUrl]=useState('');const [appError,setAppError]=useState('');const appRequest=useRef(0);
-  const [mediaError,setMediaError]=useState(false);const [interaction,setInteraction]=useState(0);
+  const [mediaError,setMediaError]=useState(false);const [interaction,setInteraction]=useState(0);const [showOsd,setShowOsd]=useState(true);
   const outer=useRef<HTMLDivElement>(null);const root=useRef<HTMLDivElement>(null);const selectSeq=useRef(0);const screenRef=useRef<Screen>(screen);screenRef.current=screen;
   const c=L[locale];const isWatching=screen==='watch';
   const services=propertyCatalog(marketplaceItems,property.id);
@@ -51,14 +51,16 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
   const categories=['All',...new Set(tunable.map(ch=>ch.category))];
   const displayed=tunable.filter(ch=>filter==='All'||ch.category===filter);
   const previewSource=settings.previewStreamUrl;
-  const channelSource=previewSource||(selected?normalizeMediaUrl(selected.streamUrlHint)||'':'');
+  const selectedStream=selected?normalizeMediaUrl(selected.streamUrlHint):null;
+  const channelSource=selectedStream||previewSource||'';
   const categoryNames:Record<string,string>=locale==='id'?{News:'Berita',Entertainment:'Hiburan',Sports:'Olahraga',Movies:'Film',Hotel:'Hotel'}:locale==='zh-CN'?{News:'新闻',Entertainment:'娱乐',Sports:'体育',Movies:'电影',Hotel:'酒店'}:locale==='ja-JP'?{News:'ニュース',Entertainment:'娯楽',Sports:'スポーツ',Movies:'映画',Hotel:'ホテル'}:{};
   const closeLabel=locale==='id'?'Tutup':locale==='en'?'Close':locale==='zh-CN'?'关闭':'閉じる';
-  const liveSourceLabel=previewSource?c.demo:(selected?.name||c.watch);
+  const liveSourceLabel=selected?selected.name:(previewSource?c.demo:c.watch);
   useEffect(()=>setLocale(props.forcedLocale||stay?.locale||property.defaultLocale||'id'),[props.forcedLocale,stay?.locale,property.defaultLocale]);
   useEffect(()=>{const timer=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(timer);},[]);
   useLayoutEffect(()=>{const el=outer.current;if(!el)return;const measure=()=>setScale(el.clientWidth/1672);measure();const observer=new ResizeObserver(measure);observer.observe(el);return()=>observer.disconnect();},[]);
   useEffect(()=>{if(!isWatching||overlay!=='info'||dialog)return;const timer=setTimeout(()=>setOverlay('none'),6000);return()=>clearTimeout(timer);},[isWatching,overlay,dialog,interaction]);
+  useEffect(()=>{if(!isWatching)return;setShowOsd(true);const timer=setTimeout(()=>setShowOsd(false),4500);return()=>clearTimeout(timer);},[isWatching,selected?.id,interaction]);
   useEffect(()=>{selectSeq.current++;setSelected(null);setAccess('idle');setScreen('welcome');setOverlay('none');setDialog(null);setFocus('shortcut-tv');setLocalRequests([]);appRequest.current++;},[property.id,endpoint.id,stay?.id]);
   const changeLocale=(loc:GuestLocale)=>{setLocale(loc);onSelectLocale?.(loc);};
   const go=useCallback((next:Screen,focusId='shortcut-tv')=>{appRequest.current++;selectSeq.current++;setScreen(next);setOverlay('none');setDialog(null);setRequestResult('');setFocus(focusId);setMediaError(false);},[]);
@@ -149,7 +151,8 @@ export function ArunikaTvExperience(props:TvGuestAppProps){
       </>:null}
       {isWatching?<>
         {access==='allowed'&&selected?<TvMediaPlayer src={channelSource} poster={selected.thumbnailUrl} muted={muted} loop label={`${liveSourceLabel} · ${selected.name}`} onFailure={()=>setMediaError(true)}/>:<div className="tv-media-error"><strong>{access==='loading'?c.loading:accessError||c.denied}</strong><button {...focusProps('retry-channel')} onClick={()=>tunable[0]&&void tune(tunable[0])}>{c.guide}</button></div>}
-        <span className="tv-source-badge" hidden={overlay==='channels'}>{liveSourceLabel}</span><div className="channel-watermark" style={overlay==='menu'?{right:595}:undefined}>{selected?.name}</div>
+        {showOsd&&overlay!=='channels'?<span className="tv-source-badge">{selected?`CH ${selected.number} · ${selected.name}`:liveSourceLabel}</span>:null}
+        {showOsd&&selected?<div className="channel-watermark" style={overlay==='menu'?{right:595}:undefined}>{selected.name}</div>:null}
         {overlay==='info'?<section className="info-panel"><div className="info-row"><b className="channel-number">{selected?.number||'—'}</b><b className="channel-name">{selected?.name||c.watch}</b><div className="program"><strong>{previewSource?c.demo:selected?.currentProgram[locale]||c.noEpg}</strong><small>{selected?.programTime}</small></div><div className="next-program">{c.next}<br/>—</div></div><div className="info-actions"><button {...focusProps('list')} onClick={openChannels}><List className="icon"/>{c.channel}</button><button {...focusProps('audio')} onClick={()=>openDialog('audio')}><Volume2 className="icon"/>{locale==='zh-CN'?'音频':locale==='ja-JP'?'音声':'Audio'}</button><button {...focusProps('subtitle')} onClick={()=>openDialog('audio')}><Captions className="icon"/>{locale==='zh-CN'?'字幕':locale==='ja-JP'?'字幕':'Subtitle'}</button><button {...focusProps('epg')} onClick={()=>openDialog('epg')}><CalendarDays className="icon"/>{c.epg}</button></div></section>:null}
         {overlay==='channels'?<aside className="side-panel channel-panel"><h2>{c.channel}</h2><span className="live-badge">{previewSource?c.preview:'TV'}</span><div className="categories">{categories.map(cat=><button key={cat} {...focusProps('cat-'+cat)} className={filter===cat?'selected':''} onClick={()=>setFilter(cat)}>{cat==='All'?c.all:categoryNames[cat]||cat}</button>)}</div><div className="channel-list">{displayed.map(ch=><button key={ch.id} {...focusProps('channel-'+ch.id)} className={selected?.id===ch.id?'current':''} onClick={()=>void tune(ch)}>{ch.number} · {ch.name}</button>)}{!displayed.length?<p>{c.denied}</p>:null}</div><p className="panel-foot">OK: {c.watch}　{c.back}: {closeLabel}</p></aside>:null}
         {overlay==='menu'?<aside className="side-panel menu-panel"><h2>{c.menu}</h2>{[{id:'menu-list',Icon:List,label:c.channel,run:openChannels},{id:'menu-epg',Icon:CalendarDays,label:c.epg,run:()=>openDialog('epg')},{id:'menu-audio',Icon:Volume2,label:c.audio,run:()=>openDialog('audio')},{id:'menu-help',Icon:CircleHelp,label:c.nav[6],run:()=>openDialog('help')},{id:'menu-home',Icon:House,label:c.home,run:()=>go('welcome')}].map(({id,Icon,label,run})=><button key={id} {...focusProps(id)} onClick={run}><Icon className="icon"/>{label}</button>)}<p className="panel-foot">{c.back}: {closeLabel}</p></aside>:null}

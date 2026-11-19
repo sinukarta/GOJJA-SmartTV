@@ -29,6 +29,7 @@ import {
   XCircle,
   AlertTriangle,
   Plus,
+  Edit2,
   Play,
   Layers,
   Building2,
@@ -624,6 +625,253 @@ export default function App() {
 
   // TV Guest App Modal state
   const [tvModalEndpointId, setTvModalEndpointId] = useState<string | null>(null);
+
+  // Channel Editor Modal & Presets state
+  const [channelModalOpen, setChannelModalOpen] = useState<boolean>(false);
+  const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
+  const [testVideoPreview, setTestVideoPreview] = useState<boolean>(false);
+  const [channelForm, setChannelForm] = useState<{
+    id: string;
+    number: string;
+    name: string;
+    category: string;
+    packageId: string;
+    language: string;
+    programTime: string;
+    currentProgramId: string;
+    currentProgramEn: string;
+    streamUrlHint: string;
+    providerId: string;
+  }>({
+    id: '',
+    number: '001',
+    name: '',
+    category: 'News',
+    packageId: 'PKG-BASIC',
+    language: 'ID',
+    programTime: '18:00 – 19:30',
+    currentProgramId: '',
+    currentProgramEn: '',
+    streamUrlHint: '',
+    providerId: 'IPTV-STREAM',
+  });
+
+  const IPTV_INDONESIA_PRESETS = [
+    {
+      name: 'CNN Indonesia',
+      number: '001',
+      category: 'News',
+      packageId: 'PKG-BASIC',
+      providerId: 'DETIK-LIVE',
+      language: 'ID',
+      streamUrlHint: 'https://video.detik.com/livecnn/smil:cnntv/chunklist_w268557525_b384000_sleng.m3u8',
+      programId: 'CNN Indonesia News Report & Warta Terkini',
+      programEn: 'CNN Indonesia News Report & Prime Headlines',
+    },
+    {
+      name: 'CNBC Indonesia',
+      number: '002',
+      category: 'News',
+      packageId: 'PKG-BASIC',
+      providerId: 'DETIK-LIVE',
+      language: 'ID / EN',
+      streamUrlHint: 'https://video.detik.com/livecnbc/smil:cnbctv/chunklist_w1279679883_b384000_sleng.m3u8',
+      programId: 'Squawk Box Indonesia: Riset Pasar Modal & Finansial',
+      programEn: 'Squawk Box Indonesia: Capital Markets & Financial Pulse',
+    },
+    {
+      name: 'DAAI TV',
+      number: '003',
+      category: 'Entertainment',
+      packageId: 'PKG-BASIC',
+      providerId: 'DAAI-PLUS',
+      language: 'ID / ZH',
+      streamUrlHint: 'https://pull.daaiplus.com/live-DAAIPLUS/live-DAAIPLUS_HD.m3u8',
+      programId: 'Bumi & Inspirasi: Harmoni Budaya Nusantara',
+      programEn: 'Earth & Inspiration: Harmony of Nusantara Culture',
+    },
+    {
+      name: 'Garuda TV (1080p)',
+      number: '004',
+      category: 'News',
+      packageId: 'PKG-BASIC',
+      providerId: 'HGM-TV',
+      language: 'ID',
+      streamUrlHint: 'https://hgmtv.com:19360/garudatvlivestreaming/garudatvlivestreaming.m3u8',
+      programId: 'Garuda Terkini: Warta Nasional & Diplomasi',
+      programEn: 'Garuda Prime News: National & Diplomatic Reports',
+    },
+    {
+      name: 'TVRI Yogyakarta (720p)',
+      number: '005',
+      category: 'Entertainment',
+      packageId: 'PKG-BASIC',
+      providerId: 'TVRI-JOGJA',
+      language: 'ID / Jawa',
+      streamUrlHint: 'https://ott-balancer.tvri.go.id/live/eds/Jogjakarta/hls/Jogjakarta.m3u8',
+      programId: 'Panggung Kesenian Jogja & Budaya Mataram',
+      programEn: 'Jogja Cultural Stage & Mataram Heritage',
+    },
+    {
+      name: 'Indonesiana TV',
+      number: '006',
+      category: 'Entertainment',
+      packageId: 'PKG-BASIC',
+      providerId: 'KEMENDIKBUD',
+      language: 'ID',
+      streamUrlHint: 'https://tvstreamcast.com/indonesiana.m3u8',
+      programId: 'Dokumenter Warisan Budaya & Musik Tradisional Nusantara',
+      programEn: 'Nusantara Heritage Documentary & Traditional Soundscapes',
+    },
+    {
+      name: 'Jawa Pos TV Jakarta (720p)',
+      number: '007',
+      category: 'Entertainment',
+      packageId: 'PKG-INTL',
+      providerId: 'JAWAPOS-LIVE',
+      language: 'ID',
+      streamUrlHint: 'http://122.248.43.242:1935/JAWAPOSTVJKT/_definst_/myStream/playlist.m3u8',
+      programId: 'Lensa Metropolis & Dinamika Urban Jakarta',
+      programEn: 'Metropolis Lens & Jakarta Urban Pulse',
+    },
+    {
+      name: 'Nusantara TV (1080p)',
+      number: '008',
+      category: 'Sports',
+      packageId: 'PKG-SPORTS',
+      providerId: 'SIAR-US',
+      language: 'ID / EN',
+      streamUrlHint: 'https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8',
+      programId: 'Sorotan Olahraga Nusantara & Liga Premier',
+      programEn: 'Nusantara Sports Highlights & Premier League',
+    },
+    {
+      name: 'TATV (720p)',
+      number: '009',
+      category: 'Hotel',
+      packageId: 'PKG-FREE',
+      providerId: 'TATV-SOLO',
+      language: 'ID / Jawa',
+      streamUrlHint: 'https://v2.siar.us/tatv/live.sdp/playlist.m3u8',
+      programId: 'Seputar Solo Raya & Ragam Kuliner Tradisional',
+      programEn: 'Solo Raya Highlights & Traditional Culinary Arts',
+    },
+    {
+      name: 'Jek TV (720p)',
+      number: '010',
+      category: 'Hotel',
+      packageId: 'PKG-FREE',
+      providerId: 'JEKTV-JAMBI',
+      language: 'ID',
+      streamUrlHint: 'http://27.124.81.245:1935/jektv/myStream/playlist.m3u8',
+      programId: 'Warta Jambi Hari Ini & Panorama Melayu',
+      programEn: 'Jambi Today & Malay Archipelago Panorama',
+    },
+    {
+      name: 'Kids TV',
+      number: '011',
+      category: 'Hotel',
+      packageId: 'PKG-FREE',
+      providerId: 'MEDIACDN-RU',
+      language: 'ID / EN',
+      streamUrlHint: 'http://origin5.mediacdn.ru/live/kidstv/index.m3u8',
+      programId: 'Petualangan Kartun Ceria & Belajar Interaktif',
+      programEn: 'Joyful Cartoon Adventures & Learning',
+    },
+  ];
+
+  const handleOpenEditChannel = (ch: Channel) => {
+    setEditingChannel(ch);
+    setTestVideoPreview(false);
+    setChannelForm({
+      id: ch.id,
+      number: ch.number,
+      name: ch.name,
+      category: ch.category,
+      packageId: ch.packageId,
+      language: ch.language,
+      programTime: ch.programTime,
+      currentProgramId: ch.currentProgram.id,
+      currentProgramEn: ch.currentProgram.en,
+      streamUrlHint: ch.streamUrlHint,
+      providerId: ch.providerId,
+    });
+    setChannelModalOpen(true);
+  };
+
+  const handleOpenAddChannel = () => {
+    const nextNum = String(data.channels.length + 1).padStart(3, '0');
+    const nextId = `CH-${String(data.channels.length + 1).padStart(2, '0')}`;
+    setEditingChannel(null);
+    setTestVideoPreview(false);
+    setChannelForm({
+      id: nextId,
+      number: nextNum,
+      name: '',
+      category: 'News',
+      packageId: 'PKG-BASIC',
+      language: 'ID',
+      programTime: '18:00 – 20:00',
+      currentProgramId: 'Siaran Langsung',
+      currentProgramEn: 'Live Broadcast',
+      streamUrlHint: 'https://video.detik.com/livecnn/smil:cnntv/chunklist_w268557525_b384000_sleng.m3u8',
+      providerId: 'IPTV-STREAM',
+    });
+    setChannelModalOpen(true);
+  };
+
+  const handleApplyPreset = (preset: typeof IPTV_INDONESIA_PRESETS[number]) => {
+    setTestVideoPreview(false);
+    setChannelForm((prev) => ({
+      ...prev,
+      name: preset.name,
+      category: preset.category,
+      packageId: preset.packageId,
+      language: preset.language,
+      providerId: preset.providerId,
+      streamUrlHint: preset.streamUrlHint,
+      currentProgramId: preset.programId,
+      currentProgramEn: preset.programEn,
+    }));
+  };
+
+  const handleSaveChannel = () => {
+    if (!channelForm.name.trim()) return;
+    const targetId = editingChannel ? editingChannel.id : (channelForm.id || `CH-${Date.now()}`);
+    const newOrUpdated: Channel = {
+      id: targetId,
+      number: channelForm.number,
+      name: channelForm.name.trim(),
+      category: channelForm.category as Channel['category'],
+      packageId: channelForm.packageId as Channel['packageId'],
+      language: channelForm.language,
+      providerId: channelForm.providerId || 'IPTV-STREAM',
+      programTime: channelForm.programTime,
+      streamUrlHint: channelForm.streamUrlHint.trim(),
+      thumbnailUrl: editingChannel?.thumbnailUrl || '/assets/aistudio/Hotel_Tentrem_SmartTV_App_Showcase_62a23bd8.png',
+      currentProgram: {
+        id: channelForm.currentProgramId || channelForm.name,
+        en: channelForm.currentProgramEn || channelForm.name,
+        'zh-CN': channelForm.name,
+        'ja-JP': channelForm.name,
+      },
+    };
+
+    setBootstrap((prev) => {
+      if (!prev) return prev;
+      const exists = prev.data.channels.some((c) => c.id === targetId);
+      const channels = exists
+        ? prev.data.channels.map((c) => (c.id === targetId ? newOrUpdated : c))
+        : [...prev.data.channels, newOrUpdated];
+      return { ...prev, data: { ...prev.data, channels } };
+    });
+
+    setChannelModalOpen(false);
+    setStatusBanner({
+      type: 'success',
+      text: `Saluran CH ${newOrUpdated.number} (${newOrUpdated.name}) berhasil disimpan dan aktif di TV Lineup!`,
+    });
+  };
 
   // Branding Editor local form state (Real Media Upload + Presets + GojjaCleanTV)
   const [brandLogoText, setBrandLogoText] = useState<string>('HOTEL ARUNIKA');
@@ -1978,8 +2226,10 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       <Wifi className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
-                    5 / 7
+                  <div className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-3 text-[var(--cms-text)] flex items-baseline gap-1">
+                    <span>5</span>
+                    <span className="text-lg text-[var(--cms-text-secondary)] font-normal">/</span>
+                    <span className="text-xl text-[var(--cms-text-secondary)] font-bold">7</span>
                   </div>
                   <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">
                     2 offline
@@ -1994,8 +2244,10 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       <Bed className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-extrabold mt-3 text-[var(--cms-text)]">
-                    4 / 6
+                  <div className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-3 text-[var(--cms-text)] flex items-baseline gap-1">
+                    <span>4</span>
+                    <span className="text-lg text-[var(--cms-text-secondary)] font-normal">/</span>
+                    <span className="text-xl text-[var(--cms-text-secondary)] font-bold">6</span>
                   </div>
                   <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
                     Current stays
@@ -2042,8 +2294,9 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                       <Award className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="text-lg sm:text-xl font-extrabold mt-3 text-[var(--cms-text)] truncate">
-                    Rp180.000
+                  <div className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-3 text-[var(--cms-text)] truncate flex items-baseline">
+                    <span className="text-base sm:text-lg font-bold text-[var(--cms-text-secondary)] mr-0.5">Rp</span>
+                    <span>180.000</span>
                   </div>
                   <div className="text-[11px] text-[var(--cms-text-secondary)] mt-1">
                     Core · 12 seats
@@ -5951,13 +6204,13 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)] font-semibold">
-                        <th className="py-2.5 pr-4">Endpoint ID</th>
-                        <th className="py-2.5 px-4">Hardware Model & OS</th>
+                        <th className="py-2.5 px-6">Endpoint ID</th>
+                        <th className="py-2.5 px-4">Hardware Model &amp; OS</th>
                         <th className="py-2.5 px-4">Assigned Room</th>
                         <th className="py-2.5 px-4">IP / Serial Ref</th>
                         <th className="py-2.5 px-4">Connection</th>
                         <th className="py-2.5 px-4">Config Sync</th>
-                        <th className="py-2.5 pl-4 text-right">Actions</th>
+                        <th className="py-2.5 px-6 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--cms-divider)]">
@@ -5965,7 +6218,7 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                         const assignedRoom = propRooms.find((r) => r.id === ep.roomId);
                         return (
                           <tr key={ep.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                            <td className="py-3 pr-4 font-mono-tabular font-bold">{ep.id}</td>
+                            <td className="py-3 px-6 font-mono-tabular font-bold">{ep.id}</td>
                             <td className="py-3 px-4">
                               <div className="font-semibold">{ep.manufacturer} · {ep.modelName}</div>
                               <div className="text-[11px] text-[var(--cms-text-secondary)]">
@@ -5998,12 +6251,13 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                             <td className="py-3 px-4 font-mono-tabular">
                               v{ep.appliedConfigVersion} · {ep.verificationLevel}
                             </td>
-                            <td className="py-3 pl-4 text-right space-x-2 whitespace-nowrap">
+                            <td className="py-3 px-6 text-right whitespace-nowrap">
                               <button
                                 onClick={() => setTvModalEndpointId(ep.id)}
-                                className="px-2.5 py-1.5 rounded-lg bg-[var(--brand-indigo)] text-white font-semibold text-[11px] hover:opacity-90 cursor-pointer"
+                                className="px-3 py-1.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
                               >
-                                Open TV Preview
+                                <Play className="w-3 h-3 fill-current" />
+                                <span>Open TV Preview</span>
                               </button>
                             </td>
                           </tr>
@@ -6025,16 +6279,27 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">Channels & IPTV Packages — {activeProperty.name}</h1>
                   <p className="text-xs text-[var(--cms-text-secondary)]">
-                    Manage licensed HLS/DASH live TV channels, provider feed contracts, and room-tier package entitlements.
+                    Kelola saluran siaran live HLS/DASH, preset siaran nasional Indonesia (IPTV-ORG), kontrak provider feed, dan hak siar kamar.
                   </p>
                 </div>
-                <button
-                  onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
-                  className="px-3.5 py-2 rounded-xl bg-[var(--brand-indigo)] hover:bg-[#3B27EB] text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm cursor-pointer self-start sm:self-auto"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Test Live EPG on TV</span>
-                </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAddChannel()}
+                    className="px-3.5 py-2 rounded-xl bg-[#0050F5] hover:bg-[#003ecb] text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm cursor-pointer transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Saluran</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                    className="px-3.5 py-2 rounded-xl bg-[var(--brand-indigo)] hover:bg-[#3B27EB] text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm cursor-pointer self-start sm:self-auto transition-all"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Buka Pratinjau TV</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -6042,52 +6307,85 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                   <div className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Package Tier 1 · PKG-BASIC</div>
                   <div className="text-lg font-extrabold">Standard Rooms</div>
                   <p className="text-xs text-[var(--cms-text-secondary)]">
-                    Includes National News, Nusantara Culture, and Hotel Concierge channels.
+                    Mencakup CNN Indonesia, CNBC, DAAI TV, Garuda TV, TVRI Yogyakarta, dan Indonesiana TV.
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1">
                   <div className="text-xs font-bold text-blue-700 dark:text-blue-300">Package Tier 2 · PKG-INTL</div>
                   <div className="text-lg font-extrabold">Deluxe Rooms</div>
                   <p className="text-xs text-[var(--cms-text-secondary)]">
-                    Adds Global Financial News, NHK World Japan, and international entertainment.
+                    Menambahkan Jawa Pos TV Jakarta, tayangan metropolitan, berita regional, dan hiburan.
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1">
                   <div className="text-xs font-bold text-purple-700 dark:text-purple-300">Package Tier 3 · PKG-SPORTS</div>
                   <div className="text-lg font-extrabold">Executive Suites</div>
                   <p className="text-xs text-[var(--cms-text-secondary)]">
-                    Unlocks Premier Sports HD 1 &amp; 2 and full 4K hospitality showcase feeds.
+                    Membuka siaran olahraga Nusantara TV Live Sports, TATV Solo Raya, Jek TV, dan Kids TV.
                   </p>
                 </div>
               </div>
 
               <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[var(--cms-divider)] overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs min-w-[940px]">
                   <thead>
                     <tr className="border-b border-[var(--cms-divider)] text-[var(--cms-text-secondary)] font-semibold">
-                      <th className="py-2.5 pr-4">CH #</th>
-                      <th className="py-2.5 px-4">Channel Name</th>
-                      <th className="py-2.5 px-4">Category & Language</th>
-                      <th className="py-2.5 px-4">Package ID</th>
-                      <th className="py-2.5 px-4">Now Playing EPG</th>
-                      <th className="py-2.5 pl-4">Stream Feed</th>
+                      <th className="py-3 px-6">CH #</th>
+                      <th className="py-3 px-4">Nama Saluran &amp; Stream URL</th>
+                      <th className="py-3 px-4">Kategori &amp; Bahasa</th>
+                      <th className="py-3 px-4">Paket Hak Akses</th>
+                      <th className="py-3 px-4">Now Playing EPG</th>
+                      <th className="py-3 px-4">Status Feed</th>
+                      <th className="py-3 px-6 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--cms-divider)]">
                     {data.channels.map((ch) => (
                       <tr key={ch.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                        <td className="py-3 pr-4 font-mono-tabular font-bold text-sm">CH {ch.number}</td>
-                        <td className="py-3 px-4 font-bold">{ch.name}</td>
-                        <td className="py-3 px-4 text-[var(--cms-text-secondary)]">
-                          {ch.category} · {ch.language}
+                        <td className="py-3.5 px-6 font-mono-tabular font-bold text-sm text-[var(--cms-text)]">CH {ch.number}</td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-[var(--cms-text)]">{ch.name}</div>
+                          <div className="text-[10px] text-[var(--cms-text-secondary)] font-mono-tabular truncate max-w-[240px]" title={ch.streamUrlHint}>
+                            {ch.streamUrlHint}
+                          </div>
                         </td>
-                        <td className="py-3 px-4 font-mono-tabular font-semibold">{ch.packageId}</td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium">{ch.currentProgram.en}</div>
+                        <td className="py-3.5 px-4 text-[var(--cms-text-secondary)]">
+                          <span className="font-medium text-[var(--cms-text)]">{ch.category}</span> · {ch.language}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-0.5 rounded-md bg-[#0050F5]/10 text-[#0050F5] dark:text-[#C7B9FF] font-mono-tabular font-bold text-[11px]">
+                            {ch.packageId}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 max-w-[220px]">
+                          <div className="font-medium truncate text-[var(--cms-text)]" title={ch.currentProgram.en}>{ch.currentProgram.en}</div>
                           <div className="text-[11px] text-[var(--cms-text-secondary)]">{ch.programTime}</div>
                         </td>
-                        <td className="py-3 pl-4 font-mono-tabular text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold">
-                          {ch.providerId} · Ready
+                        <td className="py-3.5 px-4 font-mono-tabular text-[11px] whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live HLS
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-6 text-right whitespace-nowrap space-x-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditChannel(ch)}
+                            className="px-2.5 py-1.5 rounded-lg border border-[var(--cms-control-border)] hover:bg-[#0050F5]/10 hover:border-[#0050F5] text-xs font-semibold inline-flex items-center gap-1 text-[var(--cms-text)] cursor-pointer transition-all"
+                            title="Edit channel &amp; stream URL"
+                          >
+                            <Edit2 className="w-3 h-3 text-[#0050F5]" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTvModalEndpointId(propEndpoints[0]?.id || 'E-01')}
+                            className="px-2.5 py-1.5 rounded-lg bg-[var(--brand-indigo)] text-white hover:bg-[#3B27EB] text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-all shadow-xs"
+                            title="Test playback on TV"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>Putar</span>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -6874,6 +7172,258 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
           </div>
         </main>
       </div>
+
+      {/* Channel Editor / Creator Modal */}
+      {channelModalOpen && (
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[var(--cms-surface)] border border-[var(--cms-divider)] rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto luxury-scrollbar shadow-2xl p-6 space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[var(--cms-divider)] pb-3">
+      <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 rounded-lg bg-[#0050F5]/10 text-[#0050F5] flex items-center justify-center">
+      <Tv className="w-4 h-4" />
+      </div>
+      <div>
+      <h3 className="text-base font-bold text-[var(--cms-text)]">
+      {editingChannel ? `Edit Saluran TV — CH ${channelForm.number}` : 'Tambah Saluran TV Baru'}
+      </h3>
+      <p className="text-xs text-[var(--cms-text-secondary)]">
+      Konfigurasi siaran HLS live, nomor saluran, paket hak akses, dan EPG tamu.
+      </p>
+      </div>
+      </div>
+      <button
+      type="button"
+      onClick={() => setChannelModalOpen(false)}
+      className="w-8 h-8 rounded-lg border border-[var(--cms-divider)] hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center text-[var(--cms-text-secondary)] cursor-pointer"
+      >
+      <X className="w-4 h-4" />
+      </button>
+      </div>
+      
+      {/* Quick 1-Click IPTV-ORG Presets */}
+      <div className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-2">
+      <div className="flex items-center justify-between text-xs font-bold text-[var(--cms-text)]">
+      <span className="flex items-center gap-1.5">
+      <Sparkles className="w-3.5 h-3.5 text-[#0050F5]" />
+      <span>Pintasan 1-Klik Siaran Indonesia (IPTV-ORG Live HLS):</span>
+      </span>
+      <span className="text-[10px] text-[var(--cms-text-secondary)]">Klik untuk isi otomatis</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto luxury-scrollbar">
+      {IPTV_INDONESIA_PRESETS.map((p) => {
+      const isActive = channelForm.name === p.name || channelForm.streamUrlHint === p.streamUrlHint;
+      return (
+      <button
+      key={p.name}
+      type="button"
+      onClick={() => handleApplyPreset(p)}
+      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border ${isActive
+      ? 'bg-[#0050F5] text-white border-[#0050F5] shadow-xs'
+      : 'bg-[var(--cms-surface)] border-[var(--cms-control-border)] hover:border-[#0050F5] hover:bg-[#0050F5]/5 text-[var(--cms-text)]'
+      }`}
+      >
+      {p.name}
+      </button>
+      );
+      })}
+      </div>
+      </div>
+      
+      {/* Form Fields */}
+      <div className="space-y-4 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+      <div className="sm:col-span-3">
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Nomor CH
+      </label>
+      <input
+      type="text"
+      value={channelForm.number}
+      onChange={(e) => setChannelForm({ ...channelForm, number: e.target.value })}
+      placeholder="001"
+      maxLength={4}
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-mono-tabular font-bold outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      </div>
+      <div className="sm:col-span-9">
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Nama Saluran TV
+      </label>
+      <input
+      type="text"
+      value={channelForm.name}
+      onChange={(e) => setChannelForm({ ...channelForm, name: e.target.value })}
+      placeholder="Contoh: TVRI Nasional HD"
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-bold outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div>
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Kategori
+      </label>
+      <select
+      value={channelForm.category}
+      onChange={(e) => setChannelForm({ ...channelForm, category: e.target.value })}
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] outline-none focus:ring-2 focus:ring-[#0050F5]"
+      >
+      <option value="News">News (Berita)</option>
+      <option value="Entertainment">Entertainment (Hiburan)</option>
+      <option value="Sports">Sports (Olahraga)</option>
+      <option value="Movies">Movies (Film)</option>
+      <option value="Hotel">Hotel / Lokal</option>
+      </select>
+      </div>
+      <div>
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Bahasa
+      </label>
+      <input
+      type="text"
+      value={channelForm.language}
+      onChange={(e) => setChannelForm({ ...channelForm, language: e.target.value })}
+      placeholder="ID, EN, dsb"
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      </div>
+      <div>
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Paket Hak Akses
+      </label>
+      <select
+      value={channelForm.packageId}
+      onChange={(e) => setChannelForm({ ...channelForm, packageId: e.target.value })}
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-mono-tabular font-bold outline-none focus:ring-2 focus:ring-[#0050F5]"
+      >
+      <option value="PKG-BASIC">PKG-BASIC (Semua Kamar)</option>
+      <option value="PKG-INTL">PKG-INTL (Deluxe &amp; Suite)</option>
+      <option value="PKG-SPORTS">PKG-SPORTS (Suite Exclusive)</option>
+      <option value="PKG-FREE">PKG-FREE (Publik / Tamu)</option>
+      </select>
+      </div>
+      </div>
+      
+      <div>
+      <div className="flex items-center justify-between mb-1">
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)]">
+      Stream URL (HLS .m3u8, MP4, atau Live Stream)
+      </label>
+      <button
+      type="button"
+      onClick={() => setTestVideoPreview(!testVideoPreview)}
+      className="text-[11px] font-bold text-[#0050F5] hover:underline inline-flex items-center gap-1 cursor-pointer"
+      >
+      <Play className="w-3 h-3" />
+      <span>{testVideoPreview ? 'Sembunyikan Preview' : 'Tes Putar Stream'}</span>
+      </button>
+      </div>
+      <input
+      type="text"
+      value={channelForm.streamUrlHint}
+      onChange={(e) => setChannelForm({ ...channelForm, streamUrlHint: e.target.value })}
+      placeholder="https://domain.com/live/manifest.m3u8"
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] font-mono-tabular text-xs outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      <p className="text-[10px] text-[var(--cms-text-secondary)] mt-1">
+      Mendukung manifest HLS broadcast live (.m3u8) langsung dari stasiun TV atau stream IPTV lokal hotel.
+      </p>
+      
+      {/* Inline Video Player Preview */}
+      {testVideoPreview && channelForm.streamUrlHint && (
+      <div className="mt-3 p-3 rounded-xl bg-black border border-[var(--cms-divider)] space-y-2">
+      <div className="flex items-center justify-between text-[11px] text-white/80">
+      <span>Live Stream Player: <strong>{channelForm.name || 'Pratinjau'}</strong></span>
+      <span className="text-[10px] text-emerald-400 font-mono-tabular">HLS Live Engine</span>
+      </div>
+      <div className="aspect-video w-full max-h-56 bg-black rounded-lg overflow-hidden flex items-center justify-center">
+      <video
+      src={channelForm.streamUrlHint}
+      controls
+      autoPlay
+      muted
+      playsInline
+      className="w-full h-full object-contain"
+      onError={(e) => {
+      const target = e.currentTarget;
+      void import('hls.js').then(({ default: Hls }) => {
+      if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(channelForm.streamUrlHint);
+      hls.attachMedia(target);
+      }
+      });
+      }}
+      />
+      </div>
+      </div>
+      )}
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Acara Sekarang EPG (Bahasa Indonesia)
+      </label>
+      <input
+      type="text"
+      value={channelForm.currentProgramId}
+      onChange={(e) => setChannelForm({ ...channelForm, currentProgramId: e.target.value })}
+      placeholder="Contoh: Berita Nasional Petang"
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      </div>
+      <div>
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Acara Sekarang EPG (English)
+      </label>
+      <input
+      type="text"
+      value={channelForm.currentProgramEn}
+      onChange={(e) => setChannelForm({ ...channelForm, currentProgramEn: e.target.value })}
+      placeholder="Contoh: National Evening News"
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      </div>
+      </div>
+      
+      <div>
+      <label className="block text-[11px] font-semibold text-[var(--cms-text)] mb-1">
+      Jam Tayang Acara
+      </label>
+      <input
+      type="text"
+      value={channelForm.programTime}
+      onChange={(e) => setChannelForm({ ...channelForm, programTime: e.target.value })}
+      placeholder="18:00 – 19:30 atau 24 Jam Non-Stop"
+      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] outline-none focus:ring-2 focus:ring-[#0050F5]"
+      />
+      </div>
+      </div>
+      
+      {/* Footer Actions */}
+      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--cms-divider)]">
+      <button
+      type="button"
+      onClick={() => setChannelModalOpen(false)}
+      className="px-4 py-2 rounded-xl border border-[var(--cms-divider)] hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold text-[var(--cms-text)] cursor-pointer"
+      >
+      Batal
+      </button>
+      <button
+      type="button"
+      onClick={handleSaveChannel}
+      className="px-4 py-2 rounded-xl bg-[#0050F5] hover:bg-[#003ecb] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm cursor-pointer transition-all"
+      >
+      <CheckCircle2 className="w-3.5 h-3.5" />
+      <span>Simpan Saluran</span>
+      </button>
+      </div>
+      </div>
+      </div>
+      )}
 
       {/* Full-Screen 16:9 TV Guest App Modal when triggered */}
       {tvModalEndpointId && modalEndpoint && (

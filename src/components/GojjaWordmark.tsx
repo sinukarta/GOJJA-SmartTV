@@ -199,14 +199,19 @@ export const RollingKpiValue: React.FC<{
     return () => cancelAnimationFrame(rafId);
   }, [value, animate]);
 
-  const formatted = formatIdr
-    ? `Rp${displayVal.toLocaleString('id-ID')}`
-    : displayVal.toLocaleString('en-US');
+  if (formatIdr) {
+    return (
+      <span className="inline-flex items-baseline font-extrabold tracking-tight text-[var(--cms-text)]">
+        <span className="text-base sm:text-lg font-bold text-[var(--cms-text-secondary)] mr-0.5">Rp</span>
+        <span>{displayVal.toLocaleString('id-ID')}</span>
+      </span>
+    );
+  }
 
   return (
-    <span className="font-mono-tabular tabular-nums">
+    <span className="font-extrabold tracking-tight text-[var(--cms-text)]">
       {prefix}
-      {formatted}
+      {displayVal.toLocaleString('en-US')}
       {suffix}
     </span>
   );
