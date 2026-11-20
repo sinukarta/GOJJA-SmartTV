@@ -57,6 +57,8 @@ import {
   Tag,
   Eye,
   EyeOff,
+  Package,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   EnvironmentId,
@@ -927,6 +929,8 @@ export default function App() {
     'com.google.android.tungsten.setupwraith',
   ]);
   const [cleanTvTranscript, setCleanTvTranscript] = useState<string[]>([]);
+  const [isBackingUpTv, setIsBackingUpTv] = useState<string | null>(null);
+  const [isApplyingTakeover, setIsApplyingTakeover] = useState<boolean>(false);
 
   // New Campaign Upload form state
   const [newCmpName, setNewCmpName] = useState<string>('');
@@ -1195,6 +1199,7 @@ export default function App() {
         const candId = body.candidateId || 'DVC-01';
         const propId = body.propertyId || 'P-01';
         const backup = createDemoDeviceBackup(targetIp, targetPort, candId, propId, persona);
+        if (body.endpointId) backup.endpointId = body.endpointId;
 
         setBootstrap((prev) => {
           if (!prev) return prev;
@@ -1316,6 +1321,99 @@ export default function App() {
 
       if (url.includes('/api/campaigns/evaluate-eligibility')) {
         return { eligible: true, message: 'Kampanye memenuhi syarat (Vercel Mode).' };
+      }
+
+      if (url.includes('/api/branding/launcher-takeover')) {
+        const propId = body.propertyId || 'P-01';
+        const action = body.action || 'APPLY_GOJJA_LAUNCHER';
+        const isRestore = action === 'RESTORE_STOCK_LAUNCHER';
+        const currentData = bootstrapRef.current?.data;
+        const prop = (currentData?.properties || []).find((p) => p.id === propId);
+        const epList = (currentData?.endpoints || INITIAL_ENDPOINTS).filter((e) => e.propertyId === propId);
+        const onlineEps = epList.filter((e) => e.connection === 'Online');
+        const backups = currentData?.deviceBackups || [];
+
+        if (!isRestore) {
+          if (onlineEps.length === 0) {
+            throw new ApiRequestError('Tidak ada TV online yang terdeteksi untuk properti ini.', 'NO_ONLINE_ENDPOINTS', 400);
+          }
+
+          const unbacked = onlineEps.filter((ep) => {
+            const hasBackup = ep.activeBackup?.status === 'Verified' || backups.some(
+              (b) => (b.id === ep.activeBackupId || b.endpointId === ep.id || b.targetIp === ep.ipHint) && b.status === 'Verified'
+            );
+            return !hasBackup;
+          });
+
+          if (unbacked.length > 0) {
+            const unbackedNames = unbacked.map((e) => `${e.label || e.id} (${e.modelName} · ${e.ipHint})`).join(', ');
+            throw new ApiRequestError(
+              `🛡️ CleanYourTV Safety Guardrail: Terdapat ${unbacked.length} TV online (${unbackedNames}) yang belum memiliki backup konfigurasi valid. Harap lakukan 'Backup TV' terlebih dahulu sebelum menerapkan GojjaLauncher Takeover atau mendisable paket sistem.`,
+              'BACKUP_REQUIRED',
+              400
+            );
+          }
+        }
+
+        const transcript = isRestore
+          ? [
+              `# CleanYourTV Reversible Restore executed for ${prop?.name || propId}`,
+              `$ adb connect 192.168.10.101:5555  # [E-01 · BRAVIA 4K VH21]`,
+              `$ adb -s 192.168.10.101:5555 shell cmd package set-home-activity com.google.android.apps.tv.launcherx/.home.HomeActivity`,
+              `$ adb -s 192.168.10.101:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`,
+              `$ adb -s 192.168.10.101:5555 shell input keyevent KEYCODE_HOME`,
+              `[✓] Stock OEM TV Launcher successfully restored!`,
+            ]
+          : [
+              `# CleanYourTV GojjaLauncher Takeover executed for ${prop?.name || propId}`,
+              `$ adb connect 192.168.10.101:5555  # [E-01 · BRAVIA 4K VH21]`,
+              `$ adb -s 192.168.10.101:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk`,
+              `$ adb -s 192.168.10.101:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity`,
+              `$ adb -s 192.168.10.101:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`,
+              `[✓] GojjaLauncher active & locked as default home!`,
+            ];
+
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          const updatedProps = prev.data.properties.map((p) => {
+            if (p.id !== propId) return p;
+            return {
+              ...p,
+              launcherConfig: {
+                mode: (isRestore ? 'STOCK_TV_LAUNCHER' : 'GOJJA_LAUNCHER') as any,
+                profile: body.profile || 'CLEAN_WITH_OTT',
+                disabledPackages: isRestore ? [] : (body.disabledPackages || []),
+                lastAppliedAt: new Date().toISOString(),
+                launcherVersion: isRestore ? 'Stock Android/Google TV Launcher' : 'GojjaLauncher v4.2.0-hospitality',
+                lastAdbTranscript: transcript,
+              },
+            };
+          });
+          const updatedEndpoints = prev.data.endpoints.map((ep) => {
+            if (ep.propertyId !== propId || ep.connection !== 'Online') return ep;
+            return {
+              ...ep,
+              appVersion: isRestore ? 'stock-oem' : 'GojjaLauncher-4.2.0',
+            };
+          });
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              properties: updatedProps,
+              endpoints: updatedEndpoints,
+            },
+          };
+        });
+
+        return {
+          ok: true,
+          action,
+          transcript,
+          message: isRestore
+            ? 'Stock OEM TV Launcher berhasil dikembalikan ke kondisi pabrik.'
+            : `GojjaLauncher Takeover berhasil diterapkan secara aman (${onlineEps.length} TV verified).`,
+        };
       }
 
       if (url.includes('/api/branding/draft')) {
@@ -1669,6 +1767,71 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
   const propCampaigns = data.campaigns.filter((c) => c.propertyId === activeProperty.id);
   const propOnlineCount = propEndpoints.filter((e) => e.connection === 'Online').length;
   const propOfflineCount = propEndpoints.filter((e) => e.connection === 'Offline').length;
+
+  // CleanYourTV Safety Guardrail calculation for active property
+  const onlinePropEndpoints = propEndpoints.filter((e) => e.connection === 'Online');
+  const propertyDeviceBackups = (data.deviceBackups || []).filter((b) => b.propertyId === activeProperty.id);
+
+  const endpointBackupAudit = onlinePropEndpoints.map((ep) => {
+    const verifiedBackup = ep.activeBackup?.status === 'Verified'
+      ? ep.activeBackup
+      : propertyDeviceBackups.find(
+          (b) => (b.id === ep.activeBackupId || b.endpointId === ep.id || b.targetIp === ep.ipHint) && b.status === 'Verified'
+        );
+    return {
+      endpoint: ep,
+      hasVerifiedBackup: Boolean(verifiedBackup),
+      backup: verifiedBackup,
+    };
+  });
+
+  const unbackedOnlineEndpoints = endpointBackupAudit.filter((a) => !a.hasVerifiedBackup);
+  const backedOnlineEndpoints = endpointBackupAudit.filter((a) => a.hasVerifiedBackup);
+  const isTakeoverSafetyUnlocked = onlinePropEndpoints.length > 0 && unbackedOnlineEndpoints.length === 0;
+
+  const handleQuickBackupEndpoint = async (ep: Endpoint) => {
+    setIsBackingUpTv(ep.id);
+    try {
+      const res = await apiCall('/api/live-lab/adb-backup', {
+        method: 'POST',
+        body: JSON.stringify({
+          endpointId: ep.id,
+          propertyId: activeProperty.id,
+          ip: ep.ipHint,
+          port: ep.portHint || 5555,
+        }),
+      });
+      await fetchBootstrap();
+      showNotice('success', `✓ ${res.message || `Backup ${ep.label || ep.id} berhasil dibuat!`}`);
+    } catch (err: unknown) {
+      showNotice('error', err instanceof Error ? err.message : 'Gagal mencadangkan TV');
+    } finally {
+      setIsBackingUpTv(null);
+    }
+  };
+
+  const handleQuickBackupAllUnbacked = async () => {
+    setIsBackingUpTv('ALL');
+    try {
+      for (const item of unbackedOnlineEndpoints) {
+        await apiCall('/api/live-lab/adb-backup', {
+          method: 'POST',
+          body: JSON.stringify({
+            endpointId: item.endpoint.id,
+            propertyId: activeProperty.id,
+            ip: item.endpoint.ipHint,
+            port: item.endpoint.portHint || 5555,
+          }),
+        });
+      }
+      await fetchBootstrap();
+      showNotice('success', `✓ Seluruh ${unbackedOnlineEndpoints.length} TV online berhasil dicadangkan! Safety Guardrail kini terbuka.`);
+    } catch (err: unknown) {
+      showNotice('error', err instanceof Error ? err.message : 'Gagal mencadangkan TV');
+    } finally {
+      setIsBackingUpTv(null);
+    }
+  };
 
   // TV Modal lookup & Fallback Preview Endpoint (Prevents crash in empty LIVE_LAB)
   const defaultPreviewEndpoint: Endpoint = {
@@ -4245,6 +4408,132 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                       </span>
                     </div>
 
+                    {/* 🛡️ CLEANYOURTV SAFETY GUARDRAIL STATUS & ENFORCEMENT CARD */}
+                    {!isTakeoverSafetyUnlocked ? (
+                      <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0" />
+                            <div>
+                              <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                                🛡️ CleanYourTV Safety Guardrail: Backup Diperlukan Sebelum Takeover
+                              </h4>
+                              <p className="text-[11px] text-amber-850 dark:text-amber-300/80">
+                                Standar keamanan non-root ADB mewajibkan snapshot konfigurasi pabrik sebelum mengganti launcher atau mendisable paket.
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-mono-tabular font-bold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 shrink-0 inline-flex items-center gap-1.5 self-start sm:self-auto">
+                            <Lock className="w-3 h-3 text-amber-500" />
+                            <span>Safety Lock Engaged ({unbackedOnlineEndpoints.length} TV Belum Dicadangkan)</span>
+                          </span>
+                        </div>
+
+                        {/* Status per TV Online */}
+                        <div className="space-y-1.5 pt-1">
+                          <div className="text-[11px] font-semibold text-[var(--cms-text-secondary)]">Status TV Online ({activeProperty.name}):</div>
+                          <div className="flex flex-wrap gap-2">
+                            {endpointBackupAudit.map(({ endpoint: ep, hasVerifiedBackup }) => (
+                              <div
+                                key={ep.id}
+                                className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center gap-2 ${
+                                  hasVerifiedBackup
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                                    : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                                }`}
+                              >
+                                {hasVerifiedBackup ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                ) : (
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
+                                )}
+                                <span className="font-semibold">{ep.label || ep.id}</span>
+                                <span className="font-mono-tabular text-[10px] opacity-75">({ep.ipHint})</span>
+                                <span className="text-[10px] font-bold">
+                                  {hasVerifiedBackup ? '· Verified' : '· Butuh Backup'}
+                                </span>
+                                {!hasVerifiedBackup && (
+                                  <button
+                                    type="button"
+                                    disabled={isBackingUpTv !== null}
+                                    onClick={() => handleQuickBackupEndpoint(ep)}
+                                    className="ml-1 px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[10px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                  >
+                                    {isBackingUpTv === ep.id ? (
+                                      <RotateCcw className="w-2.5 h-2.5 animate-spin" />
+                                    ) : (
+                                      <Package className="w-2.5 h-2.5" />
+                                    )}
+                                    <span>Backup TV</span>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Quick 1-Click Action */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-500/20">
+                          <button
+                            type="button"
+                            disabled={isBackingUpTv !== null}
+                            onClick={handleQuickBackupAllUnbacked}
+                            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs inline-flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 transition-all"
+                          >
+                            {isBackingUpTv === 'ALL' ? (
+                              <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Package className="w-3.5 h-3.5" />
+                            )}
+                            <span>
+                              {isBackingUpTv === 'ALL'
+                                ? 'Sedang Membuat Snapshot Backup via ADB...'
+                                : `📦 Buat Backup TV Sekarang (${unbackedOnlineEndpoints.length} TV) · Buka Kunci Safety Lock`}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('discovery')}
+                            className="px-3 py-2 rounded-xl bg-[var(--cms-bg)] hover:bg-[var(--cms-control-border)] border border-[var(--cms-control-border)] font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Buka Live Lab / Device Discovery</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-3.5 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-emerald-700 dark:text-emerald-300 shrink-0" />
+                            <div>
+                              <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
+                                🛡️ CleanYourTV Safety Verification Passed · Ready for Takeover
+                              </h4>
+                              <p className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                                Seluruh {onlinePropEndpoints.length} TV online memiliki snapshot konfigurasi awal yang valid. Skrip pemulihan reversibel (`restore.sh` & `restore.bat`) siap digunakan kapan saja.
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono-tabular font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0 inline-flex items-center gap-1.5 self-start sm:self-auto">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            <span>{backedOnlineEndpoints.length}/{onlinePropEndpoints.length} TV Backed Up</span>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {endpointBackupAudit.map(({ endpoint: ep }) => (
+                            <span
+                              key={ep.id}
+                              className="px-2 py-0.5 rounded-lg text-[11px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 flex items-center gap-1"
+                            >
+                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                              <span>{ep.label || ep.id} ({ep.ipHint})</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Profile Presets */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
@@ -4327,70 +4616,114 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                       })}
                     </div>
 
-                    {/* Action Buttons: Apply Takeover, Restore Stock Launcher, Download Script */}
-                    <div className="flex flex-wrap items-center gap-2.5 pt-2">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const res = await apiCall('/api/branding/launcher-takeover', {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                propertyId: activeProperty.id,
-                                action: 'APPLY_GOJJA_LAUNCHER',
-                                profile: cleanTvProfile,
-                                disabledPackages: cleanTvDisabledPackages,
-                              }),
-                            });
-                            if (res.transcript) setCleanTvTranscript(res.transcript);
-                            await fetchBootstrap();
-                            showNotice('success', res.message);
-                          } catch (err: unknown) {
-                            showNotice('error', err instanceof Error ? err.message : 'ADB takeover denied');
+                    {/* Action Buttons: Apply Takeover (Guarded), Restore Stock Launcher, Download Script */}
+                    <div className="space-y-2 pt-2">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          disabled={!isTakeoverSafetyUnlocked || isApplyingTakeover}
+                          onClick={async () => {
+                            setIsApplyingTakeover(true);
+                            try {
+                              const res = await apiCall('/api/branding/launcher-takeover', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                  propertyId: activeProperty.id,
+                                  action: 'APPLY_GOJJA_LAUNCHER',
+                                  profile: cleanTvProfile,
+                                  disabledPackages: cleanTvDisabledPackages,
+                                }),
+                              });
+                              if (res.transcript) setCleanTvTranscript(res.transcript);
+                              await fetchBootstrap();
+                              showNotice('success', res.message);
+                            } catch (err: unknown) {
+                              showNotice('error', err instanceof Error ? err.message : 'ADB takeover denied');
+                            } finally {
+                              setIsApplyingTakeover(false);
+                            }
+                          }}
+                          className={`px-4 py-2.5 rounded-xl font-semibold inline-flex items-center gap-2 transition-all ${
+                            !isTakeoverSafetyUnlocked
+                              ? 'bg-slate-700/50 text-slate-400 border border-slate-600/50 cursor-not-allowed opacity-60'
+                              : 'bg-[#0050F5] hover:bg-[#0040C8] text-white cursor-pointer shadow-md'
+                          }`}
+                          title={
+                            !isTakeoverSafetyUnlocked
+                              ? `Terkunci oleh Safety Guardrail: ${unbackedOnlineEndpoints.length} TV online belum dicadangkan.`
+                              : `Terapkan GojjaLauncher Takeover pada ${onlinePropEndpoints.length} TV online.`
                           }
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center gap-2"
-                      >
-                        <Terminal className="w-3.5 h-3.5" />
-                        <span>Apply GojjaLauncher Takeover ({propEndpoints.filter((e) => e.connection === 'Online').length} Online TVs)</span>
-                      </button>
+                        >
+                          {!isTakeoverSafetyUnlocked ? (
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                          ) : isApplyingTakeover ? (
+                            <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Terminal className="w-3.5 h-3.5" />
+                          )}
+                          <span>
+                            {!isTakeoverSafetyUnlocked
+                              ? `Apply GojjaLauncher Takeover (Terkunci · Butuh Backup)`
+                              : isApplyingTakeover
+                              ? `Menerapkan Takeover via ADB...`
+                              : `Apply GojjaLauncher Takeover (${onlinePropEndpoints.length} Online TVs Verified)`}
+                          </span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const res = await apiCall('/api/branding/launcher-takeover', {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                propertyId: activeProperty.id,
-                                action: 'RESTORE_STOCK_LAUNCHER',
-                                profile: cleanTvProfile,
-                                disabledPackages: cleanTvDisabledPackages,
-                              }),
-                            });
-                            if (res.transcript) setCleanTvTranscript(res.transcript);
-                            await fetchBootstrap();
-                            showNotice('info', res.message);
-                          } catch (err: unknown) {
-                            showNotice('error', err instanceof Error ? err.message : 'Restore failed');
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await apiCall('/api/branding/launcher-takeover', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                  propertyId: activeProperty.id,
+                                  action: 'RESTORE_STOCK_LAUNCHER',
+                                  profile: cleanTvProfile,
+                                  disabledPackages: cleanTvDisabledPackages,
+                                }),
+                              });
+                              if (res.transcript) setCleanTvTranscript(res.transcript);
+                              await fetchBootstrap();
+                              showNotice('info', res.message);
+                            } catch (err: unknown) {
+                              showNotice('error', err instanceof Error ? err.message : 'Restore failed');
+                            }
+                          }}
+                          className="px-3.5 py-2.5 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Restore Stock TV Launcher (`pm enable`)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDownloadGojjaCleanTvScript(activeProperty, propEndpoints, cleanTvDisabledPackages)
                           }
-                        }}
-                        className="px-3.5 py-2.5 rounded-xl bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] font-semibold inline-flex items-center gap-1.5"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Restore Stock TV Launcher (`pm enable`)</span>
-                      </button>
+                          className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download `gojja-cleantv.sh` Script</span>
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDownloadGojjaCleanTvScript(activeProperty, propEndpoints, cleanTvDisabledPackages)
-                        }
-                        className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download `gojja-cleantv.sh` Script</span>
-                      </button>
+                      {/* Safety Guardrail Explanation text */}
+                      {!isTakeoverSafetyUnlocked ? (
+                        <div className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 font-medium">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                          <span>
+                            Tombol dinonaktifkan secara otomatis oleh Safety Guardrail CleanYourTV karena terdapat {unbackedOnlineEndpoints.length} TV online yang belum memiliki backup konfigurasi pabrik.
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 font-medium">
+                          <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                          <span>
+                            CleanYourTV Safety Verification Passed: Seluruh {onlinePropEndpoints.length} TV online siap menerima konfigurasi. 100% reversible kapan saja melalui tombol 'Restore Stock TV Launcher'.
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Live ADB Transcript Console */}

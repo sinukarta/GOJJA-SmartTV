@@ -335,3 +335,65 @@ export function createDemoDeviceBackup(
 
   return backup;
 }
+
+export interface TakeoverSafetyAuditResult {
+  isSafe: boolean;
+  totalOnlineEndpoints: number;
+  backedEndpointsCount: number;
+  unbackedEndpointsCount: number;
+  unbackedEndpoints: {
+    id: string;
+    label: string;
+    model: string;
+    ip: string;
+    port: number;
+  }[];
+  reason?: string;
+}
+
+export function evaluateTakeoverSafety(
+  onlineEndpoints: { id: string; label?: string; modelName?: string; ipHint?: string; portHint?: number; activeBackup?: TvDeviceBackup; activeBackupId?: string }[],
+  deviceBackups: TvDeviceBackup[] = []
+): TakeoverSafetyAuditResult {
+  if (onlineEndpoints.length === 0) {
+    return {
+      isSafe: false,
+      totalOnlineEndpoints: 0,
+      backedEndpointsCount: 0,
+      unbackedEndpointsCount: 0,
+      unbackedEndpoints: [],
+      reason: 'Tidak ada TV online yang terdeteksi untuk properti ini.',
+    };
+  }
+
+  const unbacked = onlineEndpoints.filter((ep) => {
+    const hasVerified =
+      ep.activeBackup?.status === 'Verified' ||
+      deviceBackups.some(
+        (b) =>
+          (b.id === ep.activeBackupId || b.endpointId === ep.id || (ep.ipHint && b.targetIp === ep.ipHint)) &&
+          b.status === 'Verified'
+      );
+    return !hasVerified;
+  });
+
+  const isSafe = unbacked.length === 0;
+  const unbackedDetails = unbacked.map((e) => ({
+    id: e.id,
+    label: e.label || e.id,
+    model: e.modelName || 'Android TV',
+    ip: e.ipHint || '0.0.0.0',
+    port: e.portHint || 5555,
+  }));
+
+  return {
+    isSafe,
+    totalOnlineEndpoints: onlineEndpoints.length,
+    backedEndpointsCount: onlineEndpoints.length - unbacked.length,
+    unbackedEndpointsCount: unbacked.length,
+    unbackedEndpoints: unbackedDetails,
+    reason: isSafe
+      ? 'Seluruh TV online memiliki backup snapshot terverifikasi (CleanYourTV Standard).'
+      : `Terdapat ${unbacked.length} TV online yang belum memiliki backup konfigurasi terverifikasi.`,
+  };
+}

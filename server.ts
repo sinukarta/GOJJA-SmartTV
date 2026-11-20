@@ -1551,6 +1551,55 @@ async function startServer() {
         ];
 
     const isRestore = action === 'RESTORE_STOCK_LAUNCHER';
+
+    // 🛡️ CleanYourTV Safety Guardrail: Mandatory Pre-Flight Backup Check
+    // Zero destructive action (package disabling or launcher takeover) without verified stock snapshot
+    if (!isRestore) {
+      if (onlineEndpoints.length === 0) {
+        return res.status(400).json({
+          code: 'NO_ONLINE_ENDPOINTS',
+          message: 'Tidak ada Smart TV online yang terdeteksi untuk properti ini. Pastikan TV menyala dan terhubung ke jaringan sebelum menerapkan launcher.',
+        });
+      }
+
+      const unbackedEndpoints = onlineEndpoints.filter((ep) => {
+        const epBackup = ep.activeBackup || (workspace.deviceBackups || []).find(
+          (b) => (b.id === ep.activeBackupId || b.endpointId === ep.id || b.targetIp === ep.ipHint) && b.status === 'Verified'
+        );
+        return !epBackup;
+      });
+
+      if (unbackedEndpoints.length > 0) {
+        const unbackedDetails = unbackedEndpoints
+          .map((e) => `${e.label || e.id} (${e.modelName} · ${e.ipHint})`)
+          .join(', ');
+
+        recordAudit(
+          environmentId,
+          user.alias,
+          role.id,
+          'branding.launcher_takeover',
+          propertyId,
+          propertyId,
+          'DENY',
+          'BACKUP_REQUIRED',
+          `GojjaLauncher Takeover blocked by CleanYourTV Safety Guardrail: ${unbackedEndpoints.length} online TV(s) lack verified backup snapshot (${unbackedDetails}).`
+        );
+
+        return res.status(400).json({
+          code: 'BACKUP_REQUIRED',
+          message: `🛡️ CleanYourTV Safety Guardrail: Terdapat ${unbackedEndpoints.length} TV online (${unbackedDetails}) yang belum memiliki backup konfigurasi valid. Sesuai standar CleanYourTV, seluruh TV wajib dicadangkan terlebih dahulu sebelum modifikasi ADB atau deaktivasi paket dilakukan.`,
+          unbackedEndpoints: unbackedEndpoints.map((e) => ({
+            id: e.id,
+            label: e.label,
+            model: e.modelName,
+            ip: e.ipHint,
+            port: e.portHint || 5555,
+          })),
+        });
+      }
+    }
+
     const transcript: string[] = [];
     const nowIso = new Date().toISOString();
 
@@ -4030,6 +4079,7 @@ async function startServer() {
     if (ep) {
       ep.activeBackupId = backup.id;
       ep.activeBackup = backup;
+      backup.endpointId = ep.id;
     }
 
     // Upsert into workspace.deviceBackups

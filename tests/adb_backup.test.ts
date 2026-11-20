@@ -6,6 +6,7 @@ import {
   generateRestoreBashScript,
   generateRestoreBatchScript,
   persistBackupFolder,
+  evaluateTakeoverSafety,
   SONY_BRAVIA_STOCK_ENABLED_PACKAGES,
   SONY_BRAVIA_STOCK_DISABLED_PACKAGES,
 } from '../src/services/adbBackupService.ts';
@@ -90,6 +91,63 @@ test('Every originally enabled package is present in packages_enabled.txt', () =
   for (const pkg of SONY_BRAVIA_STOCK_ENABLED_PACKAGES) {
     assert.ok(backup.packageInventory.enabledPackages.includes(pkg), `Missing package ${pkg}`);
   }
+});
+
+// 7. Safety Guardrail: Block Unbacked TV Endpoints
+test('Safety Guardrail blocks launcher takeover when online TV lacks verified backup', () => {
+  const mockEndpoints = [
+    { id: 'E-01', label: 'Room 101 TV', modelName: 'BRAVIA 4K VH21', ipHint: '192.168.10.101', portHint: 5555 },
+    { id: 'E-02', label: 'Room 102 TV', modelName: 'BRAVIA 4K VH21', ipHint: '192.168.10.102', portHint: 5555 },
+  ];
+
+  // No backups present
+  const resultEmpty = evaluateTakeoverSafety(mockEndpoints, []);
+  assert.equal(resultEmpty.isSafe, false);
+  assert.equal(resultEmpty.unbackedEndpointsCount, 2);
+  assert.equal(resultEmpty.backedEndpointsCount, 0);
+
+  // Partial backup (only E-01 backed up)
+  const backupE01 = createDemoDeviceBackup('192.168.10.101', 5555, 'DVC-01', 'P-01', 'tester');
+  backupE01.endpointId = 'E-01';
+  const resultPartial = evaluateTakeoverSafety(mockEndpoints, [backupE01]);
+  assert.equal(resultPartial.isSafe, false);
+  assert.equal(resultPartial.unbackedEndpointsCount, 1);
+  assert.equal(resultPartial.backedEndpointsCount, 1);
+  assert.equal(resultPartial.unbackedEndpoints[0].id, 'E-02');
+});
+
+// 8. Safety Guardrail: Unlocks when All Online TVs are Verified
+test('Safety Guardrail unlocks when all online TVs have verified backup snapshots', () => {
+  const mockEndpoints = [
+    { id: 'E-01', label: 'Room 101 TV', modelName: 'BRAVIA 4K VH21', ipHint: '192.168.10.101', portHint: 5555 },
+    { id: 'E-02', label: 'Room 102 TV', modelName: 'BRAVIA 4K VH21', ipHint: '192.168.10.102', portHint: 5555 },
+  ];
+
+  const backupE01 = createDemoDeviceBackup('192.168.10.101', 5555, 'DVC-01', 'P-01', 'tester');
+  backupE01.endpointId = 'E-01';
+  const backupE02 = createDemoDeviceBackup('192.168.10.102', 5555, 'DVC-02', 'P-01', 'tester');
+  backupE02.endpointId = 'E-02';
+
+  const resultFull = evaluateTakeoverSafety(mockEndpoints, [backupE01, backupE02]);
+  assert.equal(resultFull.isSafe, true);
+  assert.equal(resultFull.unbackedEndpointsCount, 0);
+  assert.equal(resultFull.backedEndpointsCount, 2);
+  assert.ok(resultFull.reason?.includes('CleanYourTV Standard'));
+});
+
+// 9. Safety Guardrail: Corrupted or Failed Backup Remains Locked
+test('Safety Guardrail rejects Corrupted backups and remains locked', () => {
+  const mockEndpoints = [
+    { id: 'E-01', label: 'Room 101 TV', modelName: 'BRAVIA 4K VH21', ipHint: '192.168.10.101', portHint: 5555 },
+  ];
+
+  const corruptedBackup = createDemoDeviceBackup('192.168.10.101', 5555, 'DVC-01', 'P-01', 'tester');
+  corruptedBackup.endpointId = 'E-01';
+  corruptedBackup.status = 'Corrupted';
+
+  const result = evaluateTakeoverSafety(mockEndpoints, [corruptedBackup]);
+  assert.equal(result.isSafe, false);
+  assert.equal(result.unbackedEndpointsCount, 1);
 });
 
 console.log(`\n================================================================`);
