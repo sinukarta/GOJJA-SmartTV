@@ -226,6 +226,55 @@ export interface PreflightCheckItem {
   isCritical: boolean;
 }
 
+export interface TvDeviceBackup {
+  id: string;
+  candidateId?: string;
+  endpointId?: string;
+  propertyId: string;
+  targetIp: string;
+  targetPort: number;
+  createdAtUtc: string;
+  createdBy: string;
+  deviceInfo: {
+    brand: string;
+    model: string;
+    manufacturer: string;
+    androidVersion: string;
+    sdkInt: number;
+    buildFingerprint?: string;
+    serialNo?: string;
+  };
+  originalLauncher: {
+    component: string;
+    packageName: string;
+    activityName: string;
+    allAvailableLaunchers: string[];
+  };
+  packageInventory: {
+    totalCount: number;
+    enabledPackages: string[];
+    disabledPackages: string[];
+    thirdPartyPackages: string[];
+    systemPackages: string[];
+  };
+  settingsDump?: {
+    globalSettingsCount: number;
+    secureSettingsCount: number;
+    systemSettingsCount: number;
+  };
+  visualBaseline?: {
+    screenshotUrl?: string;
+    capturedAtUtc?: string;
+  };
+  restoreArtifacts: {
+    backupFolderPath?: string;
+    restoreBashScript: string;
+    restoreBatchScript: string;
+  };
+  status: 'Verified' | 'Restored' | 'Corrupted';
+  notes?: string;
+}
+
 export interface Endpoint {
   id: string;
   propertyId: string;
@@ -248,6 +297,8 @@ export interface Endpoint {
   bindingVersion: number;
   origin: 'SEEDED' | 'MANUAL' | 'LIVE_OBSERVATION';
   verificationLevel: 'OBSERVED' | 'TRANSPORT_VERIFIED' | 'DEVICE_VERIFIED' | 'APPLIED' | 'HEALTHY';
+  activeBackupId?: string;
+  activeBackup?: TvDeviceBackup;
 }
 
 export interface Stay {
@@ -892,6 +943,8 @@ export interface DiscoveryCandidate {
   origin: 'SEEDED' | 'LIVE_OBSERVATION' | 'SIMULATION_EVENT';
   executionMode: 'SIMULATED' | 'LIVE';
   notes: string;
+  activeBackupId?: string;
+  activeBackup?: TvDeviceBackup;
 }
 
 export interface DiscoveryRun {

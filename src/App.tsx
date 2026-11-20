@@ -127,7 +127,9 @@ import {
   INITIAL_DEMO_CANDIDATES,
   SCENARIOS_CATALOG,
   ANALYTICS_FIXTURE,
+  TvDeviceBackup,
 } from './data/mockData';
+import { createDemoDeviceBackup } from './services/adbBackupTypes';
 import { GojjaWordmark, RollingKpiValue } from './components/GojjaWordmark';
 import { TvGuestAppView } from './components/TvGuestAppModal';
 import { DeviceDiscoveryView } from './components/DeviceDiscoveryView';
@@ -483,6 +485,7 @@ interface BootstrapPayload {
     candidates: DiscoveryCandidate[];
     discoveryRuns: DiscoveryRun[];
     auditEvents: AuditEvent[];
+    deviceBackups?: TvDeviceBackup[];
   };
 }
 
@@ -567,9 +570,18 @@ function createLocalFallbackBootstrap(alias: string, env: EnvironmentId): Bootst
       updateJobs: INITIAL_UPDATE_JOBS,
       tickets: INITIAL_TICKETS,
       connectors: INITIAL_CONNECTORS,
-      candidates: INITIAL_DEMO_CANDIDATES,
+      candidates: INITIAL_DEMO_CANDIDATES.map((c, idx) =>
+        idx === 0
+          ? {
+              ...c,
+              activeBackupId: `BKP-DVC-01-INITIAL`,
+              activeBackup: createDemoDeviceBackup('192.168.10.104', 5555, 'DVC-01', 'P-01', alias),
+            }
+          : c
+      ),
       discoveryRuns: [],
       auditEvents: [],
+      deviceBackups: [createDemoDeviceBackup('192.168.10.104', 5555, 'DVC-01', 'P-01', alias)],
     },
   };
 }
@@ -1174,6 +1186,63 @@ export default function App() {
         return {
           ok: true,
           message: 'Perangkat berhasil di-probe (Vercel Mode).',
+        };
+      }
+
+      if (url.includes('/api/live-lab/adb-backup')) {
+        const targetIp = body.ip || '192.168.10.104';
+        const targetPort = body.port || 5555;
+        const candId = body.candidateId || 'DVC-01';
+        const propId = body.propertyId || 'P-01';
+        const backup = createDemoDeviceBackup(targetIp, targetPort, candId, propId, persona);
+
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          const candidates = prev.data.candidates.map((c) =>
+            c.id === candId ? { ...c, activeBackupId: backup.id, activeBackup: backup } : c
+          );
+          const endpoints = prev.data.endpoints.map((e) =>
+            e.id === body.endpointId || e.ipHint === targetIp ? { ...e, activeBackupId: backup.id, activeBackup: backup } : e
+          );
+          const existingBackups = prev.data.deviceBackups || [];
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              candidates,
+              endpoints,
+              deviceBackups: [backup, ...existingBackups.filter((b) => b.id !== backup.id)],
+            },
+          };
+        });
+
+        return {
+          ok: true,
+          backup,
+          message: `Backup ${backup.id} berhasil dibuat (${backup.packageInventory.totalCount} paket dicadangkan, restore script siap).`,
+        };
+      }
+
+      if (url.includes('/api/live-lab/backups')) {
+        return {
+          ok: true,
+          backups: bootstrapRef.current?.data?.deviceBackups || [],
+        };
+      }
+
+      if (url.includes('/api/live-lab/adb-restore')) {
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          const prop = prev.data.properties.find((p) => p.id === (body.propertyId || 'P-01'));
+          if (prop && prop.launcherConfig) {
+            prop.launcherConfig.mode = 'STOCK_TV_LAUNCHER';
+            prop.launcherConfig.disabledPackages = [];
+          }
+          return { ...prev };
+        });
+        return {
+          ok: true,
+          message: 'TV berhasil dipulihkan 100% ke kondisi bawaan pabrik (Vercel Mode).',
         };
       }
 
@@ -4468,6 +4537,35 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                   showNotice('info', res?.message || 'Scenario executed.');
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'Scenario failed');
+                }
+              }}
+              deviceBackups={data.deviceBackups || []}
+              onAdbBackup={async (candidateId, propertyId) => {
+                try {
+                  const res = await apiCall('/api/live-lab/adb-backup', {
+                    method: 'POST',
+                    body: JSON.stringify({ candidateId, propertyId }),
+                  });
+                  await fetchBootstrap();
+                  showNotice('success', res?.message || 'Backup konfigurasi TV berhasil dibuat (Standar CleanYourTV).');
+                  return res;
+                } catch (err: unknown) {
+                  showNotice('error', err instanceof Error ? err.message : 'Gagal membuat backup TV');
+                  throw err;
+                }
+              }}
+              onAdbRestore={async (candidateId, backupId) => {
+                try {
+                  const res = await apiCall('/api/live-lab/adb-restore', {
+                    method: 'POST',
+                    body: JSON.stringify({ candidateId, backupId }),
+                  });
+                  await fetchBootstrap();
+                  showNotice('success', res?.message || 'TV berhasil dipulihkan 100% ke kondisi pabrik.');
+                  return res;
+                } catch (err: unknown) {
+                  showNotice('error', err instanceof Error ? err.message : 'Gagal memulihkan TV ke setelan pabrik');
+                  throw err;
                 }
               }}
             />

@@ -9,4 +9,5 @@ coverage/
 bin/
 .gojja-ssot-store.json
 screenshots/
+backups/
 

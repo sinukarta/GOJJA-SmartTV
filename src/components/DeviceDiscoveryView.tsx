@@ -21,6 +21,15 @@ import {
   Tv,
   Maximize2,
   Zap,
+  Archive,
+  RotateCcw,
+  FileText,
+  Check,
+  Copy,
+  ExternalLink,
+  HardDrive,
+  Search,
+  X,
 } from 'lucide-react';
 import {
   EnvironmentId,
@@ -32,6 +41,7 @@ import {
   ScenarioDefinition,
   runDevicePreflight,
   PreflightCheckItem,
+  TvDeviceBackup,
 } from '../data/mockData';
 
 interface DeviceDiscoveryViewProps {
@@ -73,6 +83,9 @@ interface DeviceDiscoveryViewProps {
   onRunScenario: (scenarioId: string) => Promise<void>;
   onAdbProbe?: (candidateId: string) => Promise<any>;
   onAdbScreenshot?: (candidateId: string) => Promise<any>;
+  onAdbBackup?: (candidateId: string, propertyId?: string) => Promise<any>;
+  onAdbRestore?: (candidateId: string, backupId?: string) => Promise<any>;
+  deviceBackups?: TvDeviceBackup[];
   statusBanner: { type: 'success' | 'error' | 'info'; text: string } | null;
 }
 
@@ -95,6 +108,9 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   onRunScenario,
   onAdbProbe,
   onAdbScreenshot,
+  onAdbBackup,
+  onAdbRestore,
+  deviceBackups = [],
   statusBanner,
 }) => {
   const defaultIface =
@@ -115,6 +131,26 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [screenshotModalUrl, setScreenshotModalUrl] = useState<string | null>(null);
   const [autoRefreshScreenshot, setAutoRefreshScreenshot] = useState<boolean>(false);
+
+  // CleanYourTV Backup & Safety Inspection State
+  const [backupModalOpen, setBackupModalOpen] = useState<boolean>(false);
+  const [inspectingBackup, setInspectingBackup] = useState<TvDeviceBackup | null>(null);
+  const [backupTab, setBackupTab] = useState<'summary' | 'packages' | 'scripts' | 'restore'>('summary');
+  const [packageCategoryTab, setPackageCategoryTab] = useState<'all' | 'enabled' | 'disabled' | 'thirdParty'>('all');
+  const [packageSearchQuery, setPackageSearchQuery] = useState<string>('');
+  const [copiedType, setCopiedType] = useState<string | null>(null);
+
+  const handleDownloadFile = (filename: string, content: string, mimeType: string = 'text/plain') => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Manual Target Form
   const [manualIp, setManualIp] = useState<string>(environmentId === 'DEMO' ? '192.168.10.108' : '');
@@ -476,6 +512,11 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                     {propertyCandidates.map((cand) => {
                       const isSel = selectedCandidate?.id === cand.id;
                       const hasBrand = Boolean(cand.observedBrand || cand.observedManufacturer);
+                      const candBackup =
+                        cand.activeBackup ||
+                        (deviceBackups || []).find(
+                          (b) => b.candidateId === cand.id || b.targetIp === cand.ip
+                        );
                       return (
                         <tr
                           key={cand.id}
@@ -493,6 +534,20 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                                   {hasBrand && (
                                     <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
                                       {cand.observedBrand || cand.observedManufacturer}
+                                    </span>
+                                  )}
+                                  {candBackup && (
+                                    <span
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setInspectingBackup(candBackup);
+                                        setBackupModalOpen(true);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                                      title="Lihat Snapshot Backup CleanYourTV"
+                                    >
+                                      <ShieldCheck className="w-2.5 h-2.5" />
+                                      <span>Backed Up</span>
                                     </span>
                                   )}
                                 </div>
@@ -561,6 +616,26 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                                 >
                                   <Camera className={`w-3 h-3 text-[#0050F5] ${busyAction === `snap-${cand.id}` ? 'animate-pulse' : ''}`} />
                                   <span>{busyAction === `snap-${cand.id}` ? 'Snap...' : 'Screenshot'}</span>
+                                </button>
+                              )}
+                              {onAdbBackup && cand.port === 5555 && (
+                                <button
+                                  title="Backup Konfigurasi TV (Standar CleanYourTV)"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedCandidateId(cand.id);
+                                    wrapBusy(`backup-${cand.id}`, async () => {
+                                      const res = await onAdbBackup(cand.id, cand.propertyId);
+                                      if (res?.backup) {
+                                        setInspectingBackup(res.backup);
+                                        setBackupModalOpen(true);
+                                      }
+                                    });
+                                  }}
+                                  className="px-2 py-1 rounded-lg text-xs bg-[var(--cms-bg)] hover:bg-emerald-500/10 border border-[var(--cms-control-border)] text-[var(--cms-text)] flex items-center gap-1"
+                                >
+                                  <Archive className={`w-3 h-3 text-emerald-600 ${busyAction === `backup-${cand.id}` ? 'animate-bounce' : ''}`} />
+                                  <span>{busyAction === `backup-${cand.id}` ? 'Backing up...' : 'Backup'}</span>
                                 </button>
                               )}
                               <button
@@ -818,6 +893,164 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Route D: CleanYourTV Reversible Backup & Safety Restore Routine */}
+            {selectedCandidate && (
+              <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-3 text-xs">
+                {(() => {
+                  const selBackup =
+                    selectedCandidate.activeBackup ||
+                    (deviceBackups || []).find(
+                      (b) => b.candidateId === selectedCandidate.id || b.targetIp === selectedCandidate.ip
+                    );
+
+                  return (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="font-semibold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                          <Archive className="w-4 h-4 text-emerald-600" />
+                          <span>Route D — Standar CleanYourTV: Pre-Flight Backup & Reversible Restore</span>
+                        </div>
+                        {selBackup ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                            <span>Backup Terverifikasi (100% Reversible)</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" />
+                            <span>Belum Dicadangkan</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {selBackup ? (
+                        <div className="space-y-2.5">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] p-2.5 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)]">
+                            <div>
+                              <span className="text-[var(--cms-text-secondary)] block">OEM Launcher:</span>
+                              <span className="font-mono font-semibold truncate block" title={selBackup.originalLauncher.component}>
+                                {selBackup.originalLauncher.packageName.split('.').pop() || 'Launcher'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[var(--cms-text-secondary)] block">Paket Aktif:</span>
+                              <span className="font-semibold text-emerald-600">{selBackup.packageInventory.enabledPackages.length} paket</span>
+                            </div>
+                            <div>
+                              <span className="text-[var(--cms-text-secondary)] block">Paket Nonaktif:</span>
+                              <span className="font-semibold text-slate-500">{selBackup.packageInventory.disabledPackages.length} paket</span>
+                            </div>
+                            <div>
+                              <span className="text-[var(--cms-text-secondary)] block">Waktu Backup:</span>
+                              <span className="font-semibold">{new Date(selBackup.createdAtUtc).toLocaleTimeString()}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {onAdbBackup && (
+                              <button
+                                disabled={busyAction !== null}
+                                onClick={() =>
+                                  wrapBusy('backup-now', async () => {
+                                    const res = await onAdbBackup(selectedCandidate.id, selectedCandidate.propertyId);
+                                    if (res?.backup) {
+                                      setInspectingBackup(res.backup);
+                                      setBackupModalOpen(true);
+                                    }
+                                  })
+                                }
+                                className="px-3 py-1.5 rounded-lg bg-[var(--cms-surface)] hover:bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold inline-flex items-center gap-1.5 transition-colors"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${busyAction === 'backup-now' ? 'animate-spin' : ''}`} />
+                                <span>{busyAction === 'backup-now' ? 'Memperbarui...' : 'Perbarui Backup'}</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInspectingBackup(selBackup);
+                                setBackupModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold inline-flex items-center gap-1.5 shadow-sm"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Lihat Detail & Skrip Pemulihan</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownloadFile(`restore-${selectedCandidate.ip.replace(/\./g, '_')}.bat`, selBackup.restoreArtifacts.restoreBatchScript)
+                              }
+                              className="px-2.5 py-1.5 rounded-lg bg-[var(--cms-surface)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-control-border)] font-medium inline-flex items-center gap-1 text-[11px]"
+                              title="Download skrip pemulihan untuk Windows (restore.bat)"
+                            >
+                              <Download className="w-3 h-3 text-slate-500" />
+                              <span>restore.bat</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownloadFile(`restore-${selectedCandidate.ip.replace(/\./g, '_')}.sh`, selBackup.restoreArtifacts.restoreBashScript)
+                              }
+                              className="px-2.5 py-1.5 rounded-lg bg-[var(--cms-surface)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-control-border)] font-medium inline-flex items-center gap-1 text-[11px]"
+                              title="Download skrip pemulihan untuk Linux / macOS (restore.sh)"
+                            >
+                              <Download className="w-3 h-3 text-slate-500" />
+                              <span>restore.sh</span>
+                            </button>
+
+                            {onAdbRestore && (
+                              <button
+                                disabled={busyAction !== null}
+                                onClick={() =>
+                                  wrapBusy('restore-tv', async () => {
+                                    if (confirm(`Apakah Anda yakin ingin memulihkan TV ${selectedCandidate.friendlyName} ke kondisi bawaan pabrik sesuai backup? Seluruh paket bawaan dan launcher original akan diaktifkan kembali.`)) {
+                                      await onAdbRestore(selectedCandidate.id, selBackup.id);
+                                    }
+                                  })
+                                }
+                                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold inline-flex items-center gap-1.5 ml-auto"
+                              >
+                                <RotateCcw className={`w-3.5 h-3.5 ${busyAction === 'restore-tv' ? 'animate-spin' : ''}`} />
+                                <span>{busyAction === 'restore-tv' ? 'Memulihkan TV...' : 'Restore ke Bawaan Pabrik'}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-[11px] text-[var(--cms-text-secondary)] leading-relaxed">
+                            Sesuai standar <strong>Gathin23/cleanyourtv</strong>, buat snapshot cadangan konfigurasi awal sebelum Anda mengganti launcher atau mendisable paket aplikasi TV. Backup ini mencatat OEM launcher, daftar seluruh 100+ paket bawaan, dan properti hardware agar TV dapat dikembalikan 100% tanpa ada sisa modifikasi.
+                          </p>
+                          {onAdbBackup && (
+                            <button
+                              disabled={busyAction !== null}
+                              onClick={() =>
+                                wrapBusy('create-backup', async () => {
+                                  const res = await onAdbBackup(selectedCandidate.id, selectedCandidate.propertyId);
+                                  if (res?.backup) {
+                                    setInspectingBackup(res.backup);
+                                    setBackupModalOpen(true);
+                                  }
+                                })
+                              }
+                              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-2 shadow-sm transition-all"
+                            >
+                              <Archive className={`w-4 h-4 ${busyAction === 'create-backup' ? 'animate-bounce' : ''}`} />
+                              <span>{busyAction === 'create-backup' ? 'Mengekstrak & Mencadangkan TV...' : 'Buat Backup Konfigurasi TV Sekarang (Standar CleanYourTV)'}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Right: STEP 4 — Assign Verified Device to Property & Room (IN-05) */}
@@ -1074,6 +1307,397 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                 <Download className="w-3.5 h-3.5" />
                 <span>Simpan Gambar PNG</span>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CleanYourTV Standalone Backup Inspector & Reversible Restore Modal */}
+      {backupModalOpen && inspectingBackup && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-6"
+          onClick={() => setBackupModalOpen(false)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-[var(--cms-surface)] border border-[var(--cms-divider)] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-[var(--cms-text)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[var(--cms-divider)] flex items-start justify-between bg-emerald-500/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600">
+                  <Archive className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base">
+                      Backup Konfigurasi TV — {inspectingBackup.deviceInfo.manufacturer} {inspectingBackup.deviceInfo.model}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                      Standar CleanYourTV
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--cms-text-secondary)] mt-0.5">
+                    Target: <code className="font-mono">{inspectingBackup.targetIp}:{inspectingBackup.targetPort}</code> • ID: <code className="font-mono">{inspectingBackup.id}</code> • Dibuat: {new Date(inspectingBackup.createdAtUtc).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBackupModalOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-[var(--cms-divider)] px-5 bg-[var(--cms-bg)]/50 text-xs font-semibold">
+              <button
+                onClick={() => setBackupTab('summary')}
+                className={`py-3 px-4 border-b-2 flex items-center gap-1.5 transition-colors ${
+                  backupTab === 'summary'
+                    ? 'border-[#0050F5] text-[#0050F5] dark:text-[#C7B9FF]'
+                    : 'border-transparent text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Ringkasan & OEM Launcher</span>
+              </button>
+              <button
+                onClick={() => setBackupTab('packages')}
+                className={`py-3 px-4 border-b-2 flex items-center gap-1.5 transition-colors ${
+                  backupTab === 'packages'
+                    ? 'border-[#0050F5] text-[#0050F5] dark:text-[#C7B9FF]'
+                    : 'border-transparent text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                }`}
+              >
+                <HardDrive className="w-4 h-4" />
+                <span>Daftar Paket ({inspectingBackup.packageInventory.totalCount})</span>
+              </button>
+              <button
+                onClick={() => setBackupTab('scripts')}
+                className={`py-3 px-4 border-b-2 flex items-center gap-1.5 transition-colors ${
+                  backupTab === 'scripts'
+                    ? 'border-[#0050F5] text-[#0050F5] dark:text-[#C7B9FF]'
+                    : 'border-transparent text-[var(--cms-text-secondary)] hover:text-[var(--cms-text)]'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Skrip Pemulihan (restore.sh / restore.bat)</span>
+              </button>
+              <button
+                onClick={() => setBackupTab('restore')}
+                className={`py-3 px-4 border-b-2 flex items-center gap-1.5 transition-colors ${
+                  backupTab === 'restore'
+                    ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+                    : 'border-transparent text-[var(--cms-text-secondary)] hover:text-rose-600'
+                }`}
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Eksekusi Restore Pabrik</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto luxury-scrollbar space-y-4 flex-1 text-xs">
+              {/* TAB 1: SUMMARY & OEM LAUNCHER */}
+              {backupTab === 'summary' && (
+                <div className="space-y-4">
+                  {/* Verified OEM Launcher Card */}
+                  <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Komponen Home Launcher Asli Bawaan Pabrik (Stock OEM)
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(inspectingBackup.originalLauncher.component);
+                          setCopiedType('launcher-comp');
+                          setTimeout(() => setCopiedType(null), 2000);
+                        }}
+                        className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 hover:underline flex items-center gap-1"
+                      >
+                        {copiedType === 'launcher-comp' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedType === 'launcher-comp' ? 'Tersalin' : 'Salin Komponen'}</span>
+                      </button>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-black/80 font-mono text-emerald-400 text-xs break-all border border-emerald-500/20">
+                      {inspectingBackup.originalLauncher.component}
+                    </div>
+                    <p className="text-[11px] text-[var(--cms-text-secondary)] leading-relaxed">
+                      Komponen ini diverifikasi langsung dari query activity ADB <code className="font-mono">cmd package resolve-activity ... HOME</code>. Ketika restore dijalankan, Android TV akan 100% dialihkan kembali ke launcher ini.
+                    </p>
+                  </div>
+
+                  {/* Hardware & OS Specifications */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-1">
+                      <span className="text-[var(--cms-text-secondary)] block text-[11px]">Merk & Model:</span>
+                      <span className="font-bold text-sm">{inspectingBackup.deviceInfo.manufacturer} {inspectingBackup.deviceInfo.model}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-1">
+                      <span className="text-[var(--cms-text-secondary)] block text-[11px]">Versi Android:</span>
+                      <span className="font-bold text-sm">Android {inspectingBackup.deviceInfo.androidVersion} (SDK {inspectingBackup.deviceInfo.sdkInt})</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] space-y-1">
+                      <span className="text-[var(--cms-text-secondary)] block text-[11px]">Nomor Serial:</span>
+                      <span className="font-mono font-bold text-xs truncate block">{inspectingBackup.deviceInfo.serialNo || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {/* Inventory Overview */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-center">
+                      <span className="text-2xl font-bold text-[#0050F5] dark:text-[#C7B9FF] block">{inspectingBackup.packageInventory.totalCount}</span>
+                      <span className="text-[11px] text-[var(--cms-text-secondary)]">Total Paket Bawaan</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-center">
+                      <span className="text-2xl font-bold text-emerald-600 block">{inspectingBackup.packageInventory.enabledPackages.length}</span>
+                      <span className="text-[11px] text-[var(--cms-text-secondary)]">Paket Aktif Awal</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-center">
+                      <span className="text-2xl font-bold text-amber-600 block">{inspectingBackup.packageInventory.disabledPackages.length}</span>
+                      <span className="text-[11px] text-[var(--cms-text-secondary)]">Nonaktif dari Pabrik</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-divider)] text-center">
+                      <span className="text-2xl font-bold text-purple-600 block">{inspectingBackup.packageInventory.thirdPartyPackages.length}</span>
+                      <span className="text-[11px] text-[var(--cms-text-secondary)]">Aplikasi Pihak Ketiga</span>
+                    </div>
+                  </div>
+
+                  {/* Safety Assurance Callout */}
+                  <div className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 text-[11px] text-[var(--cms-text)] space-y-1.5 leading-relaxed">
+                    <span className="font-bold flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                      <ShieldCheck className="w-4 h-4 text-blue-600" />
+                      Jaminan 100% Reversible (Bebas Risiko)
+                    </span>
+                    <p>
+                      Snapshot ini tersimpan secara permanen. Anda dapat mengganti launcher ke <strong>GojjaLauncher Hospitality</strong> atau menonaktifkan aplikasi bloatware kapan saja. Ketika restore dipicu (baik melalui CMS ini maupun lewat skrip <code className="font-mono">restore.bat</code> offline), TV akan diaktifkan kembali seluruh paket aslinya dan disetel kembali ke launcher pabrik tanpa ada sisa modifikasi.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: PACKAGE INVENTORY */}
+              {backupTab === 'packages' && (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {/* Category Filter Pills */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setPackageCategoryTab('all')}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                          packageCategoryTab === 'all'
+                            ? 'bg-[#0050F5] text-white'
+                            : 'bg-[var(--cms-bg)] border border-[var(--cms-control-border)]'
+                        }`}
+                      >
+                        Semua ({inspectingBackup.packageInventory.totalCount})
+                      </button>
+                      <button
+                        onClick={() => setPackageCategoryTab('enabled')}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                          packageCategoryTab === 'enabled'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-[var(--cms-bg)] border border-[var(--cms-control-border)]'
+                        }`}
+                      >
+                        Aktif ({inspectingBackup.packageInventory.enabledPackages.length})
+                      </button>
+                      <button
+                        onClick={() => setPackageCategoryTab('disabled')}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                          packageCategoryTab === 'disabled'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-[var(--cms-bg)] border border-[var(--cms-control-border)]'
+                        }`}
+                      >
+                        Nonaktif Pabrik ({inspectingBackup.packageInventory.disabledPackages.length})
+                      </button>
+                      <button
+                        onClick={() => setPackageCategoryTab('thirdParty')}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                          packageCategoryTab === 'thirdParty'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-[var(--cms-bg)] border border-[var(--cms-control-border)]'
+                        }`}
+                      >
+                        Pihak Ketiga ({inspectingBackup.packageInventory.thirdPartyPackages.length})
+                      </button>
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Cari paket (misal: netflix, sony, launcher)..."
+                        value={packageSearchQuery}
+                        onChange={(e) => setPackageSearchQuery(e.target.value)}
+                        className="pl-8 pr-3 py-1 text-xs rounded-lg bg-[var(--cms-bg)] border border-[var(--cms-control-border)] w-60"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Package List Grid */}
+                  <div className="p-3 rounded-xl bg-black/80 font-mono text-[11px] text-emerald-400 max-h-72 overflow-y-auto luxury-scrollbar border border-white/10 space-y-1">
+                    {(() => {
+                      let list =
+                        packageCategoryTab === 'enabled'
+                          ? inspectingBackup.packageInventory.enabledPackages
+                          : packageCategoryTab === 'disabled'
+                          ? inspectingBackup.packageInventory.disabledPackages
+                          : packageCategoryTab === 'thirdParty'
+                          ? inspectingBackup.packageInventory.thirdPartyPackages
+                          : [
+                              ...inspectingBackup.packageInventory.enabledPackages,
+                              ...inspectingBackup.packageInventory.disabledPackages,
+                            ];
+
+                      if (packageSearchQuery.trim()) {
+                        const q = packageSearchQuery.toLowerCase().trim();
+                        list = list.filter((p) => p.toLowerCase().includes(q));
+                      }
+
+                      if (list.length === 0) {
+                        return (
+                          <div className="text-center py-6 text-slate-500 font-sans">
+                            Tidak ada paket yang sesuai dengan pencarian "{packageSearchQuery}".
+                          </div>
+                        );
+                      }
+
+                      return list.map((pkg, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-0.5 hover:bg-white/5 px-2 rounded">
+                          <span className="truncate">{pkg}</span>
+                          <span className="text-[10px] text-slate-500 shrink-0 ml-2">
+                            {inspectingBackup.packageInventory.disabledPackages.includes(pkg)
+                              ? '[Disabled]'
+                              : inspectingBackup.packageInventory.thirdPartyPackages.includes(pkg)
+                              ? '[3rd Party]'
+                              : '[System]'}
+                          </span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: STANDALONE RESTORE SCRIPTS */}
+              {backupTab === 'scripts' && (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-xs text-[var(--cms-text-secondary)]">
+                      Pilih format skrip untuk dijalankan di laptop/PC teknisi jika ingin memulihkan TV tanpa CMS:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          handleDownloadFile(`restore_${inspectingBackup.targetIp.replace(/\./g, '_')}.bat`, inspectingBackup.restoreArtifacts.restoreBatchScript)
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-[var(--cms-surface)] hover:bg-[#0050F5] hover:text-white border border-[var(--cms-control-border)] font-semibold inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Unduh restore.bat (Windows)</span>
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDownloadFile(`restore_${inspectingBackup.targetIp.replace(/\./g, '_')}.sh`, inspectingBackup.restoreArtifacts.restoreBashScript)
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-[var(--cms-surface)] hover:bg-[#0050F5] hover:text-white border border-[var(--cms-control-border)] font-semibold inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Unduh restore.sh (Linux/Mac)</span>
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDownloadFile(`manifest_${inspectingBackup.id}.json`, JSON.stringify(inspectingBackup, null, 2), 'application/json')
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-[var(--cms-surface)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-control-border)] font-semibold inline-flex items-center gap-1.5"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Unduh manifest.json</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <pre className="p-4 rounded-xl bg-slate-950 text-emerald-300 font-mono text-[11px] max-h-72 overflow-y-auto luxury-scrollbar border border-slate-800">
+                      {inspectingBackup.restoreArtifacts.restoreBatchScript}
+                    </pre>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(inspectingBackup.restoreArtifacts.restoreBatchScript);
+                        setCopiedType('script');
+                        setTimeout(() => setCopiedType(null), 2000);
+                      }}
+                      className="absolute top-3 right-3 px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-semibold flex items-center gap-1"
+                    >
+                      {copiedType === 'script' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedType === 'script' ? 'Tersalin!' : 'Salin Kode'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: ONE-CLICK ADB RESTORE EXECUTION */}
+              {backupTab === 'restore' && (
+                <div className="space-y-4 p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                  <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-bold text-sm">
+                    <RotateCcw className="w-4 h-4 text-rose-600" />
+                    <span>Pemulihan TV ke Kondisi Bawaan Pabrik (1-Click Restore via ADB)</span>
+                  </div>
+
+                  <p className="text-[11px] text-[var(--cms-text-secondary)] leading-relaxed">
+                    Tindakan ini akan menghubungkan ADB ke TV di <code className="font-mono">{inspectingBackup.targetIp}:{inspectingBackup.targetPort}</code>, mengaktifkan kembali seluruh <strong>{inspectingBackup.packageInventory.enabledPackages.length} paket aplikasi bawaan</strong> yang sempat dinonaktifkan, menyetel ulang launcher default kembali ke <code className="font-mono">{inspectingBackup.originalLauncher.component}</code>, dan memicu tombol Home.
+                  </p>
+
+                  <div className="p-3 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1.5">
+                    <span className="font-bold block text-xs">Urutan Eksekusi Otomatis:</span>
+                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-[var(--cms-text-secondary)]">
+                      <li>Menghubungkan socket ADB TCP ke {inspectingBackup.targetIp}:{inspectingBackup.targetPort}</li>
+                      <li>Iterasi dan eksekusi <code className="font-mono">pm enable --user 0 &lt;package&gt;</code> untuk tiap aplikasi yang dinonaktifkan</li>
+                      <li>Menyetel ulang Home Activity ke <code className="font-mono">{inspectingBackup.originalLauncher.component}</code></li>
+                      <li>Mengirim intent <code className="font-mono">android.intent.category.HOME</code> dan keyevent KEYCODE_HOME</li>
+                      <li>Memverifikasi bahwa launcher asli telah kembali aktif di layar fisik TV</li>
+                    </ol>
+                  </div>
+
+                  {onAdbRestore && (
+                    <button
+                      disabled={busyAction !== null}
+                      onClick={() =>
+                        wrapBusy('modal-restore', async () => {
+                          if (confirm(`Konfirmasi Pemulihan:\n\nApakah Anda yakin ingin mengembalikan TV ${inspectingBackup.deviceInfo.model} ke kondisi awal sesuai backup ${inspectingBackup.id}?\n\nSeluruh aplikasi bawaan dan launcher original akan diaktifkan kembali sekarang.`)) {
+                            await onAdbRestore(inspectingBackup.candidateId || 'DVC-01', inspectingBackup.id);
+                            setBackupModalOpen(false);
+                          }
+                        })
+                      }
+                      className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold inline-flex items-center justify-center gap-2 shadow-lg transition-colors"
+                    >
+                      <RotateCcw className={`w-4 h-4 ${busyAction === 'modal-restore' ? 'animate-spin' : ''}`} />
+                      <span>{busyAction === 'modal-restore' ? 'Sedang Memulihkan TV via ADB...' : 'Eksekusi Pemulihan TV Sekarang (1-Click Restore)'}</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[var(--cms-divider)] flex items-center justify-between bg-[var(--cms-bg)]/40 text-xs">
+              <span className="text-[var(--cms-text-secondary)] flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Format Backup terstandarisasi dengan repository <strong>Gathin23/cleanyourtv</strong>.</span>
+              </span>
+              <button
+                onClick={() => setBackupModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg bg-[var(--cms-surface)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--cms-control-border)] font-semibold"
+              >
+                Selesai / Tutup
+              </button>
             </div>
           </div>
         </div>
