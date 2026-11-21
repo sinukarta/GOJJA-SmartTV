@@ -1510,6 +1510,7 @@ async function startServer() {
       action = 'APPLY_GOJJA_LAUNCHER',
       profile = 'CLEAN_WITH_OTT',
       disabledPackages = [],
+      endpointId,
     } = req.body;
     const auth = authorizeAction(req, 'branding.edit', propertyId);
     if (!auth.allowed) {
@@ -1540,10 +1541,14 @@ async function startServer() {
     }
 
     const propEndpoints = workspace.endpoints.filter((e) => e.propertyId === propertyId);
-    const onlineEndpoints = propEndpoints.filter((e) => e.connection === 'Online');
+    const targetEndpoints = endpointId
+      ? propEndpoints.filter((e) => e.id === endpointId && e.connection === 'Online')
+      : propEndpoints.filter((e) => e.connection === 'Online');
+
     const pkgList: string[] = Array.isArray(disabledPackages)
       ? disabledPackages.map((p) => String(p).trim()).filter(Boolean)
       : [
+          'com.google.android.apps.tv.launcherx',
           'com.google.android.tvlauncher',
           'com.google.android.leanbacklauncher',
           'com.google.android.leanbacklauncher.recommendations',
@@ -1551,18 +1556,21 @@ async function startServer() {
         ];
 
     const isRestore = action === 'RESTORE_STOCK_LAUNCHER';
+    const isSingleEndpoint = Boolean(endpointId);
 
     // 🛡️ CleanYourTV Safety Guardrail: Mandatory Pre-Flight Backup Check
     // Zero destructive action (package disabling or launcher takeover) without verified stock snapshot
     if (!isRestore) {
-      if (onlineEndpoints.length === 0) {
+      if (targetEndpoints.length === 0) {
         return res.status(400).json({
           code: 'NO_ONLINE_ENDPOINTS',
-          message: 'Tidak ada Smart TV online yang terdeteksi untuk properti ini. Pastikan TV menyala dan terhubung ke jaringan sebelum menerapkan launcher.',
+          message: isSingleEndpoint
+            ? `Smart TV ${endpointId} sedang offline atau tidak terdeteksi di jaringan.`
+            : 'Tidak ada Smart TV online yang terdeteksi untuk properti ini. Pastikan TV menyala dan terhubung ke jaringan sebelum menerapkan launcher.',
         });
       }
 
-      const unbackedEndpoints = onlineEndpoints.filter((ep) => {
+      const unbackedEndpoints = targetEndpoints.filter((ep) => {
         const epBackup = ep.activeBackup || (workspace.deviceBackups || []).find(
           (b) => (b.id === ep.activeBackupId || b.endpointId === ep.id || b.targetIp === ep.ipHint) && b.status === 'Verified'
         );
@@ -1603,7 +1611,7 @@ async function startServer() {
     const transcript: string[] = [];
     const nowIso = new Date().toISOString();
 
-    for (const ep of onlineEndpoints) {
+    for (const ep of targetEndpoints) {
       const targetAddr = `${ep.ipHint}:${ep.portHint || 5555}`;
       transcript.push(`$ adb connect ${targetAddr}  # [${ep.id} · ${ep.modelName}]`);
       if (isRestore) {
@@ -1628,14 +1636,16 @@ async function startServer() {
       ep.appliedConfigVersion = prop.resourceVersion;
     }
 
-    prop.launcherConfig = {
-      mode: isRestore ? 'STOCK_TV_LAUNCHER' : 'GOJJA_LAUNCHER',
-      profile: profile as 'STRICT_KIOSK' | 'CLEAN_WITH_OTT' | 'CUSTOM',
-      disabledPackages: isRestore ? [] : pkgList,
-      lastAppliedAt: nowIso,
-      launcherVersion: isRestore ? 'Stock Android/Google TV Launcher' : 'GojjaLauncher v4.2.0-hospitality',
-      lastAdbTranscript: transcript,
-    };
+    if (!isSingleEndpoint) {
+      prop.launcherConfig = {
+        mode: isRestore ? 'STOCK_TV_LAUNCHER' : 'GOJJA_LAUNCHER',
+        profile: profile as 'STRICT_KIOSK' | 'CLEAN_WITH_OTT' | 'CUSTOM',
+        disabledPackages: isRestore ? [] : pkgList,
+        lastAppliedAt: nowIso,
+        launcherVersion: isRestore ? 'Stock Android/Google TV Launcher' : 'GojjaLauncher v4.2.0-hospitality',
+        lastAdbTranscript: transcript,
+      };
+    }
 
     saveStore(store);
     recordAudit(
@@ -1648,8 +1658,8 @@ async function startServer() {
       'ALLOW',
       isRestore ? 'STOCK_LAUNCHER_RESTORED' : 'GOJJA_LAUNCHER_APPLIED',
       isRestore
-        ? `Re-enabled stock TV launcher packages via ADB on ${onlineEndpoints.length} online TV(s) in ${prop.name}.`
-        : `Applied GojjaCleanTV non-root ADB takeover (disabled ${pkgList.length} stock/ad packages & locked GojjaLauncher Home) on ${onlineEndpoints.length} online TV(s) in ${prop.name}.`
+        ? `Re-enabled stock TV launcher packages via ADB on ${targetEndpoints.length} TV(s) in ${prop.name}.`
+        : `Applied GojjaCleanTV non-root ADB takeover (disabled ${pkgList.length} stock/ad packages & locked GojjaLauncher Home) on ${targetEndpoints.length} TV(s) in ${prop.name}.`
     );
 
     return res.json({
@@ -1657,8 +1667,8 @@ async function startServer() {
       property: prop,
       transcript,
       message: isRestore
-        ? `Reversible restore complete: Stock OEM launcher re-enabled on ${onlineEndpoints.length} online TV(s).`
-        : `GojjaLauncher takeover applied on ${onlineEndpoints.length} online TV(s) (${pkgList.length} stock/bloatware packages disabled via non-root ADB).`,
+        ? `Reversible restore complete: Stock OEM launcher re-enabled on ${targetEndpoints.length} TV(s).`
+        : `GojjaLauncher takeover applied on ${targetEndpoints.length} TV(s) (${pkgList.length} stock/bloatware packages disabled via non-root ADB).`,
     });
   });
 

@@ -4965,6 +4965,42 @@
     ],
     "discoveryRuns": [
       {
+        "id": "RUN-LIVE-58198",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.100.0/24",
+        "portsProbed": [
+          5555
+        ],
+        "startedAtUtc": "2026-11-21T08:35:54.884Z",
+        "completedAtUtc": "2026-11-21T08:35:58.198Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.100.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "RUN-LIVE-26781",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.100.0/24",
+        "portsProbed": [
+          5555
+        ],
+        "startedAtUtc": "2026-11-21T08:35:23.200Z",
+        "completedAtUtc": "2026-11-21T08:35:26.781Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.100.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
         "id": "RUN-LIVE-63450",
         "environmentId": "LIVE_LAB",
         "connectorId": "CON-LIVE_LAB-P-01",
@@ -5308,6 +5344,32 @@
       }
     ],
     "auditEvents": [
+      {
+        "id": "AUD-1795250158235-529",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-21T08:35:58.235Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-58198",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.100.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "AUD-1795250127459-718",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-21T08:35:27.459Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-26781",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.100.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
       {
         "id": "AUD-1795216270298-206",
         "environmentId": "LIVE_LAB",

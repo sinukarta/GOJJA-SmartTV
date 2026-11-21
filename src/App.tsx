@@ -1326,19 +1326,28 @@ export default function App() {
       if (url.includes('/api/branding/launcher-takeover')) {
         const propId = body.propertyId || 'P-01';
         const action = body.action || 'APPLY_GOJJA_LAUNCHER';
+        const endpointId = body.endpointId;
         const isRestore = action === 'RESTORE_STOCK_LAUNCHER';
         const currentData = bootstrapRef.current?.data;
         const prop = (currentData?.properties || []).find((p) => p.id === propId);
         const epList = (currentData?.endpoints || INITIAL_ENDPOINTS).filter((e) => e.propertyId === propId);
-        const onlineEps = epList.filter((e) => e.connection === 'Online');
+        const targetEps = endpointId
+          ? epList.filter((e) => e.id === endpointId && e.connection === 'Online')
+          : epList.filter((e) => e.connection === 'Online');
         const backups = currentData?.deviceBackups || [];
 
         if (!isRestore) {
-          if (onlineEps.length === 0) {
-            throw new ApiRequestError('Tidak ada TV online yang terdeteksi untuk properti ini.', 'NO_ONLINE_ENDPOINTS', 400);
+          if (targetEps.length === 0) {
+            throw new ApiRequestError(
+              endpointId
+                ? `TV ${endpointId} sedang offline atau tidak terdeteksi di jaringan.`
+                : 'Tidak ada TV online yang terdeteksi untuk properti ini.',
+              'NO_ONLINE_ENDPOINTS',
+              400
+            );
           }
 
-          const unbacked = onlineEps.filter((ep) => {
+          const unbacked = targetEps.filter((ep) => {
             const hasBackup = ep.activeBackup?.status === 'Verified' || backups.some(
               (b) => (b.id === ep.activeBackupId || b.endpointId === ep.id || b.targetIp === ep.ipHint) && b.status === 'Verified'
             );
@@ -1355,21 +1364,26 @@ export default function App() {
           }
         }
 
+        const targetDevice = targetEps[0];
+        const targetIp = targetDevice?.ipHint || '192.168.10.101';
+        const targetModel = targetDevice?.modelName || 'BRAVIA 4K VH21';
+        const targetId = targetDevice?.id || 'E-01';
+
         const transcript = isRestore
           ? [
-              `# CleanYourTV Reversible Restore executed for ${prop?.name || propId}`,
-              `$ adb connect 192.168.10.101:5555  # [E-01 · BRAVIA 4K VH21]`,
-              `$ adb -s 192.168.10.101:5555 shell cmd package set-home-activity com.google.android.apps.tv.launcherx/.home.HomeActivity`,
-              `$ adb -s 192.168.10.101:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`,
-              `$ adb -s 192.168.10.101:5555 shell input keyevent KEYCODE_HOME`,
+              `# CleanYourTV Reversible Restore executed for ${targetEps.length > 1 ? prop?.name || propId : targetId}`,
+              `$ adb connect ${targetIp}:5555  # [${targetId} · ${targetModel}]`,
+              `$ adb -s ${targetIp}:5555 shell cmd package set-home-activity com.google.android.apps.tv.launcherx/.home.HomeActivity`,
+              `$ adb -s ${targetIp}:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`,
+              `$ adb -s ${targetIp}:5555 shell input keyevent KEYCODE_HOME`,
               `[✓] Stock OEM TV Launcher successfully restored!`,
             ]
           : [
-              `# CleanYourTV GojjaLauncher Takeover executed for ${prop?.name || propId}`,
-              `$ adb connect 192.168.10.101:5555  # [E-01 · BRAVIA 4K VH21]`,
-              `$ adb -s 192.168.10.101:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk`,
-              `$ adb -s 192.168.10.101:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity`,
-              `$ adb -s 192.168.10.101:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`,
+              `# CleanYourTV GojjaLauncher Takeover executed for ${targetEps.length > 1 ? prop?.name || propId : targetId}`,
+              `$ adb connect ${targetIp}:5555  # [${targetId} · ${targetModel}]`,
+              `$ adb -s ${targetIp}:5555 install -r -g GojjaLauncher-v4.2.0-hospitality.apk`,
+              `$ adb -s ${targetIp}:5555 shell cmd package set-home-activity tv.gojja.hospitality.launcher/.GojjaHomeActivity`,
+              `$ adb -s ${targetIp}:5555 shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`,
               `[✓] GojjaLauncher active & locked as default home!`,
             ];
 
@@ -1377,6 +1391,7 @@ export default function App() {
           if (!prev) return prev;
           const updatedProps = prev.data.properties.map((p) => {
             if (p.id !== propId) return p;
+            if (endpointId) return p; // Don't alter global property launcher mode if doing single TV
             return {
               ...p,
               launcherConfig: {
@@ -1389,8 +1404,9 @@ export default function App() {
               },
             };
           });
+          const targetIds = targetEps.map((e) => e.id);
           const updatedEndpoints = prev.data.endpoints.map((ep) => {
-            if (ep.propertyId !== propId || ep.connection !== 'Online') return ep;
+            if (!targetIds.includes(ep.id)) return ep;
             return {
               ...ep,
               appVersion: isRestore ? 'stock-oem' : 'GojjaLauncher-4.2.0',
@@ -1411,8 +1427,8 @@ export default function App() {
           action,
           transcript,
           message: isRestore
-            ? 'Stock OEM TV Launcher berhasil dikembalikan ke kondisi pabrik.'
-            : `GojjaLauncher Takeover berhasil diterapkan secara aman (${onlineEps.length} TV verified).`,
+            ? `Stock OEM TV Launcher berhasil dikembalikan ke kondisi pabrik (${targetEps.length} TV).`
+            : `GojjaLauncher Takeover berhasil diterapkan secara aman (${targetEps.length} TV verified).`,
         };
       }
 
@@ -3337,19 +3353,120 @@ echo "Done. Run with '--restore' at any time to revert to stock TV launcher."
                                 )}
                               </td>
                               <td className="py-3 pl-3 text-right">
-                                {eps.map((ep) => (
-                                  <button
-                                    key={ep.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setBrandLocaleTab(activeRoomLocale);
-                                      setTvModalEndpointId(ep.id);
-                                    }}
-                                    className="ml-1.5 px-2.5 py-1 rounded-lg bg-[#0050F5] text-white font-semibold hover:bg-[#0040C8] cursor-pointer"
-                                  >
-                                    Preview {ep.id}
-                                  </button>
-                                ))}
+                                {eps.map((ep) => {
+                                  const epBackup = ep.activeBackup || (data.deviceBackups || []).find(
+                                    (b) => (b.id === ep.activeBackupId || b.endpointId === ep.id || b.targetIp === ep.ipHint) && b.status === 'Verified'
+                                  );
+                                  const isGojjaActive = ep.appVersion?.toLowerCase().includes('gojja');
+                                  return (
+                                    <div key={ep.id} className="flex items-center justify-end gap-1.5 flex-wrap">
+                                      {/* Status Pill */}
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                          isGojjaActive
+                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                                        }`}
+                                      >
+                                        {isGojjaActive ? '🛡️ GojjaLauncher' : 'Stock OEM'}
+                                      </span>
+
+                                      {/* Quick Action: Backup if not backed up */}
+                                      {!epBackup && ep.connection === 'Online' && (
+                                        <button
+                                          type="button"
+                                          disabled={isBackingUpTv !== null}
+                                          onClick={() => handleQuickBackupEndpoint(ep)}
+                                          className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[10px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                          title={`Backup TV ${ep.id} (${ep.ipHint})`}
+                                        >
+                                          <Package className="w-2.5 h-2.5" />
+                                          <span>Backup</span>
+                                        </button>
+                                      )}
+
+                                      {/* Quick Action: Deploy Launcher if backed up & still stock */}
+                                      {epBackup && !isGojjaActive && ep.connection === 'Online' && (
+                                        <button
+                                          type="button"
+                                          disabled={isApplyingTakeover}
+                                          onClick={async () => {
+                                            setIsApplyingTakeover(true);
+                                            try {
+                                              const res = await apiCall('/api/branding/launcher-takeover', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  propertyId: activeProperty.id,
+                                                  endpointId: ep.id,
+                                                  action: 'APPLY_GOJJA_LAUNCHER',
+                                                  profile: cleanTvProfile,
+                                                  disabledPackages: cleanTvDisabledPackages,
+                                                }),
+                                              });
+                                              if (res.transcript) setCleanTvTranscript(res.transcript);
+                                              await fetchBootstrap();
+                                              showNotice('success', `GojjaLauncher berhasil dideploy ke TV Kamar ${room.code} (${ep.id}).`);
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Deploy failed');
+                                            } finally {
+                                              setIsApplyingTakeover(false);
+                                            }
+                                          }}
+                                          className="px-2 py-1 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-[10px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                          title={`Deploy GojjaLauncher Takeover khusus TV Kamar ${room.code} (${ep.id})`}
+                                        >
+                                          <Terminal className="w-2.5 h-2.5" />
+                                          <span>Deploy Launcher</span>
+                                        </button>
+                                      )}
+
+                                      {/* Quick Action: Restore OEM if GojjaLauncher is active */}
+                                      {isGojjaActive && ep.connection === 'Online' && (
+                                        <button
+                                          type="button"
+                                          disabled={isApplyingTakeover}
+                                          onClick={async () => {
+                                            setIsApplyingTakeover(true);
+                                            try {
+                                              const res = await apiCall('/api/branding/launcher-takeover', {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                  propertyId: activeProperty.id,
+                                                  endpointId: ep.id,
+                                                  action: 'RESTORE_STOCK_LAUNCHER',
+                                                }),
+                                              });
+                                              if (res.transcript) setCleanTvTranscript(res.transcript);
+                                              await fetchBootstrap();
+                                              showNotice('info', `TV Kamar ${room.code} (${ep.id}) berhasil dikembalikan ke Stock OEM.`);
+                                            } catch (err: unknown) {
+                                              showNotice('error', err instanceof Error ? err.message : 'Restore failed');
+                                            } finally {
+                                              setIsApplyingTakeover(false);
+                                            }
+                                          }}
+                                          className="px-2 py-1 rounded-lg bg-[var(--cms-bg)] hover:opacity-90 border border-[var(--cms-control-border)] font-semibold text-[10px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                          title={`Kembalikan TV Kamar ${room.code} (${ep.id}) ke Launcher Pabrik`}
+                                        >
+                                          <RotateCcw className="w-2.5 h-2.5" />
+                                          <span>Restore OEM</span>
+                                        </button>
+                                      )}
+
+                                      {/* Preview Button */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setBrandLocaleTab(activeRoomLocale);
+                                          setTvModalEndpointId(ep.id);
+                                        }}
+                                        className="ml-1 px-2.5 py-1 rounded-lg bg-[#0050F5] text-white font-semibold hover:bg-[#0040C8] cursor-pointer"
+                                      >
+                                        Preview {ep.id}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
                               </td>
                             </tr>
                           );
@@ -4706,6 +4823,17 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                           <Download className="w-3.5 h-3.5" />
                           <span>Download `gojja-cleantv.sh` Script</span>
                         </button>
+                      </div>
+
+                      {/* 💡 Dynamic Web Manifest Architecture Info */}
+                      <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2.5">
+                        <Sparkles className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <span className="font-bold">💡 Dynamic Web Manifest Architecture:</span>
+                          <p className="text-[11px] text-blue-800 dark:text-blue-300">
+                            APK GojjaLauncher hanya dipasang <strong>1 kali</strong> saat TV pertama kali dipasang di kamar. Setiap pembaruan logo, hero video, promo banner, atau pengaturan di Brand Studio akan langsung ter-update di layar TV tamu secara real-time tanpa perlu me-rebuild atau meng-install ulang APK!
+                          </p>
+                        </div>
                       </div>
 
                       {/* Safety Guardrail Explanation text */}

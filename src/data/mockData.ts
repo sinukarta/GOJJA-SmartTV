@@ -659,12 +659,20 @@ export interface GojjaCleanTvPackageItem {
 
 export const GOJJA_CLEANTV_PACKAGES: GojjaCleanTvPackageItem[] = [
   {
-    pkg: 'com.google.android.tvlauncher',
-    label: 'Google TV Stock Home Launcher (Ad Banner Shell)',
+    pkg: 'com.google.android.apps.tv.launcherx',
+    label: 'Google TV Core LauncherX (Modern Google TV Interface)',
     category: 'STOCK_LAUNCHER',
     defaultInStrict: true,
     defaultInOttKeep: true,
-    description: 'Disables default Google TV home screen & sponsored carousel so GojjaLauncher takes over HOME button.',
+    description: 'Disables default Google TV LauncherX shell on modern Sony Bravia, Xiaomi, and TCL Google TVs.',
+  },
+  {
+    pkg: 'com.google.android.tvlauncher',
+    label: 'Android TV Stock Home Launcher (Ad Banner Shell)',
+    category: 'STOCK_LAUNCHER',
+    defaultInStrict: true,
+    defaultInOttKeep: true,
+    description: 'Disables default Android TV home screen & sponsored carousel so GojjaLauncher takes over HOME button.',
   },
   {
     pkg: 'com.google.android.leanbacklauncher',
