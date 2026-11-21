@@ -10,4 +10,6 @@ bin/
 .gojja-ssot-store.json
 screenshots/
 backups/
+.gradle/
+*.apk
 

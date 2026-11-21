@@ -1,16 +1,18 @@
 # GOJJA SmartTV CMS — Unified Design System & UX/UI Specification
-*Standardized Architecture, Tokens, Typography, Responsive Tables & Components for Enterprise Hospitality CMS*
+*Standardized Architecture, Tokens, Typography, Responsive Tables, 10-Foot Big Screen & Hospitality Components for Enterprise Smart TV Fleet Management*
 
 ---
 
 ## 1. Design System Philosophy & Principles
 
-GOJJA SmartTV CMS is built for hotel property managers, owners, and hospitality staff who manage real-time in-room TV hardware, guest experiences, and multimedia distribution. 
+GOJJA SmartTV CMS is built for hotel property managers, owners, system installers, and hospitality staff who manage real-time in-room TV hardware, guest experiences, and multimedia distribution. 
 
-1. **Executive Hospitality Aesthetic**: A clean, balanced palette combining deep cobalt accents, warm ivory/slate surfaces, and high-contrast typography.
+1. **Executive Hospitality Aesthetic**: A clean, balanced palette combining deep cobalt accents (`#0050F5`), warm ivory/slate surfaces, and high-contrast typography reflecting five-star luxury standards.
 2. **Zero Text Overflow & Rock-Solid Responsiveness**: Tables, cards, and forms never cramp, burst, or overflow across viewports (from 360px mobile screens to 4K ultra-wide displays).
 3. **Zero-PII Compliance by Design**: Guest names, identifiers, and sensitive data are presented through structured masking patterns (`B*** S***`) with clear front-office permission toggles.
 4. **Consistent Sub-Navigation & Component Hierarchy**: Standardized button pills, count badges, cards, and action buttons ensure seamless predictability across all modules.
+5. **Fail-Safe Safety Visuals**: Destructive or irreversible hardware actions are visually locked with amber guardrails (`ShieldAlert`) and unlock only upon positive verification with green telemetry (`ShieldCheck`).
+6. **10-Foot UI Fidelity**: The guest-facing TV interface is purpose-built for big screens (1920x1080), high-contrast readability from a 3-meter viewing distance, and seamless remote control (D-Pad) focus states.
 
 ---
 
@@ -25,6 +27,7 @@ All colors are controlled via CSS variables in `src/index.css` to guarantee 100%
 | `--brand-indigo` | `#4F3FE5` | Luxury gradient CTA, system highlights, launcher brand |
 | `--brand-violet` | `#7C35E0` | Creative accents, suite tier accents |
 | `--brand-coral` | `#FF5E70` | Secondary charts, urgency highlights |
+| `--brand-gold` | `#E5C185` | Champagne luxury crest, VIP corporate accents, orbital loader inner ring |
 
 ### 2.2 Surface & Layout Tokens
 | Token | Light Theme | Dark Theme | Purpose |
@@ -40,10 +43,10 @@ All colors are controlled via CSS variables in `src/index.css` to guarantee 100%
 ### 2.3 Semantic Status Badges
 | Status | Background & Text Classes | Indicator Dot | Typical Use |
 |---|---|---|---|
-| **Online / Success** | `bg-emerald-500/15 text-emerald-700 dark:text-emerald-300` | `bg-emerald-500 animate-pulse` | TV Online, Housekeeping Ready, Fulfilled, Pass |
-| **Warning / Pending** | `bg-amber-500/15 text-amber-800 dark:text-amber-300` | `bg-amber-500` | Requested, Dirty HK, Contract Review, Superceded |
-| **Danger / Offline** | `bg-rose-500/15 text-rose-700 dark:text-rose-300` | `bg-rose-500` | TV Offline, Check-Out & Purge, Rejected, Blocked |
-| **Informational** | `bg-blue-500/10 text-blue-600 dark:text-blue-400` | `bg-blue-500` | InHouse stay, TV locale badges, categories |
+| **Online / Success** | `bg-emerald-500/15 text-emerald-700 dark:text-emerald-300` | `bg-emerald-500 animate-pulse` | TV Online, Housekeeping Ready, Fulfilled, GojjaLauncher Active |
+| **Warning / Pending** | `bg-amber-500/15 text-amber-800 dark:text-amber-300` | `bg-amber-500` | Requested, Dirty HK, Contract Review, Safety Lock Engaged, Stock OEM |
+| **Danger / Offline** | `bg-rose-500/15 text-rose-700 dark:text-rose-300` | `bg-rose-500` | TV Offline, Check-Out & Purge, Rejected, Blocked, Corrupted Backup |
+| **Informational** | `bg-blue-500/10 text-blue-600 dark:text-blue-400` | `bg-blue-500` | InHouse stay, TV locale badges, categories, dynamic manifest notice |
 
 ---
 
@@ -113,7 +116,7 @@ All sub-tab bars across `Rooms & Guests`, `Marketplace & Ads`, `Content Library`
 
 ---
 
-## 5. The 5 Anti-Overflow Table Architecture Rules
+## 5. The 6 Anti-Overflow Table Architecture Rules
 
 To prevent table text from bursting into divs (`jebol text ke div`) and guarantee seamless desktop & mobile responsiveness:
 
@@ -211,9 +214,7 @@ When live TV streams (HLS/DASH or video previews) are connecting or buffering, t
 />
 ```
 
-### Buttons
-
-#### Primary Luxury CTA
+### Primary Luxury CTA
 ```tsx
 <button className="px-4 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-xs shadow-xs inline-flex items-center justify-center gap-2 cursor-pointer transition-all">
   <Icon className="w-4 h-4" />
@@ -221,7 +222,7 @@ When live TV streams (HLS/DASH or video previews) are connecting or buffering, t
 </button>
 ```
 
-#### Secondary Ghost Button
+### Secondary Ghost Button
 ```tsx
 <button className="px-4 py-2.5 rounded-xl border border-[var(--cms-divider)] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--cms-text)] font-semibold text-xs inline-flex items-center justify-center gap-2 cursor-pointer transition-all">
   <span>Batal</span>
@@ -230,7 +231,7 @@ When live TV streams (HLS/DASH or video previews) are connecting or buffering, t
 
 ---
 
-## 7. Responsive Breakpoint Strategy
+## 8. Responsive Breakpoint Strategy
 
 - **Mobile Viewports (< 640px)**:
   - Header actions stack vertically (`flex-col sm:flex-row`).
@@ -244,23 +245,110 @@ When live TV streams (HLS/DASH or video previews) are connecting or buffering, t
   - 12-column layouts for Form + Table boards (`lg:col-span-4` + `lg:col-span-8`).
   - Metric rows expand to 4 cards (`lg:grid-cols-4`).
 
-### 7.1 Compact Rails, Sidebars & Studio Drawers (< 380px)
+### 8.1 Compact Rails, Sidebars & Studio Drawers (< 380px)
 When components (such as `TvEntertainmentSettings`) are mounted inside narrow panels (such as the Brand Studio configuration rail of ~330px width):
-- **Do NOT rely on viewport media queries alone** (e.g. `lg:grid-cols-3`): in desktop browsers, `lg:` activates regardless of the container's narrow width, cramming cards into 100px unreadable slivers.
+- **Do NOT rely on viewport media queries alone** (e.g. `lg:grid-cols-3`): in desktop browsers, `lg:` activates regardless of the container's narrow width.
 - **Use `compact?: boolean` prop**: pass `compact={true}` from the rail parent.
-- **Render as Single-Column Stack**: switch grids to `flex flex-col space-y-2`, rendering items as sleek horizontal pills `[Icon 28px] [Title + Desc (truncated)] [Status Pill + Checkbox]`.
+- **Render as Single-Column Stack**: switch grids to `flex flex-col space-y-2`, rendering items as sleek horizontal pills.
 - **Stack Provisioning Rows Vertically**: stack inputs vertically rather than using wide 12-column horizontal grids.
 
 ---
 
-## 8. Summary of Standardized Modules
+## 9. Brand Studio & GojjaCleanTV Launcher Takeover UI Specification
 
-| Module / View | Subtabs & Layout | Tables Min-Width | Responsive Features |
-|---|---|---|---|
-| **Rooms & Guests** (`rooms`) | `Kamar & TV`, `Daftar Tamu`, `Grup Tour`, `PMS` | `min-w-[960px]` & `min-w-[860px]` | Truncated guest/group names, 2-line bound TV chips, language switcher pills |
-| **Content Library** (`tv-services`) | Entertainment config, Contracts, Lineup | `min-w-[880px]` | Cobalt primary buttons, verified badge chips, channel program truncation |
-| **Marketplace & Ads** (`marketplace`) | `Jaringan Iklan`, `Katalog & Orders`, `Corong` | `min-w-[920px]` | Standardized cobalt sub-nav, redacted PII toggle, order status flow buttons |
-| **Devices & Fleet** (`devices`) | LAN discovery candidates, Fleet inventory | `min-w-[940px]` | Hardware chip, live heartbeat indicator, 1-click room assignment |
-| **IPTV Channels** (`channels`) | IPTV Packages, Lineup & Stream Feeds | `min-w-[900px]` | Package tier badges, EPG program truncation, remote test playback |
-| **Billing & Invoices** (`billing`) | Subscriptions, Seat Ledger, Invoices | `min-w-[840px]` | Tabular IDR formatting, idempotency reference, finance approval action |
-| **Audit Logs** (`compliance`) | Append-Only Domain Audit Explorer | `min-w-[860px]` | ISO timestamps, actor roles, outcome chips, scrollable max-h-72 viewport |
+The GojjaCleanTV panel within Brand Studio (`#branding`) adheres to strict safety visual gating:
+
+### 9.1 Safety Guardrail Visual States
+1. **Safety Locked State (Amber Shield Card)**:
+   - When one or more online TVs lack a verified baseline backup.
+   - Container: `border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4`.
+   - Header badge: `bg-amber-500/20 text-amber-800 dark:text-amber-300` with `Lock` icon and text `Safety Lock Engaged (X TV Belum Dicadangkan)`.
+   - Action Button: Locked with `cursor-not-allowed opacity-60 bg-slate-700/50 text-slate-400`.
+   - Quick 1-Click Action: Amber button `[📦 Buat Backup TV Sekarang (X TV) · Buka Kunci Safety Lock]`.
+2. **Safety Verified State (Emerald Shield Card)**:
+   - When all online TVs possess a verified backup snapshot.
+   - Container: `border-emerald-500/40 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-3.5`.
+   - Header badge: `bg-emerald-500/20 text-emerald-700 dark:text-emerald-300` with `CheckCircle2` icon.
+   - Action Button: Unlocked with primary cobalt `bg-[#0050F5] hover:bg-[#0040C8] text-white shadow-md cursor-pointer`.
+
+### 9.2 Profile Selection Cards
+Three standardized profile cards:
+- **`CLEAN_WITH_OTT`** (Standard): Clean launcher without Google TV ads, retains YouTube/Netflix.
+- **`STRICT_KIOSK`**: Dedicated hospitality kiosk, disables all third-party consumer OTT apps.
+- **`CUSTOM`**: Manual toggle checklist of Android packages.
+- Active state: `bg-[#0050F5]/10 border-[#0050F5]`. Inactive state: `bg-[var(--cms-bg)] border-[var(--cms-divider)]`.
+
+### 9.3 Live ADB Transcript Console
+- Background: Obsidian terminal `#0B0F17` with subtle `border-white/10`.
+- Typography: Tabular JetBrains Mono `font-mono-tabular text-[11px]` in terminal green `#6EE7B7`.
+- Scrollable viewport: `max-h-40 overflow-y-auto luxury-scrollbar`.
+
+---
+
+## 10. Dual-Mode Deployment & Per-Room Operational UX
+
+In the **Rooms & TV** tab (`#rooms`), each room row renders an actionable TV endpoint cluster:
+
+### 10.1 TV Endpoint Row Pattern
+```tsx
+<div className="flex items-center justify-end gap-1.5 flex-wrap">
+  {/* Status Pill */}
+  <span className="px-2 py-0.5 rounded text-[10px] font-semibold border bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+    🛡️ GojjaLauncher
+  </span>
+
+  {/* Quick Action: Backup */}
+  <button className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[10px]">
+    Backup
+  </button>
+
+  {/* Quick Action: Deploy */}
+  <button className="px-2 py-1 rounded-lg bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-[10px]">
+    Deploy Launcher
+  </button>
+
+  {/* Quick Action: Restore */}
+  <button className="px-2 py-1 rounded-lg bg-[var(--cms-bg)] border font-semibold text-[10px]">
+    Restore OEM
+  </button>
+
+  {/* Preview Modal Trigger */}
+  <button className="px-2.5 py-1 rounded-lg bg-[#0050F5] text-white font-semibold text-xs">
+    Preview E-01
+  </button>
+</div>
+```
+
+---
+
+## 11. Backup Inspector & Restore Modal UX Specification
+
+The Backup Inspector Modal (`DeviceDiscoveryView.tsx`) provides 4 organized inspection tabs:
+
+1. **Tab 1 — Baseline Summary**: Hardware model (Sony Bravia/Xiaomi), Android OS version, OEM launcher package name, and verification status badge.
+2. **Tab 2 — Package Inventory**: Two-column breakdown of active packages (`packages_enabled.txt`) vs pre-disabled packages (`packages_disabled.txt`) with search filter.
+3. **Tab 3 — Standalone Scripts**: Syntax-highlighted code viewers for `restore.bat` (Windows) and `restore.sh` (Linux/macOS) with 1-click copy to clipboard.
+4. **Tab 4 — 1-Click Restore**: Interactive restore trigger with live ADB execution terminal.
+
+---
+
+## 12. 10-Foot Big Screen Hospitality TV Canvas Specification
+
+The guest-facing TV interface (`TvGuestAppModal.tsx`) operates on the **10-Foot UI Standard** (viewed from a couch/bed 3 meters away):
+
+1. **Canvas Geometry**: Standardized to `1920x1080` (Full HD 16:9 ratio). All fonts and touch targets scale proportionally.
+2. **Focus State Trapping**: Every interactive item (menu cards, channel list, F&B items, buttons) displays an unmistakable glowing focus ring:
+   ```css
+   .tv-focusable:focus, .tv-focusable.active {
+     outline: 3px solid #0050F5;
+     box-shadow: 0 0 20px rgba(0, 80, 245, 0.7);
+     transform: scale(1.04);
+     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+   }
+   ```
+3. **D-Pad Directional Nav**:
+   - `ArrowUp / ArrowDown`: Channel guide scrolling & vertical section switching.
+   - `ArrowLeft / ArrowRight`: Main menu navigation pills & carousel paging.
+   - `Enter / DPAD_CENTER`: Selection confirmation & stream playback.
+   - `Escape / KEYCODE_BACK`: Modal closing or return to home screen.
+4. **Contrast & Atmospheric Background**: Deep atmospheric radial background with ambient hotel hero video playing behind semi-transparent cards (`backdrop-filter: blur(16px)`).
