@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Wifi,
   Radar,
@@ -139,6 +139,78 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   const [packageCategoryTab, setPackageCategoryTab] = useState<'all' | 'enabled' | 'disabled' | 'thirdParty'>('all');
   const [packageSearchQuery, setPackageSearchQuery] = useState<string>('');
   const [copiedType, setCopiedType] = useState<string | null>(null);
+
+  // Cloud SaaS Edge Gateway Pairing & Live Relay State
+  const [edgeAgents, setEdgeAgents] = useState<Array<{
+    agentId: string;
+    propertyId: string;
+    name: string;
+    hostPlatform: string;
+    interfaceName: string;
+    subnetCidr: string;
+    adbAvailable: boolean;
+    adbVersion: string;
+    rsaFingerprint?: string;
+    status: 'Online' | 'Offline';
+    lastHeartbeatUtc: string;
+  }>>([]);
+  const [edgePairing, setEdgePairing] = useState<{
+    code: string;
+    expiresAtUtc: string;
+    installCommands: { bash: string; powershell: string; directCli: string };
+  } | null>(null);
+  const [edgeLoading, setEdgeLoading] = useState<boolean>(false);
+
+  const refreshEdgeAgents = async () => {
+    try {
+      const res = await fetch(`/api/edge/agents?propertyId=${encodeURIComponent(selectedPropertyId)}`, {
+        headers: { 'X-Gojja-Env': environmentId, 'X-Gojja-Persona': 'alpha-installer' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.agents)) setEdgeAgents(data.agents);
+      }
+    } catch {
+      // ignore polling error in offline demo
+    }
+  };
+
+  useEffect(() => {
+    refreshEdgeAgents();
+    const timer = setInterval(refreshEdgeAgents, 8000);
+    return () => clearInterval(timer);
+  }, [selectedPropertyId, environmentId]);
+
+  const handleGenerateEdgePairing = async () => {
+    setEdgeLoading(true);
+    try {
+      const res = await fetch('/api/edge/pairing-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Gojja-Env': environmentId,
+          'X-Gojja-Persona': 'alpha-installer',
+        },
+        body: JSON.stringify({ propertyId: selectedPropertyId, ttlMinutes: 15 }),
+      });
+      const data = await res.json();
+      if (res.ok && data.pairing) {
+        setEdgePairing({
+          code: data.pairing.code,
+          expiresAtUtc: data.pairing.expiresAtUtc,
+          installCommands: data.installCommands,
+        });
+      }
+    } finally {
+      setEdgeLoading(false);
+    }
+  };
+
+  const handleCopyText = (key: string, text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedType(key);
+    setTimeout(() => setCopiedType(null), 2000);
+  };
 
   const handleDownloadFile = (filename: string, content: string, mimeType: string = 'text/plain') => {
     const blob = new Blob([content], { type: mimeType });
@@ -284,6 +356,127 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
             {activeConnector ? `Authorized Subnet: ${activeConnector.subnetCidr}` : 'Complete Step 1 below to grant LAN consent'}
           </div>
         </div>
+      </div>
+
+      {/* Cloud SaaS Edge Gateway (Auto-ADB + Zero-Touch Outbound Relay) */}
+      <div className="p-5 rounded-2xl bg-[var(--cms-surface)] border border-[#0050F5]/30 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0050F5]/15 text-[#0050F5] dark:text-[#C7B9FF]">
+                CLOUD SAAS EDGE BRIDGE
+              </span>
+              <span className="text-xs text-[var(--cms-text-secondary)]">
+                Auto-Install ADB + Outbound Tunnel (Tanpa Port Forwarding)
+              </span>
+            </div>
+            <h3 className="text-base font-bold mt-1">Gojja Edge Gateway & Zero-Touch ADB Provisioning</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refreshEdgeAgents}
+              className="px-3 py-2 rounded-xl bg-[var(--cms-bg)] border border-[var(--cms-control-border)] text-xs font-medium inline-flex items-center gap-1.5 hover:opacity-90"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Status</span>
+            </button>
+            <button
+              disabled={edgeLoading}
+              onClick={handleGenerateEdgePairing}
+              className="px-4 py-2 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-all"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>{edgeLoading ? 'Generating...' : 'Generate Pairing Code & 1-Line Installer'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Connected Edge Agents List */}
+        {edgeAgents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {edgeAgents.map((ag) => (
+              <div
+                key={ag.agentId}
+                className="p-3.5 rounded-xl bg-[var(--cms-bg)] border border-emerald-500/30 flex items-start justify-between gap-3 text-xs"
+              >
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <span className={`w-2 h-2 rounded-full ${ag.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                    <span className="truncate">{ag.name}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono-tabular">
+                      {ag.status}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)] font-mono-tabular">
+                    LAN: {ag.subnetCidr} ({ag.interfaceName}) • {ag.hostPlatform}
+                  </div>
+                  <div className="text-[11px] text-[var(--cms-text-secondary)]">
+                    ADB: <span className="font-semibold text-[var(--cms-text-primary)]">{ag.adbVersion}</span>
+                    {ag.rsaFingerprint ? ` • RSA: ${ag.rsaFingerprint}` : ''}
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono-tabular text-[var(--cms-text-secondary)] shrink-0">
+                  {ag.agentId}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-[var(--cms-bg)] border border-dashed border-[var(--cms-control-border)] text-xs text-[var(--cms-text-secondary)]">
+            Belum ada Gojja Edge Agent yang terhubung ke Cloud Relay untuk properti <strong>{selectedPropertyId}</strong>. Klik <strong>Generate Pairing Code</strong> di atas untuk menjalankan 1-line installer di laptop teknisi / Mini-PC hotel (ADB akan terpasang otomatis jika belum ada).
+          </div>
+        )}
+
+        {/* Pairing Code & 1-Line Installer Output */}
+        {edgePairing && (
+          <div className="p-4 rounded-xl bg-[var(--cms-bg)] border border-[#0050F5]/30 space-y-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-[var(--cms-text-secondary)]">Pairing Code (Berlaku 15 menit): </span>
+                <span className="px-2.5 py-1 rounded-lg bg-[#0050F5]/15 text-[#0050F5] dark:text-[#C7B9FF] font-mono-tabular font-bold text-sm">
+                  {edgePairing.code}
+                </span>
+              </div>
+              <span className="text-[11px] text-[var(--cms-text-secondary)]">
+                Expires: {new Date(edgePairing.expiresAtUtc).toLocaleTimeString()}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1.5">
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Windows PowerShell (1-Line Auto-ADB)</span>
+                  <button
+                    onClick={() => handleCopyText('ps1', edgePairing.installCommands.powershell)}
+                    className="inline-flex items-center gap-1 text-[#0050F5] hover:underline"
+                  >
+                    {copiedType === 'ps1' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedType === 'ps1' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <pre className="text-[11px] font-mono-tabular overflow-x-auto whitespace-pre-wrap break-all text-[var(--cms-text-secondary)]">
+                  {edgePairing.installCommands.powershell}
+                </pre>
+              </div>
+
+              <div className="p-3 rounded-lg bg-[var(--cms-surface)] border border-[var(--cms-divider)] space-y-1.5">
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Linux / macOS / Raspberry Pi (1-Line Auto-ADB)</span>
+                  <button
+                    onClick={() => handleCopyText('bash', edgePairing.installCommands.bash)}
+                    className="inline-flex items-center gap-1 text-[#0050F5] hover:underline"
+                  >
+                    {copiedType === 'bash' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedType === 'bash' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <pre className="text-[11px] font-mono-tabular overflow-x-auto whitespace-pre-wrap break-all text-[var(--cms-text-secondary)]">
+                  {edgePairing.installCommands.bash}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* STEP 1 & STEP 2: Connector Registration (IN-01/02) + Network Scan Controls */}
