@@ -783,7 +783,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {onAdbProbe && cand.port === 5555 && (
+                              {onAdbProbe && cand.port !== 8008 && cand.authState !== 'Unsupported' && (
                                 <button
                                   title="Probe & Kenali TV"
                                   onClick={(e) => {
@@ -797,7 +797,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                                   <span>{busyAction === `probe-${cand.id}` ? 'Probing...' : 'Probe'}</span>
                                 </button>
                               )}
-                              {onAdbScreenshot && cand.port === 5555 && (
+                              {onAdbScreenshot && cand.port !== 8008 && cand.authState !== 'Unsupported' && (
                                 <button
                                   title="Ambil Screenshot Realtime"
                                   onClick={(e) => {
@@ -811,7 +811,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                                   <span>{busyAction === `snap-${cand.id}` ? 'Snap...' : 'Screenshot'}</span>
                                 </button>
                               )}
-                              {onAdbBackup && cand.port === 5555 && (
+                              {onAdbBackup && cand.port !== 8008 && cand.authState !== 'Unsupported' && (
                                 <button
                                   title="Backup Konfigurasi TV (Standar CleanYourTV)"
                                   onClick={(e) => {

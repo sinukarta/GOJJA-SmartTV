@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import type { Response } from 'express';
+import type { EnvironmentId } from '../data/mockData.ts';
 
 export const ALLOWED_EDGE_JOB_TYPES = [
   'SCAN_SUBNET',
@@ -14,10 +15,14 @@ export const ALLOWED_EDGE_JOB_TYPES = [
 
 export type EdgeJobType = (typeof ALLOWED_EDGE_JOB_TYPES)[number];
 
+export type RedeemPairingResult =
+  | { ok: true; session: EdgeAgentSession; code?: string; message?: string }
+  | { ok: false; code: string; message: string; session?: never };
+
 export interface EdgePairingToken {
   code: string;
   propertyId: string;
-  environmentId: string;
+  environmentId: EnvironmentId;
   createdBy: string;
   createdAtUtc: string;
   expiresAtUtc: string;
@@ -29,7 +34,7 @@ export interface EdgeAgentSession {
   agentId: string;
   agentToken: string;
   propertyId: string;
-  environmentId: string;
+  environmentId: EnvironmentId;
   name: string;
   hostPlatform: string;
   interfaceName: string;
@@ -73,7 +78,7 @@ export class EdgeBridgeManager {
   private pendingJobs = new Map<string, PendingJob>();
 
   /** Generate a short-lived human-friendly pairing code (e.g. GJA-8492-P01) */
-  generatePairingToken(propertyId: string, environmentId: string, createdBy: string, ttlMinutes = 15): EdgePairingToken {
+  generatePairingToken(propertyId: string, environmentId: EnvironmentId, createdBy: string, ttlMinutes = 15): EdgePairingToken {
     const suffix = crypto.randomInt(1000, 9999);
     const cleanProp = propertyId.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6) || 'PROP';
     const code = `GJA-${suffix}-${cleanProp}`;
@@ -102,7 +107,7 @@ export class EdgeBridgeManager {
       adbVersion?: string;
       rsaFingerprint?: string;
     }
-  ): { ok: true; session: EdgeAgentSession } | { ok: false; code: string; message: string } {
+  ): RedeemPairingResult {
     const normalized = String(code || '').trim().toUpperCase();
     const token = this.pairingTokens.get(normalized);
     if (!token) {
@@ -182,7 +187,7 @@ export class EdgeBridgeManager {
     return session;
   }
 
-  getOnlineAgentForProperty(propertyId: string, environmentId?: string): EdgeAgentSession | null {
+  getOnlineAgentForProperty(propertyId: string, environmentId?: EnvironmentId): EdgeAgentSession | null {
     for (const session of this.agentsById.values()) {
       if (
         session.propertyId === propertyId &&
@@ -214,7 +219,7 @@ export class EdgeBridgeManager {
     propertyId: string,
     type: EdgeJobType,
     payload: Record<string, unknown>,
-    environmentId?: string,
+    environmentId?: EnvironmentId,
     timeoutMs = 30000
   ): Promise<EdgeJobResult> {
     if (!ALLOWED_EDGE_JOB_TYPES.includes(type)) {

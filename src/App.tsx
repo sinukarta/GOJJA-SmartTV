@@ -1485,41 +1485,50 @@ export default function App() {
 
       try {
         const res = await fetch(pathUrl, { ...options, headers });
+        const contentType = res.headers.get('content-type') || '';
+
+        // If static host returns HTML (SPA rewrite /index.html) instead of API JSON on bootstrap
+        if (contentType.includes('text/html')) {
+          if (pathUrl.startsWith('/api/bootstrap')) {
+            isStaticDeploymentRef.current = true;
+          }
+          return handleClientSideFallbackApi(pathUrl, options, persona);
+        }
+
+        const text = await res.text();
+        let data: any = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          // If non-JSON text returned on static host 404/405
+          if ([404, 405].includes(res.status) && pathUrl.startsWith('/api/bootstrap')) {
+            isStaticDeploymentRef.current = true;
+            return handleClientSideFallbackApi(pathUrl, options, persona);
+          }
+        }
+
         if (!res.ok) {
-          // If on static host (Vercel SPA returning 404/405 or gateway error 502/503/504)
-          if ([404, 405, 502, 503, 504].includes(res.status)) {
-            isStaticDeploymentRef.current = true;
-            return handleClientSideFallbackApi(pathUrl, options, persona);
-          }
-          const text = await res.text();
-          let data: any;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            // Response is HTML SPA fallback from static host
-            isStaticDeploymentRef.current = true;
-            return handleClientSideFallbackApi(pathUrl, options, persona);
-          }
           if (data && typeof data === 'object') {
             if (data.allowed !== undefined) return data;
             if (data.ok === true) return data;
           }
-          throw new ApiRequestError(data?.message || data?.code || `HTTP ${res.status}: ${res.statusText}`, data?.code || 'REQUEST_DENIED', res.status);
+          throw new ApiRequestError(
+            data?.message || data?.code || `HTTP ${res.status}: ${res.statusText}`,
+            data?.code || 'REQUEST_DENIED',
+            res.status
+          );
         }
 
-        // If static host returns 200 with HTML (SPA rewrite /index.html) instead of API JSON
-        if (!res.headers.get('content-type')?.includes('application/json')) {
-          isStaticDeploymentRef.current = true;
-          return handleClientSideFallbackApi(pathUrl, options, persona);
-        }
-
-        return await res.json();
+        return data;
       } catch (err: unknown) {
         if (err instanceof ApiRequestError) throw err;
-        // Network failures, CORS, or static hosting fetch errors activate client fallback
-        isStaticDeploymentRef.current = true;
-        console.warn(`[Client-Side SSOT] Route ${pathUrl} fallback activated:`, err);
-        return handleClientSideFallbackApi(pathUrl, options, persona);
+        // Only if /api/bootstrap itself completely fails to reach a network host, activate static fallback
+        if (pathUrl.startsWith('/api/bootstrap')) {
+          isStaticDeploymentRef.current = true;
+          console.warn(`[Client-Side SSOT] Route ${pathUrl} fallback activated:`, err);
+          return handleClientSideFallbackApi(pathUrl, options, persona);
+        }
+        throw err;
       }
     },
     [personaAlias, environmentId, handleClientSideFallbackApi]

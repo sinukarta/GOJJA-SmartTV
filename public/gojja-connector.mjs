@@ -55,6 +55,7 @@ const ALLOWED_JOB_TYPES = new Set([
   'CAPTURE_BACKUP',
   'DEPLOY_LAUNCHER',
   'RESTORE_OEM',
+  'SCREENCAP',
 ]);
 
 function ensureDir(dir) {
@@ -65,6 +66,20 @@ function ensureDir(dir) {
 
 function getAdbEnv() {
   ensureDir(EDGE_ANDROID_HOME);
+  // If user already has authorized adbkey in their default ~/.android directory, inherit it
+  const defaultAndroidHome = path.join(os.homedir(), '.android');
+  const defaultKey = path.join(defaultAndroidHome, 'adbkey');
+  const edgeKey = path.join(EDGE_ANDROID_HOME, 'adbkey');
+  if (fs.existsSync(defaultKey) && !fs.existsSync(edgeKey)) {
+    try {
+      fs.copyFileSync(defaultKey, edgeKey);
+      if (fs.existsSync(`${defaultKey}.pub`)) {
+        fs.copyFileSync(`${defaultKey}.pub`, `${edgeKey}.pub`);
+      }
+    } catch {
+      // ignore
+    }
+  }
   return {
     ...process.env,
     ANDROID_SDK_HOME: EDGE_ANDROID_HOME,
@@ -311,9 +326,40 @@ async function execAdb(adbBin, adbArgs, timeout = 5000) {
 async function probeAdbProperties(ip, port = 5555, adbBin = 'adb') {
   const target = `${ip}:${port}`;
   try {
-    await execAdb(adbBin, ['connect', target], 5000);
-    const { stdout: stateOut } = await execAdb(adbBin, ['-s', target, 'get-state'], 3500);
-    const state = stateOut.trim();
+    let connOut = '';
+    try {
+      const { stdout, stderr } = await execAdb(adbBin, ['connect', target], 7000);
+      connOut = `${stdout || ''} ${stderr || ''}`.trim();
+    } catch (e) {
+      connOut = String(e?.message || '');
+    }
+
+    let state = 'unknown';
+    try {
+      const { stdout: devOut } = await execAdb(adbBin, ['devices'], 4000);
+      for (const line of devOut.split(/\r?\n/)) {
+        const parts = line.trim().split(/\s+/);
+        if (parts[0] === target && parts[1]) {
+          state = parts[1];
+          break;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    if (state === 'unknown') {
+      try {
+        const { stdout: stateOut } = await execAdb(adbBin, ['-s', target, 'get-state'], 3500);
+        state = stateOut.trim();
+      } catch (e) {
+        const msg = String(e?.message || '');
+        if (msg.includes('unauthorized')) state = 'unauthorized';
+        else if (msg.includes('offline')) state = 'offline';
+        else if (connOut.toLowerCase().includes('connected to')) state = 'unauthorized';
+      }
+    }
+
     if (state === 'device') {
       const getP = async (k) => {
         try {
@@ -568,6 +614,44 @@ async function executeEdgeJob(job, adbInfo) {
       await execAdb(adbBin, ['-s', target, 'shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.HOME'], 4000);
       transcript.push(`$ adb -s ${target} shell am start -a android.intent.action.MAIN -c android.intent.category.HOME`);
       return { jobId: job.jobId, ok: true, data: { transcript }, completedAtUtc: new Date().toISOString() };
+    }
+
+    if (job.type === 'SCREENCAP') {
+      const target = `${payload.ip}:${payload.port || 5555}`;
+      await execAdb(adbBin, ['connect', target], 6000);
+      let buffer = null;
+      try {
+        const { stdout } = await execFileAsync(adbBin, ['-s', target, 'exec-out', 'screencap', '-p'], {
+          encoding: 'buffer',
+          maxBuffer: 25 * 1024 * 1024,
+          timeout: 10000,
+          windowsHide: true,
+          env: getAdbEnv(),
+        });
+        if (stdout && stdout.length > 8 && stdout[0] === 0x89 && stdout[1] === 0x50 && stdout[2] === 0x4e && stdout[3] === 0x47) {
+          buffer = stdout;
+        }
+      } catch {
+        // fallback to /data/local/tmp/
+      }
+
+      if (!buffer) {
+        const remoteFile = `/data/local/tmp/gojja_cap_${Date.now()}.png`;
+        const localFile = path.join(EDGE_HOME, `cap_${Date.now()}.png`);
+        await execAdb(adbBin, ['-s', target, 'shell', 'screencap', '-p', remoteFile], 9000);
+        await execAdb(adbBin, ['-s', target, 'pull', remoteFile, localFile], 9000);
+        await execAdb(adbBin, ['-s', target, 'shell', 'rm', '-f', remoteFile], 3000).catch(() => {});
+        if (fs.existsSync(localFile)) {
+          buffer = fs.readFileSync(localFile);
+          try { fs.unlinkSync(localFile); } catch {}
+        }
+      }
+
+      if (buffer && buffer.length > 0) {
+        const dataUrl = `data:image/png;base64,${buffer.toString('base64')}`;
+        return { jobId: job.jobId, ok: true, data: { dataUrl, sizeBytes: buffer.length }, completedAtUtc: new Date().toISOString() };
+      }
+      return { jobId: job.jobId, ok: false, error: 'Screenshot capture failed. Device might be sleeping or locked.', completedAtUtc: new Date().toISOString() };
     }
 
     return { jobId: job.jobId, ok: false, error: `Unsupported job type: ${job.type}`, completedAtUtc: new Date().toISOString() };

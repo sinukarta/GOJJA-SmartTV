@@ -1,11 +1,11 @@
-import {validateCatalogPresentation} from './src/data/tvCatalog';
-import { validateTvExperience, TV_LOCALES, resolveTvExperience, hasEntertainmentEntitlement, ENTERTAINMENT_APPS } from './src/data/tvExperience';
+import { validateCatalogPresentation } from './src/data/tvCatalog.ts';
+import { validateTvExperience, TV_LOCALES, resolveTvExperience, hasEntertainmentEntitlement, ENTERTAINMENT_APPS } from './src/data/tvExperience.ts';
 import {
   edgeBridge,
   buildEdgeInstallerBash,
   buildEdgeInstallerPowerShell,
-  EdgeJobResult,
-} from './src/services/edgeBridgeService';
+  type EdgeJobResult,
+} from './src/services/edgeBridgeService.ts';
 import { randomUUID } from 'node:crypto';
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
@@ -312,9 +312,9 @@ function loadStore(): SSOTStore {
         if (laundrySeed && !parsed.DEMO.marketplaceItems.some(i => i.id === laundrySeed.id)) parsed.DEMO.marketplaceItems.push(clone(laundrySeed));
         const demoAppSub = parsed.DEMO.subscriptions.find(sub => sub.propertyId === 'P-01');
         if (demoAppSub && !demoAppSub.entertainmentAppsEntitlement) {
-          demoAppSub.entertainmentAppsEntitlement = {status:'Active',mode:'DEMO',reference:'DEMO-ADDON-PREVIEW'};
+          demoAppSub.entertainmentAppsEntitlement = { status: 'Active', mode: 'DEMO', reference: 'DEMO-ADDON-PREVIEW' };
           const demoProperty = parsed.DEMO.properties.find(p => p.id === 'P-01');
-          if (demoProperty) demoProperty.tvExperience = {...resolveTvExperience(demoProperty.tvExperience),appsEnabled:true};
+          if (demoProperty) demoProperty.tvExperience = { ...resolveTvExperience(demoProperty.tvExperience), appsEnabled: true };
         }
 
         if (!parsed.LIVE_LAB.adOffers) parsed.LIVE_LAB.adOffers = clone(INITIAL_AD_OFFERS);
@@ -585,14 +585,47 @@ async function probeAdbDeviceProperties(ip: string, port = 5555): Promise<{
   const adbBin = resolveAdbPath();
   const targetSpec = `${ip}:${port}`;
   try {
-    const { stdout: connOut } = await execFileAsync(adbBin, ['connect', targetSpec], { timeout: 4500, windowsHide: true });
-    const { stdout: stateOut } = await execFileAsync(adbBin, ['-s', targetSpec, 'get-state'], { timeout: 3500, windowsHide: true });
-    const transportState = stateOut.trim();
+    // 1. Connect over TCP (increased timeout 7000ms for Wi-Fi Smart TVs)
+    let connOutput = '';
+    try {
+      const { stdout, stderr } = await execFileAsync(adbBin, ['connect', targetSpec], { timeout: 7000, windowsHide: true });
+      connOutput = `${stdout || ''} ${stderr || ''}`.trim();
+    } catch (err: unknown) {
+      connOutput = err instanceof Error ? err.message : 'Connect failed';
+    }
+
+    // 2. Query adb devices to inspect state safely without throwing on non-device states
+    let transportState = 'unknown';
+    try {
+      const { stdout: devOut } = await execFileAsync(adbBin, ['devices'], { timeout: 4000, windowsHide: true });
+      for (const line of devOut.split(/\r?\n/)) {
+        const parts = line.trim().split(/\s+/);
+        if (parts[0] === targetSpec && parts[1]) {
+          transportState = parts[1]; // 'device', 'unauthorized', 'offline'
+          break;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Fallback: If not recognized in devices table, try get-state safely
+    if (transportState === 'unknown') {
+      try {
+        const { stdout: stateOut } = await execFileAsync(adbBin, ['-s', targetSpec, 'get-state'], { timeout: 3500, windowsHide: true });
+        transportState = stateOut.trim();
+      } catch (err: any) {
+        const errMsg = String(err?.message || '');
+        if (errMsg.includes('unauthorized')) transportState = 'unauthorized';
+        else if (errMsg.includes('offline')) transportState = 'offline';
+        else if (connOutput.toLowerCase().includes('connected to')) transportState = 'unauthorized';
+      }
+    }
 
     if (transportState === 'device') {
       const readProp = async (key: string) => {
         try {
-          const { stdout } = await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'getprop', key], { timeout: 3000, windowsHide: true });
+          const { stdout } = await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'getprop', key], { timeout: 3500, windowsHide: true });
           return stdout.trim();
         } catch {
           return '';
@@ -624,17 +657,17 @@ async function probeAdbDeviceProperties(ip: string, port = 5555): Promise<{
         authState: 'DeviceVerified',
         rawStatus: `DeviceVerified (${resolvedBrand} ${resolvedModel})`,
       };
-    } else if (transportState === 'unauthorized') {
+    } else if (transportState === 'unauthorized' || connOutput.toLowerCase().includes('connected to')) {
       return {
         connected: true,
         authState: 'AuthRequired',
-        rawStatus: `Connected but unauthorized. Please confirm the RSA debugging prompt on the TV screen.`,
+        rawStatus: `TV terhubung via ADB tetapi memerlukan otorisasi. Silakan centang "Selalu izinkan" dan klik Allow/OK pada dialog di layar TV.`,
       };
     } else {
       return {
-        connected: true,
+        connected: false,
         authState: 'CandidateFound',
-        rawStatus: `adb connect returned "${connOut.trim()}", transport: "${transportState}"`,
+        rawStatus: `Tidak dapat menghubungkan ADB ke ${targetSpec} (${connOutput || transportState}). Pastikan USB/Wireless Debugging aktif di TV.`,
       };
     }
   } catch (err: unknown) {
@@ -656,7 +689,7 @@ async function captureDeviceScreenshot(ip: string, port = 5555): Promise<{
   const targetSpec = `${ip}:${port}`;
   try {
     // Ensure connected first
-    await execFileAsync(adbBin, ['connect', targetSpec], { timeout: 4000, windowsHide: true }).catch(() => {});
+    await execFileAsync(adbBin, ['connect', targetSpec], { timeout: 6000, windowsHide: true }).catch(() => { });
 
     // Method 1: Try exec-out screencap -p (fast direct binary stream)
     let buffer: Buffer | null = null;
@@ -674,24 +707,25 @@ async function captureDeviceScreenshot(ip: string, port = 5555): Promise<{
       // Continue to fallback
     }
 
-    // Method 2: Fallback to save on device /sdcard/ then adb pull
+    // Method 2: Fallback to save in /data/local/tmp/ (guaranteed writable by adb shell without external storage permissions) then adb pull
     if (!buffer) {
-      const remoteFile = `/sdcard/gojja_cap_${Date.now()}.png`;
+      const remoteFile = `/data/local/tmp/gojja_cap_${Date.now()}.png`;
       const localDir = path.join(process.cwd(), 'screenshots');
       if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
       const localFile = path.join(localDir, `screenshot_${ip.replace(/\./g, '_')}_${Date.now()}.png`);
 
       await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'screencap', '-p', remoteFile], { timeout: 9000, windowsHide: true });
       await execFileAsync(adbBin, ['-s', targetSpec, 'pull', remoteFile, localFile], { timeout: 9000, windowsHide: true });
-      await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'rm', '-f', remoteFile], { timeout: 3000, windowsHide: true }).catch(() => {});
+      await execFileAsync(adbBin, ['-s', targetSpec, 'shell', 'rm', '-f', remoteFile], { timeout: 3000, windowsHide: true }).catch(() => { });
 
       if (fs.existsSync(localFile)) {
         buffer = fs.readFileSync(localFile);
+        try { fs.unlinkSync(localFile); } catch { }
       }
     }
 
     if (!buffer || buffer.length === 0) {
-      return { success: false, error: 'Failed to capture screenshot. The TV screen may be locked, asleep, or ADB not authorized.' };
+      return { success: false, error: 'Gagal mengambil screenshot. TV mungkin dalam kondisi layar mati (sleep) atau belum mengizinkan otorisasi USB/Wireless Debugging.' };
     }
 
     const dataUrl = `data:image/png;base64,${buffer.toString('base64')}`;
@@ -1016,8 +1050,8 @@ async function startServer() {
       user.roleId === 'R-08'
         ? user.partnerId
         : requestedPartnerId && requestedPartnerId !== 'DIRECT'
-        ? String(requestedPartnerId)
-        : null;
+          ? String(requestedPartnerId)
+          : null;
 
     const auth = authorizeAction(req, 'properties.manage', null, effectivePartnerId);
     if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
@@ -1431,13 +1465,13 @@ async function startServer() {
     let tvDraft;
     if (tvExperience !== undefined) {
       try { tvDraft = validateTvExperience(tvExperience); }
-      catch (error) { return res.status(422).json({code:'VALIDATION_FAILED',message:error instanceof Error ? error.message : 'Invalid TV settings'}); }
+      catch (error) { return res.status(422).json({ code: 'VALIDATION_FAILED', message: error instanceof Error ? error.message : 'Invalid TV settings' }); }
     }
     if (tvDraft) {
       const previous = resolveTvExperience(prop.tvExperience);
       const appsChanged = previous.appsEnabled !== tvDraft.appsEnabled || JSON.stringify(previous.apps) !== JSON.stringify(tvDraft.apps) || JSON.stringify(previous.appProfiles) !== JSON.stringify(tvDraft.appProfiles);
-      if (appsChanged && !['R-01','R-02','R-10','R-11'].includes(role.id)) return res.status(403).json({code:'PERMISSION_DENIED',message:'Only property administrators can configure entertainment apps.'});
-      if (tvDraft.appsEnabled && !hasEntertainmentEntitlement(workspace.subscriptions.find(sub => sub.propertyId === propertyId),environmentId)) return res.status(403).json({code:'ADDON_REQUIRED',message:'An active GOJJA entertainment add-on is required.'});
+      if (appsChanged && !['R-01', 'R-02', 'R-10', 'R-11'].includes(role.id)) return res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Only property administrators can configure entertainment apps.' });
+      if (tvDraft.appsEnabled && !hasEntertainmentEntitlement(workspace.subscriptions.find(sub => sub.propertyId === propertyId), environmentId)) return res.status(403).json({ code: 'ADDON_REQUIRED', message: 'An active GOJJA entertainment add-on is required.' });
       prop.tvExperience = tvDraft;
       if (tvDraft.wifi.ssid) prop.wifiSsid = tvDraft.wifi.ssid;
     }
@@ -1541,12 +1575,12 @@ async function startServer() {
     const pkgList: string[] = Array.isArray(disabledPackages)
       ? disabledPackages.map((p) => String(p).trim()).filter(Boolean)
       : [
-          'com.google.android.apps.tv.launcherx',
-          'com.google.android.tvlauncher',
-          'com.google.android.leanbacklauncher',
-          'com.google.android.leanbacklauncher.recommendations',
-          'com.google.android.tungsten.setupwraith',
-        ];
+        'com.google.android.apps.tv.launcherx',
+        'com.google.android.tvlauncher',
+        'com.google.android.leanbacklauncher',
+        'com.google.android.leanbacklauncher.recommendations',
+        'com.google.android.tungsten.setupwraith',
+      ];
 
     const isRestore = action === 'RESTORE_STOCK_LAUNCHER';
     const isSingleEndpoint = Boolean(endpointId);
@@ -2172,31 +2206,31 @@ async function startServer() {
   });
 
   app.post('/api/marketplace/services/upsert-item', (req: Request, res: Response) => {
-    const {propertyId, item: input} = req.body;
+    const { propertyId, item: input } = req.body;
     const auth = authorizeAction(req, 'branding.edit', propertyId);
-    if (!auth.allowed) return res.status(403).json({code:auth.reasonCode,message:auth.message});
-    const {workspace,environmentId,user,role} = getRequestContext(req);
-    if (!workspace.properties.some(p => p.id === propertyId) || !input || typeof input !== 'object') return res.status(422).json({code:'VALIDATION_FAILED',message:'Invalid property or service.'});
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+    const { workspace, environmentId, user, role } = getRequestContext(req);
+    if (!workspace.properties.some(p => p.id === propertyId) || !input || typeof input !== 'object') return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Invalid property or service.' });
     const existing = input.id ? workspace.marketplaceItems.find(i => i.id === input.id) : undefined;
-    if (input.id && (!existing || existing.propertyId !== propertyId)) return res.status(404).json({code:'NOT_FOUND',message:'Service not found in this property.'});
-    if (!['InHouseService','ThirdPartyExperience','F&B','Transport','Wellness'].includes(input.type) || !['Active','Paused','Archived'].includes(input.status)) return res.status(422).json({code:'VALIDATION_FAILED',message:'Invalid service category or status.'});
-    for (const loc of TV_LOCALES) for (const key of ['title','description','actionLabel']) {
+    if (input.id && (!existing || existing.propertyId !== propertyId)) return res.status(404).json({ code: 'NOT_FOUND', message: 'Service not found in this property.' });
+    if (!['InHouseService', 'ThirdPartyExperience', 'F&B', 'Transport', 'Wellness'].includes(input.type) || !['Active', 'Paused', 'Archived'].includes(input.status)) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Invalid service category or status.' });
+    for (const loc of TV_LOCALES) for (const key of ['title', 'description', 'actionLabel']) {
       const value = input.localeContent?.[loc]?.[key];
-      if (typeof value !== 'string' || !value.trim() || value.length > 2000) return res.status(422).json({code:'VALIDATION_FAILED',message:`Provide ${key} for ${loc}.`});
+      if (typeof value !== 'string' || !value.trim() || value.length > 2000) return res.status(422).json({ code: 'VALIDATION_FAILED', message: `Provide ${key} for ${loc}.` });
     }
-    if (typeof input.availabilitySchedule !== 'string' || input.availabilitySchedule.length > 200 || (input.priceHint !== undefined && (typeof input.priceHint !== 'string' || input.priceHint.length > 200))) return res.status(422).json({code:'VALIDATION_FAILED',message:'Invalid availability or price.'});
-    let presentation:ReturnType<typeof validateCatalogPresentation>;
-    try{presentation=validateCatalogPresentation(input,existing);}catch(error){return res.status(422).json({code:'VALIDATION_FAILED',message:error instanceof Error?error.message:'Invalid catalog media.'});}
+    if (typeof input.availabilitySchedule !== 'string' || input.availabilitySchedule.length > 200 || (input.priceHint !== undefined && (typeof input.priceHint !== 'string' || input.priceHint.length > 200))) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Invalid availability or price.' });
+    let presentation: ReturnType<typeof validateCatalogPresentation>;
+    try { presentation = validateCatalogPresentation(input, existing); } catch (error) { return res.status(422).json({ code: 'VALIDATION_FAILED', message: error instanceof Error ? error.message : 'Invalid catalog media.' }); }
     const item: MarketplaceItem = {
-      id: existing?.id || `MKT-${randomUUID()}`, propertyId, type:input.type,
-      title:input.localeContent.en.title.trim(), description:input.localeContent.en.description.trim(),
-      localeContent: Object.fromEntries(TV_LOCALES.map(loc => [loc, {title: input.localeContent[loc].title.trim(), description:input.localeContent[loc].description.trim(), actionLabel:input.localeContent[loc].actionLabel.trim()}])) as MarketplaceItem['localeContent'],
-      status:input.status, availabilitySchedule:input.availabilitySchedule.trim(), priceHint:input.priceHint?.trim(), fulfilmentType:existing?.fulfilmentType || 'STAFF_TICKET',
-      ...presentation, partnerId:existing?.partnerId, partnerName:existing?.partnerName, featured:existing?.featured || false,
+      id: existing?.id || `MKT-${randomUUID()}`, propertyId, type: input.type,
+      title: input.localeContent.en.title.trim(), description: input.localeContent.en.description.trim(),
+      localeContent: Object.fromEntries(TV_LOCALES.map(loc => [loc, { title: input.localeContent[loc].title.trim(), description: input.localeContent[loc].description.trim(), actionLabel: input.localeContent[loc].actionLabel.trim() }])) as MarketplaceItem['localeContent'],
+      status: input.status, availabilitySchedule: input.availabilitySchedule.trim(), priceHint: input.priceHint?.trim(), fulfilmentType: existing?.fulfilmentType || 'STAFF_TICKET',
+      ...presentation, partnerId: existing?.partnerId, partnerName: existing?.partnerName, featured: existing?.featured || false,
     };
     workspace.marketplaceItems = [item, ...workspace.marketplaceItems.filter(i => i.id !== item.id)];
-    saveStore(store); recordAudit(environmentId,user.alias,role.id,'branding.edit',item.id,propertyId,'ALLOW','SERVICE_CATALOG_SAVED',`Updated hotel service ${item.id}`);
-    return res.json({ok:true,item});
+    saveStore(store); recordAudit(environmentId, user.alias, role.id, 'branding.edit', item.id, propertyId, 'ALLOW', 'SERVICE_CATALOG_SAVED', `Updated hotel service ${item.id}`);
+    return res.json({ ok: true, item });
   });
 
   // Create Guest Service Order (From SmartTV in-room app or concierge desk)
@@ -2207,10 +2241,10 @@ async function startServer() {
     const item = workspace.marketplaceItems.find((m) => m.id === itemId);
     if (!item) return res.status(404).json({ code: 'NOT_FOUND', message: `MarketplaceItem '${itemId}' not found.` });
 
-    if (item.propertyId !== propertyId || item.status !== 'Active') return res.status(422).json({code:'VALIDATION_FAILED',message:'Service is not active in this property.'});
+    if (item.propertyId !== propertyId || item.status !== 'Active') return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Service is not active in this property.' });
     const requestRoom = roomId ? workspace.rooms.find(r => r.id === roomId && r.propertyId === propertyId) : undefined;
-    if (roomId && !requestRoom) return res.status(422).json({code:'VALIDATION_FAILED',message:'Room does not belong to this property.'});
-    if (stayId && !workspace.stays.some(s => s.id === stayId && s.roomId === roomId && s.status === 'InHouse')) return res.status(422).json({code:'VALIDATION_FAILED',message:'Stay is not active in this room.'});
+    if (roomId && !requestRoom) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Room does not belong to this property.' });
+    if (stayId && !workspace.stays.some(s => s.id === stayId && s.roomId === roomId && s.status === 'InHouse')) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Stay is not active in this room.' });
 
     const rawGuestName =
       guestName ||
@@ -2838,33 +2872,33 @@ async function startServer() {
 
   // Entertainment URLs are allowlisted. Native-device launching is a separate adapter.
   app.post('/api/tv/open-app', (req: Request, res: Response) => {
-    const {endpointId,appId} = req.body;
-    const {workspace,user,environmentId} = getRequestContext(req);
+    const { endpointId, appId } = req.body;
+    const { workspace, user, environmentId } = getRequestContext(req);
     const ep = workspace.endpoints.find(e => e.id === endpointId);
-    if (!ep || !user.propertyIds.includes(ep.propertyId) || !user.allowedEnvironments.includes(environmentId)) return res.status(403).json({code:'SCOPE_DENIED',message:'Endpoint is outside the current property scope.'});
+    if (!ep || !user.propertyIds.includes(ep.propertyId) || !user.allowedEnvironments.includes(environmentId)) return res.status(403).json({ code: 'SCOPE_DENIED', message: 'Endpoint is outside the current property scope.' });
     const prop = workspace.properties.find(p => p.id === ep.propertyId);
     const app = ENTERTAINMENT_APPS.find(a => a.id === appId);
-    if (!prop || !app) return res.status(404).json({code:'NOT_FOUND',message:'App not found.'});
+    if (!prop || !app) return res.status(404).json({ code: 'NOT_FOUND', message: 'App not found.' });
     const config = resolveTvExperience(prop.tvExperience);
-    if (!hasEntertainmentEntitlement(workspace.subscriptions.find(sub => sub.propertyId === ep.propertyId),environmentId) || !config.appsEnabled || !config.apps[app.id]) return res.status(403).json({code:'APP_DISABLED',message:'This app or its paid add-on is disabled for the property.'});
-    if (ep.connection !== 'Online') return res.status(409).json({code:'ENDPOINT_OFFLINE',message:'The TV is offline.'});
-    return res.json({ok:true,mode:'NATIVE_MANAGED_REQUIRED',owner:config.appProfiles[app.id].owner,requiresNativeLauncher:true});
+    if (!hasEntertainmentEntitlement(workspace.subscriptions.find(sub => sub.propertyId === ep.propertyId), environmentId) || !config.appsEnabled || !config.apps[app.id]) return res.status(403).json({ code: 'APP_DISABLED', message: 'This app or its paid add-on is disabled for the property.' });
+    if (ep.connection !== 'Online') return res.status(409).json({ code: 'ENDPOINT_OFFLINE', message: 'The TV is offline.' });
+    return res.json({ ok: true, mode: 'NATIVE_MANAGED_REQUIRED', owner: config.appProfiles[app.id].owner, requiresNativeLauncher: true });
   });
 
   app.post('/api/properties/entertainment/license', (req: Request, res: Response) => {
-    const {propertyId,status,reference} = req.body;
-    const {workspace,user,role,environmentId} = getRequestContext(req);
-    if (!['R-01','R-02'].includes(role.id)) return res.status(403).json({code:'PERMISSION_DENIED',message:'Only GOJJA HQ can grant paid feature entitlement.'});
-    const auth = authorizeAction(req,'subscriptions.manage',propertyId);
-    if (!auth.allowed) return res.status(403).json({code:auth.reasonCode,message:auth.message});
-    if (!['Active','Inactive'].includes(status) || typeof reference !== 'string' || !reference.trim() || reference.length > 200) return res.status(422).json({code:'VALIDATION_FAILED',message:'Provide a valid entitlement reference and status.'});
+    const { propertyId, status, reference } = req.body;
+    const { workspace, user, role, environmentId } = getRequestContext(req);
+    if (!['R-01', 'R-02'].includes(role.id)) return res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Only GOJJA HQ can grant paid feature entitlement.' });
+    const auth = authorizeAction(req, 'subscriptions.manage', propertyId);
+    if (!auth.allowed) return res.status(403).json({ code: auth.reasonCode, message: auth.message });
+    if (!['Active', 'Inactive'].includes(status) || typeof reference !== 'string' || !reference.trim() || reference.length > 200) return res.status(422).json({ code: 'VALIDATION_FAILED', message: 'Provide a valid entitlement reference and status.' });
     const subscription = workspace.subscriptions.find(sub => sub.propertyId === propertyId);
     const prop = workspace.properties.find(p => p.id === propertyId);
-    if (!subscription || !prop) return res.status(404).json({code:'NOT_FOUND',message:'Property subscription not found.'});
-    subscription.entertainmentAppsEntitlement = {status,mode:environmentId === 'DEMO'?'DEMO':'CONTRACT',reference:reference.trim()};
-    if (status === 'Inactive') prop.tvExperience = {...resolveTvExperience(prop.tvExperience),appsEnabled:false};
-    saveStore(store); recordAudit(environmentId,user.alias,role.id,'subscriptions.manage',subscription.id,propertyId,'ALLOW','ENTERTAINMENT_LICENSE_CHANGED','Entertainment add-on entitlement updated; no payment executed.');
-    return res.json({ok:true,entitlement:subscription.entertainmentAppsEntitlement});
+    if (!subscription || !prop) return res.status(404).json({ code: 'NOT_FOUND', message: 'Property subscription not found.' });
+    subscription.entertainmentAppsEntitlement = { status, mode: environmentId === 'DEMO' ? 'DEMO' : 'CONTRACT', reference: reference.trim() };
+    if (status === 'Inactive') prop.tvExperience = { ...resolveTvExperience(prop.tvExperience), appsEnabled: false };
+    saveStore(store); recordAudit(environmentId, user.alias, role.id, 'subscriptions.manage', subscription.id, propertyId, 'ALLOW', 'ENTERTAINMENT_LICENSE_CHANGED', 'Entertainment add-on entitlement updated; no payment executed.');
+    return res.json({ ok: true, entitlement: subscription.entertainmentAppsEntitlement });
   });
 
   // 9. Release Technical Approval & Property Installation Permission (Two-Stage Gate) + M09 Job State Machine
@@ -3431,12 +3465,12 @@ async function startServer() {
       adbVersion,
       rsaFingerprint,
     });
-    if (!result.ok) {
-      return res.status(400).json({ code: result.code, message: result.message });
+    if (!result.ok || !result.session) {
+      return res.status(400).json({ code: result.code || 'PAIRING_FAILED', message: result.message || 'Pairing failed' });
     }
 
     const { session } = result;
-    const targetEnv = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';
+    const targetEnv: EnvironmentId = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';
     const workspace = store[targetEnv];
     const connectorId = session.agentId;
     const connector: ConnectorRegistration = {
@@ -3512,7 +3546,7 @@ async function startServer() {
     req.on('close', () => {
       clearInterval(keepAlive);
       edgeBridge.detachSseStream(session.agentId, res);
-      const targetEnv = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';
+      const targetEnv: EnvironmentId = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';
       const conn = store[targetEnv].connectors.find((c) => c.id === session.agentId);
       if (conn) {
         conn.status = 'Offline';
@@ -3536,7 +3570,7 @@ async function startServer() {
       ...(rsaFingerprint ? { rsaFingerprint: String(rsaFingerprint) } : {}),
     });
 
-    const targetEnv = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';
+    const targetEnv: EnvironmentId = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';
     const conn = store[targetEnv].connectors.find((c) => c.id === session.agentId);
     if (conn && updated) {
       conn.lastHeartbeatUtc = updated.lastHeartbeatUtc;
@@ -4238,7 +4272,7 @@ async function startServer() {
         return res.json({ ok: true, candidate: cand, message: cand.notes, viaEdgeAgent: onlineEdgeAgent.agentId });
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Edge Agent ADB connect failed';
-        return res.status(502).json({ code: 'DEVICE_VERIFY_FAILED', message: msg, candidate: cand });
+        return res.status(422).json({ code: 'DEVICE_VERIFY_FAILED', message: msg, candidate: cand });
       }
     }
 
@@ -4307,7 +4341,7 @@ async function startServer() {
       cand.notes = `Live ADB connection / verification did not succeed on ${targetSpec}: ${errMsg}`;
       saveStore(store);
       recordAudit('LIVE_LAB', user.alias, role.id, 'adb.connect', targetSpec, cand.propertyId, 'DENY', 'DEVICE_VERIFY_FAILED', cand.notes);
-      return res.status(502).json({
+      return res.status(422).json({
         code: 'DEVICE_VERIFY_FAILED',
         message: cand.notes,
         candidate: cand,
@@ -4339,6 +4373,43 @@ async function startServer() {
       return res.json({ ok: true, candidate: cand, message: 'Device probed and identified (DEMO mode).' });
     }
 
+    // 0. Cloud Edge Agent relay support
+    const targetPropId = cand?.propertyId || 'P-01';
+    const onlineEdgeAgent = edgeBridge.getOnlineAgentForProperty(targetPropId, environmentId);
+    if (onlineEdgeAgent) {
+      try {
+        const edgeRes = await edgeBridge.dispatchJob(
+          targetPropId,
+          'ADB_PROBE',
+          { ip: targetIp, port: targetPort },
+          environmentId,
+          20000
+        );
+        if (edgeRes.ok && edgeRes.data) {
+          const d = edgeRes.data as Record<string, any>;
+          if (cand) {
+            cand.authState = d.verified ? 'DeviceVerified' : 'AuthRequired';
+            if (d.verified) {
+              cand.friendlyName = d.friendlyName || `${d.brand ? String(d.brand).toUpperCase() + ' ' : ''}${d.model || 'Smart TV'}`.trim();
+              cand.observedBrand = d.brand;
+              cand.observedModel = d.model;
+              cand.observedManufacturer = d.manufacturer;
+              cand.observedAndroidVersion = d.release;
+              cand.observedSdkInt = Number(d.sdk) || 0;
+              cand.notes = `LIVE_LAB DEVICE_VERIFIED via Cloud Edge Agent (${onlineEdgeAgent.name}): ${cand.friendlyName} (Android ${cand.observedAndroidVersion || '?'}).`;
+            } else {
+              cand.notes = d.error || `Connected via Edge Agent. Silakan centang 'Selalu izinkan' dan klik OK di layar TV.`;
+            }
+            cand.lastObservedUtc = new Date().toISOString();
+            saveStore(store);
+          }
+          return res.json({ ok: true, candidate: cand, message: cand?.notes || 'Probe selesai via Edge Agent.', viaEdgeAgent: onlineEdgeAgent.agentId });
+        }
+      } catch (err) {
+        console.warn(`[Edge Probe Relay] Falling back to local adb probe:`, err);
+      }
+    }
+
     const adbHost = await detectHostAdb();
     if (!adbHost.available) {
       return res.status(503).json({ code: 'CAPABILITY_UNSUPPORTED', message: 'ADB binary unavailable.' });
@@ -4346,7 +4417,7 @@ async function startServer() {
 
     const adbProps = await probeAdbDeviceProperties(targetIp, targetPort);
     if (!adbProps.connected) {
-      return res.status(502).json({ code: 'DEVICE_UNREACHABLE', message: `Could not connect to ${targetIp}:${targetPort}: ${adbProps.rawStatus}` });
+      return res.status(422).json({ code: 'DEVICE_UNREACHABLE', message: `Tidak dapat terhubung ke ${targetIp}:${targetPort}: ${adbProps.rawStatus}`, candidate: cand });
     }
 
     if (cand) {
@@ -4364,7 +4435,7 @@ async function startServer() {
         cand.observedSerial = adbProps.serialNo;
         cand.notes = `Identified: ${cand.friendlyName} (Android ${adbProps.androidVersion || '?'}, SDK ${adbProps.sdkInt || '?'}). Real getprop response verified.`;
       } else if (adbProps.authState === 'AuthRequired') {
-        cand.notes = `Connected on port 5555. Please accept RSA debugging prompt on the TV screen.`;
+        cand.notes = adbProps.rawStatus;
       }
       cand.lastObservedUtc = new Date().toISOString();
       saveStore(store);
@@ -4403,9 +4474,42 @@ async function startServer() {
       });
     }
 
+    // 0. Cloud Edge Agent relay support
+    const targetPropId = cand?.propertyId || 'P-01';
+    const onlineEdgeAgent = edgeBridge.getOnlineAgentForProperty(targetPropId, environmentId);
+    if (onlineEdgeAgent) {
+      try {
+        const edgeRes = await edgeBridge.dispatchJob(
+          targetPropId,
+          'SCREENCAP',
+          { ip: targetIp, port: targetPort },
+          environmentId,
+          25000
+        );
+        if (edgeRes.ok && edgeRes.data?.dataUrl) {
+          const capturedAt = new Date().toISOString();
+          if (cand) {
+            cand.lastScreenshotUrl = edgeRes.data.dataUrl as string;
+            cand.lastScreenshotCapturedAt = capturedAt;
+            saveStore(store);
+          }
+          return res.json({
+            ok: true,
+            imageUrl: edgeRes.data.dataUrl,
+            capturedAt,
+            candidate: cand,
+            sizeBytes: Number(edgeRes.data.sizeBytes) || 0,
+            message: `Realtime screenshot captured via Edge Agent (${onlineEdgeAgent.name}).`,
+          });
+        }
+      } catch (err) {
+        console.warn(`[Edge Screenshot Relay] Falling back to local capture:`, err);
+      }
+    }
+
     const captureRes = await captureDeviceScreenshot(targetIp, targetPort);
     if (!captureRes.success || !captureRes.dataUrl) {
-      return res.status(502).json({
+      return res.status(422).json({
         code: 'SCREENSHOT_FAILED',
         message: captureRes.error || `Failed to capture screenshot from ${targetIp}:${targetPort}.`,
       });
@@ -4712,7 +4816,7 @@ async function startServer() {
     // Idempotent check if already bound
     const existingEp = workspace.endpoints.find(
       (e) => (cand.observedSerial && e.serialRef === cand.observedSerial) ||
-             (e.ipHint === cand.ip && e.portHint === cand.port)
+        (e.ipHint === cand.ip && e.portHint === cand.port)
     );
     if (existingEp) {
       existingEp.roomId = room.id;
@@ -4848,7 +4952,7 @@ async function startServer() {
         title: 'Multi-TV Suite Room 301 & Room 502 distinct bindings',
         status:
           INITIAL_ENDPOINTS.filter((e) => e.roomId === 'ROOM-301').length === 2 &&
-          INITIAL_ENDPOINTS.filter((e) => e.roomId === 'ROOM-502').length === 2
+            INITIAL_ENDPOINTS.filter((e) => e.roomId === 'ROOM-502').length === 2
             ? 'Pass'
             : 'Fail',
         expected: 'Room 301 (E-06, E-07) and Room 502 (E-11, E-12) have distinct endpoint bindings',
@@ -4884,8 +4988,8 @@ async function startServer() {
         title: 'Analytics arithmetic (CMP-01 212s / 60% & Channel 1530s / 25.5m / median 180s)',
         status:
           ANALYTICS_FIXTURE.campaignSummary.totalPlaySeconds === 212 &&
-          ANALYTICS_FIXTURE.channelSummary.totalPlaySeconds === 1530 &&
-          ANALYTICS_FIXTURE.channelSummary.medianSessionSeconds === 180
+            ANALYTICS_FIXTURE.channelSummary.totalPlaySeconds === 1530 &&
+            ANALYTICS_FIXTURE.channelSummary.medianSessionSeconds === 180
             ? 'Pass'
             : 'Fail',
         expected: 'CMP-01: 10 starts, 6 complete, 212s, 60%; Channel: 1530s (25.5m), median 180s',
