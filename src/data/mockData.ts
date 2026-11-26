@@ -924,7 +924,7 @@ export interface DiscoveryCandidate {
   port: number;
   pairingPort?: number;
   friendlyName: string;
-  discoverySource: 'mDNS' | 'TCP_PROBE' | 'MANUAL' | 'DEMO_SCENARIO';
+  discoverySource: 'mDNS' | 'TCP_PROBE' | 'MANUAL' | 'DEMO_SCENARIO' | 'SSDP';
   serviceHint: string;
   reachability: 'Reachable' | 'Unreachable' | 'Timeout';
   authState:

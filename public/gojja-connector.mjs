@@ -410,7 +410,7 @@ async function executeEdgeJob(job, adbInfo) {
     if (job.type === 'SCAN_SUBNET') {
       const cidr = String(payload.subnetCidr || '192.168.1.0/24');
       const requestedPorts = Array.isArray(payload.ports) && payload.ports.length > 0 ? payload.ports.map(Number) : [5555];
-      const scanPorts = Array.from(new Set([...requestedPorts, 8008]));
+      const scanPorts = Array.from(new Set([...requestedPorts, 8008, 8001]));
 
       const mdnsCandidates = adbInfo.available ? await discoverMdnsAdbServices(adbBin, cidr) : [];
       const tcpCandidates = await runBoundedSubnetScan(cidr, scanPorts);
@@ -431,6 +431,20 @@ async function executeEdgeJob(job, adbInfo) {
             cand.observedModel = castInfo.modelName || cand.observedModel;
             cand.notes = `TV terdeteksi via Google Cast (8008), tetapi ADB Port 5555 / Wireless Debugging belum aktif. Aktifkan Developer Options -> USB/Wireless Debugging di TV.`;
           }
+          continue;
+        }
+        if (cand.port === 8001 || /samsung/i.test(cand.friendlyName)) {
+          try {
+            const res = await fetch(`http://${cand.ip}:8001/api/v2/`, { signal: AbortSignal.timeout(1200) });
+            if (res.ok) {
+              const info = await res.json();
+              cand.friendlyName = info.name || cand.friendlyName;
+              cand.observedBrand = 'Samsung';
+              cand.observedModel = info.device?.modelName || cand.observedModel;
+              cand.observedManufacturer = 'Samsung';
+              cand.notes = `Smart TV terdeteksi: ${cand.friendlyName} (${info.device?.modelName || 'Samsung'}, OS: ${info.device?.OS || 'Tizen'}).`;
+            }
+          } catch {}
           continue;
         }
         if (adbInfo.available && (cand.port === 5555 || (cand.discoverySource === 'mDNS' && cand.authState !== 'PairRequired'))) {

@@ -4698,7 +4698,7 @@
         "adbVersion": "Not found in PATH (Install Android SDK Platform-Tools)",
         "adbAvailable": false,
         "interfaceName": "vEthernet (Default Switch)",
-        "subnetCidr": "192.168.100.0/24",
+        "subnetCidr": "192.168.1.0/24",
         "allowedActions": [
           "network.scan",
           "adb.pair",
@@ -4961,9 +4961,167 @@
           "status": "Verified",
           "notes": "Live ADB backup verified for SMART TV. 81 enabled, 0 disabled, 5 third-party apps recorded."
         }
+      },
+      {
+        "id": "LIVE-ARP-192-168-0-59-8001",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "ip": "192.168.0.59",
+        "port": 8001,
+        "friendlyName": "Samsung AU7000 55 TV",
+        "discoverySource": "TCP_PROBE",
+        "serviceHint": "Samsung Smart TV (8001)",
+        "reachability": "Reachable",
+        "authState": "CandidateFound",
+        "confidence": "Medium",
+        "observedBrand": "Samsung",
+        "observedModel": "UA55AU7000KXXD",
+        "observedManufacturer": "Samsung",
+        "assignedRoomId": null,
+        "lastObservedUtc": "2026-11-26T12:32:49.543Z",
+        "origin": "LIVE_OBSERVATION",
+        "executionMode": "LIVE",
+        "notes": "Identified: Samsung AU7000 55 TV (Model: UA55AU7000KXXD, OS: Tizen)."
       }
     ],
     "discoveryRuns": [
+      {
+        "id": "RUN-LIVE-76135",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555,
+          8008,
+          8001
+        ],
+        "startedAtUtc": "2026-11-26T12:32:47.765Z",
+        "completedAtUtc": "2026-11-26T12:32:56.135Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 2,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) and found 2 reachable endpoint(s)."
+      },
+      {
+        "id": "RUN-LIVE-21133",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555,
+          8008,
+          8001
+        ],
+        "startedAtUtc": "2026-11-26T12:31:52.611Z",
+        "completedAtUtc": "2026-11-26T12:32:01.133Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 2,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) and found 2 reachable endpoint(s)."
+      },
+      {
+        "id": "RUN-LIVE-52083",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555,
+          8008,
+          8001
+        ],
+        "startedAtUtc": "2026-11-26T12:30:49.028Z",
+        "completedAtUtc": "2026-11-26T12:30:52.083Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "RUN-LIVE-35259",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555,
+          8008,
+          8001
+        ],
+        "startedAtUtc": "2026-11-26T12:30:32.170Z",
+        "completedAtUtc": "2026-11-26T12:30:35.259Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "RUN-LIVE-88672",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.100.0/24",
+        "portsProbed": [
+          5555,
+          8008,
+          8001
+        ],
+        "startedAtUtc": "2026-11-26T12:28:04.897Z",
+        "completedAtUtc": "2026-11-26T12:28:08.672Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.100.0/24 (ports: 5555, 8008, 8001) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "RUN-LIVE-75764",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555
+        ],
+        "startedAtUtc": "2026-11-26T12:27:52.727Z",
+        "completedAtUtc": "2026-11-26T12:27:55.764Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "RUN-LIVE-61408",
+        "environmentId": "LIVE_LAB",
+        "connectorId": "CON-LIVE_LAB-P-01",
+        "propertyId": "P-01",
+        "interfaceName": "vEthernet (Default Switch)",
+        "subnetCidr": "192.168.1.0/24",
+        "portsProbed": [
+          5555
+        ],
+        "startedAtUtc": "2026-11-26T12:20:58.409Z",
+        "completedAtUtc": "2026-11-26T12:21:01.408Z",
+        "hostsAttempted": 254,
+        "candidatesFound": 0,
+        "executionMode": "LIVE",
+        "status": "Completed",
+        "summaryText": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
       {
         "id": "RUN-LIVE-55257",
         "environmentId": "LIVE_LAB",
@@ -5506,6 +5664,136 @@
       }
     ],
     "auditEvents": [
+      {
+        "id": "AUD-1795696376176-264",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:32:56.176Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-76135",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) and found 2 reachable endpoint(s)."
+      },
+      {
+        "id": "AUD-1795696321168-274",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:32:01.168Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-21133",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) and found 2 reachable endpoint(s)."
+      },
+      {
+        "id": "AUD-1795696252107-621",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:30:52.107Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-52083",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "AUD-1795696235285-894",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:30:35.285Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-35259",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555, 8008, 8001) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "AUD-1795696232111-374",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:30:32.111Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "connectors.enroll",
+        "targetRef": "P-01",
+        "propertyId": "P-01",
+        "outcome": "DENY",
+        "reasonCode": "PERMISSION_DENIED",
+        "details": "Role R-11 (Property Manager) lacks permission 'connectors.enroll'."
+      },
+      {
+        "id": "AUD-1795696088691-543",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:28:08.691Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-88672",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.100.0/24 (ports: 5555, 8008, 8001) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "AUD-1795696075818-203",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:27:55.818Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-75764",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "AUD-1795695661438-315",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:21:01.438Z",
+        "actorAlias": "alpha-installer",
+        "actorRole": "R-09",
+        "action": "network.scan",
+        "targetRef": "RUN-LIVE-61408",
+        "propertyId": "P-01",
+        "outcome": "ALLOW",
+        "reasonCode": "LIVE_SCAN_EXECUTED",
+        "details": "Real LIVE_LAB scan probed 254 hosts on 192.168.1.0/24 (ports: 5555) — 0 reachable ADB endpoints responded on this host interface. No simulated TVs were substituted."
+      },
+      {
+        "id": "AUD-1795695328739-32",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T12:15:28.741Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "adb.connect",
+        "targetRef": "P-01",
+        "propertyId": "P-01",
+        "outcome": "DENY",
+        "reasonCode": "PERMISSION_DENIED",
+        "details": "Role R-11 (Property Manager) lacks permission 'adb.connect'."
+      },
+      {
+        "id": "AUD-1795692279604-744",
+        "environmentId": "LIVE_LAB",
+        "timestampUtc": "2026-11-26T11:24:39.604Z",
+        "actorAlias": "property-manager",
+        "actorRole": "R-11",
+        "action": "connectors.enroll",
+        "targetRef": "P-01",
+        "propertyId": "P-01",
+        "outcome": "DENY",
+        "reasonCode": "PERMISSION_DENIED",
+        "details": "Role R-11 (Property Manager) lacks permission 'connectors.enroll'."
+      },
       {
         "id": "AUD-1795691374676-983",
         "environmentId": "LIVE_LAB",

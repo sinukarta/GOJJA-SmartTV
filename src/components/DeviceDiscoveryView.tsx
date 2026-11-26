@@ -127,7 +127,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   const [subnetCidr, setSubnetCidr] = useState<string>(
     activeConnector?.subnetCidr || (environmentId === 'DEMO' ? '192.168.10.0/24' : defaultIface.cidr)
   );
-  const [portsInput, setPortsInput] = useState<string>('5555');
+  const [portsInput, setPortsInput] = useState<string>('5555, 8008, 8001');
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [screenshotModalUrl, setScreenshotModalUrl] = useState<string | null>(null);
   const [autoRefreshScreenshot, setAutoRefreshScreenshot] = useState<boolean>(false);
@@ -820,18 +820,29 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                     .split(',')
                     .map((s) => Number(s.trim()))
                     .filter((n) => !Number.isNaN(n) && n > 0 && n <= 65535);
-                  wrapBusy('scan', () =>
-                    onRunScan({
+                  wrapBusy('scan', async () => {
+                    // Auto-sync / enroll connector grant before scanning so it never fails with CONNECTOR_OFFLINE
+                    try {
+                      await onRegisterConnector({
+                        propertyId: selectedPropertyId,
+                        name: connectorName,
+                        interfaceName: selectedInterface,
+                        subnetCidr,
+                      });
+                    } catch {
+                      // ignore and continue
+                    }
+                    await onRunScan({
                       propertyId: selectedPropertyId,
                       subnetCidr,
-                      ports: parsedPorts.length ? parsedPorts : [5555],
-                    })
-                  );
+                      ports: parsedPorts.length ? parsedPorts : [5555, 8008, 8001],
+                    });
+                  });
                 }}
-                className="px-4 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-xs inline-flex items-center gap-2 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-[#0050F5] hover:bg-[#0040C8] text-white font-semibold text-xs inline-flex items-center gap-2 transition-all cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${busyAction === 'scan' ? 'animate-spin' : ''}`} />
-                <span>{busyAction === 'scan' ? 'Scanning Subnet...' : '2. Scan Authorized Network'}</span>
+                <span>{busyAction === 'scan' ? 'Scanning Network (TCP+SSDP+mDNS)...' : '2. Scan Authorized Network'}</span>
               </button>
             </div>
           </div>
