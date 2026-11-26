@@ -742,11 +742,13 @@ function getHostNetworkInterfaces() {
     if (!addrs) continue;
     for (const addr of addrs) {
       if (addr.family === 'IPv4') {
+        const parts = addr.address.split('.');
+        const normalizedCidr = parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.0/24` : `${addr.address}/24`;
         result.push({
           name,
           address: addr.address,
           netmask: addr.netmask,
-          cidr: addr.cidr || `${addr.address}/24`,
+          cidr: normalizedCidr,
           internal: addr.internal,
         });
       }
@@ -3455,7 +3457,7 @@ async function startServer() {
 
   // 11C. Redeem Pairing Code from Edge Agent (Outbound Enrollment)
   app.post('/api/edge/enroll', (req: Request, res: Response) => {
-    const { pairingCode, name, hostPlatform, interfaceName, subnetCidr, adbAvailable, adbVersion, rsaFingerprint } = req.body || {};
+    const { pairingCode, name, hostPlatform, interfaceName, subnetCidr, adbAvailable, adbVersion, rsaFingerprint, interfaces } = req.body || {};
     const result = edgeBridge.redeemPairingToken(pairingCode, {
       name,
       hostPlatform,
@@ -3464,6 +3466,7 @@ async function startServer() {
       adbAvailable,
       adbVersion,
       rsaFingerprint,
+      interfaces: Array.isArray(interfaces) ? interfaces : undefined,
     });
     if (!result.ok || !result.session) {
       return res.status(400).json({ code: result.code || 'PAIRING_FAILED', message: result.message || 'Pairing failed' });
@@ -3561,13 +3564,14 @@ async function startServer() {
     if (!session) {
       return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid Edge Agent token.' });
     }
-    const { adbAvailable, adbVersion, subnetCidr, interfaceName, rsaFingerprint } = req.body || {};
+    const { adbAvailable, adbVersion, subnetCidr, interfaceName, rsaFingerprint, interfaces } = req.body || {};
     const updated = edgeBridge.updateHeartbeat(session.agentId, {
       ...(typeof adbAvailable === 'boolean' ? { adbAvailable } : {}),
       ...(adbVersion ? { adbVersion: String(adbVersion) } : {}),
       ...(subnetCidr ? { subnetCidr: String(subnetCidr) } : {}),
       ...(interfaceName ? { interfaceName: String(interfaceName) } : {}),
       ...(rsaFingerprint ? { rsaFingerprint: String(rsaFingerprint) } : {}),
+      ...(Array.isArray(interfaces) ? { interfaces } : {}),
     });
 
     const targetEnv: EnvironmentId = session.environmentId === 'DEMO' ? 'DEMO' : 'LIVE_LAB';

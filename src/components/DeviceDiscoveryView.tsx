@@ -148,6 +148,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
     hostPlatform: string;
     interfaceName: string;
     subnetCidr: string;
+    interfaces?: Array<{ name: string; address: string; netmask?: string; cidr: string }>;
     adbAvailable: boolean;
     adbVersion: string;
     rsaFingerprint?: string;
@@ -160,6 +161,124 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
     installCommands: { bash: string; powershell: string; directCli: string };
   } | null>(null);
   const [edgeLoading, setEdgeLoading] = useState<boolean>(false);
+
+  // Local Browser Network Detection (Cloud SaaS Local Wi-Fi Discovery)
+  const [browserLocal, setBrowserLocal] = useState<{
+    ip: string;
+    cidr: string;
+    name: string;
+    source: 'webrtc' | 'loopback-agent';
+  } | null>(null);
+  const [isDetectingLocal, setIsDetectingLocal] = useState<boolean>(false);
+  const [localDetectFeedback, setLocalDetectFeedback] = useState<string | null>(null);
+
+  const detectLocalNetwork = async (notify = true) => {
+    setIsDetectingLocal(true);
+    if (notify) setLocalDetectFeedback('Scanning local network adapters...');
+    try {
+      // 1. Check local loopback Edge Agent (if running on user machine)
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch('http://127.0.0.1:3939/interfaces', { signal: controller.signal });
+        clearTimeout(timeout);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.interfaces) && data.interfaces.length > 0) {
+            const wifi =
+              data.interfaces.find((i: { name: string; address: string; cidr: string }) => /wi-?fi|wlan|wireless/i.test(i.name)) ||
+              data.interfaces[0];
+            if (wifi) {
+              setBrowserLocal({
+                ip: wifi.address,
+                cidr: wifi.cidr,
+                name: `${wifi.name} (Local Edge Agent)`,
+                source: 'loopback-agent',
+              });
+              setSelectedInterface(`[Edge Local] ${wifi.name} (${wifi.address})`);
+              setSubnetCidr(wifi.cidr);
+              if (notify) setLocalDetectFeedback(`✓ Terdeteksi via Local Agent: ${wifi.name} — ${wifi.address} (${wifi.cidr})`);
+              return;
+            }
+          }
+        }
+      } catch {
+        // loopback not active, continue to WebRTC probe
+      }
+
+      // 2. Browser WebRTC ICE Host Candidate Discovery
+      const rtcResult = await new Promise<{ ip: string; cidr: string } | null>((resolve) => {
+        if (typeof window === 'undefined' || typeof RTCPeerConnection === 'undefined') return resolve(null);
+        let resolved = false;
+        let pc: RTCPeerConnection | null = null;
+        const done = (val: { ip: string; cidr: string } | null) => {
+          if (!resolved) {
+            resolved = true;
+            try { pc?.close(); } catch {}
+            resolve(val);
+          }
+        };
+        const timer = setTimeout(() => done(null), 2500);
+        try {
+          pc = new RTCPeerConnection({ iceServers: [] });
+          pc.onicecandidate = (event) => {
+            if (!event?.candidate?.candidate) return;
+            const cand = event.candidate.candidate;
+            const match = /(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})/.exec(cand);
+            if (match) {
+              const ip = match[1];
+              const parts = ip.split('.');
+              const cidr = `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
+              clearTimeout(timer);
+              done({ ip, cidr });
+            }
+          };
+          pc.createDataChannel('gojja-local-detect');
+          pc.createOffer()
+            .then((offer) => pc?.setLocalDescription(offer))
+            .catch(() => done(null));
+        } catch {
+          done(null);
+        }
+      });
+
+      if (rtcResult) {
+        setBrowserLocal({
+          ip: rtcResult.ip,
+          cidr: rtcResult.cidr,
+          name: 'Wi-Fi / LAN Lokal (Browser)',
+          source: 'webrtc',
+        });
+        setSelectedInterface(`[Browser Local] Wi-Fi (${rtcResult.ip})`);
+        setSubnetCidr(rtcResult.cidr);
+        if (notify) setLocalDetectFeedback(`✓ Terdeteksi via WebRTC: Wi-Fi ${rtcResult.ip} → Subnet ${rtcResult.cidr}`);
+        return;
+      }
+
+      // 3. Fallback: Check if an online Edge Agent is already registered
+      const onlineEdge = edgeAgents.find((a) => a.status === 'Online');
+      if (onlineEdge) {
+        setSelectedInterface(`[Edge: ${onlineEdge.name}] ${onlineEdge.interfaceName} (${onlineEdge.subnetCidr})`);
+        setSubnetCidr(onlineEdge.subnetCidr);
+        if (notify) setLocalDetectFeedback(`✓ Diselaraskan dengan Edge Agent (${onlineEdge.name}): Subnet ${onlineEdge.subnetCidr}`);
+        return;
+      }
+
+      if (notify) {
+        setLocalDetectFeedback('Browser menyamarkan IP lokal (mDNS). Silakan jalankan 1-Line Edge Connector di bawah pada laptop Anda.');
+      }
+    } finally {
+      setIsDetectingLocal(false);
+      setTimeout(() => setLocalDetectFeedback(null), 6000);
+    }
+  };
+
+  useEffect(() => {
+    // Attempt non-blocking local detection on startup if in LIVE_LAB
+    if (environmentId === 'LIVE_LAB') {
+      detectLocalNetwork(false);
+    }
+  }, [environmentId]);
 
   const refreshEdgeAgents = async () => {
     try {
@@ -520,34 +639,150 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium mb-1">Host LAN Interface</label>
-                <select
-                  value={selectedInterface}
-                  onChange={(e) => setSelectedInterface(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs font-mono-tabular"
-                >
-                  {hostRuntime.interfaces.map((iface, i) => (
-                    <option key={i} value={`${iface.name} (${iface.address})`}>
-                      {iface.name} — {iface.address}
-                    </option>
-                  ))}
-                  <option value="eth0 (Hospitality Management VLAN 10)">eth0 — 192.168.10.10</option>
-                </select>
-              </div>
+            {/* Unified Available Network Interfaces with Live CIDR Sync & Browser Local Wi-Fi */}
+            {(() => {
+              interface AvailableInterfaceOption {
+                value: string;
+                label: string;
+                name: string;
+                address: string;
+                cidr: string;
+              }
 
-              <div>
-                <label className="block font-medium mb-1">Bounded RFC1918 CIDR (Max /24)</label>
-                <input
-                  type="text"
-                  value={subnetCidr}
-                  onChange={(e) => setSubnetCidr(e.target.value)}
-                  placeholder="192.168.10.0/24"
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs font-mono-tabular"
-                />
+              const availableInterfaceOptions: AvailableInterfaceOption[] = [];
+
+              // 1. Browser Local (if detected via WebRTC or Loopback agent)
+              if (browserLocal) {
+                availableInterfaceOptions.push({
+                  value: `[Browser Local] ${browserLocal.name} (${browserLocal.ip})`,
+                  label: `📡 [Browser Local] ${browserLocal.name} — ${browserLocal.ip}`,
+                  name: browserLocal.name,
+                  address: browserLocal.ip,
+                  cidr: browserLocal.cidr,
+                });
+              }
+
+              // 2. Connected Edge Agents (from laptop running in hotel / local LAN)
+              for (const ag of edgeAgents) {
+                if (ag.status === 'Online') {
+                  if (Array.isArray(ag.interfaces) && ag.interfaces.length > 0) {
+                    for (const ifc of ag.interfaces) {
+                      availableInterfaceOptions.push({
+                        value: `[Edge: ${ag.name}] ${ifc.name} (${ifc.address})`,
+                        label: `⚡ [Edge: ${ag.name}] ${ifc.name} — ${ifc.address}`,
+                        name: ifc.name,
+                        address: ifc.address,
+                        cidr: ifc.cidr,
+                      });
+                    }
+                  } else {
+                    const agIp = ag.subnetCidr.split('/')[0] || '';
+                    availableInterfaceOptions.push({
+                      value: `[Edge: ${ag.name}] ${ag.interfaceName} (${ag.subnetCidr})`,
+                      label: `⚡ [Edge: ${ag.name}] ${ag.interfaceName} — ${ag.subnetCidr}`,
+                      name: ag.interfaceName,
+                      address: agIp,
+                      cidr: ag.subnetCidr,
+                    });
+                  }
+                }
+              }
+
+              // 3. Host Runtime interfaces (local machine or server container)
+              for (const iface of hostRuntime.interfaces) {
+                availableInterfaceOptions.push({
+                  value: `${iface.name} (${iface.address})`,
+                  label: `${iface.name} — ${iface.address}`,
+                  name: iface.name,
+                  address: iface.address,
+                  cidr: iface.cidr,
+                });
+              }
+
+              // 4. Default Hospitality VLAN preset
+              availableInterfaceOptions.push({
+                value: 'eth0 (Hospitality Management VLAN 10)',
+                label: 'eth0 — 192.168.10.10 (Hospitality VLAN 10)',
+                name: 'eth0',
+                address: '192.168.10.10',
+                cidr: '192.168.10.0/24',
+              });
+
+              const handleInterfaceChange = (newValue: string) => {
+                setSelectedInterface(newValue);
+                const matched = availableInterfaceOptions.find(
+                  (opt) =>
+                    opt.value === newValue ||
+                    opt.name === newValue ||
+                    `${opt.name} (${opt.address})` === newValue
+                );
+                if (matched && matched.cidr) {
+                  setSubnetCidr(matched.cidr);
+                } else {
+                  // Fallback: extract IPv4 octets and compute /24
+                  const ipMatch = /(?:192\.168\.\d{1,3}|10\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3})\.\d{1,3}/.exec(newValue);
+                  if (ipMatch) {
+                    const parts = ipMatch[0].split('.');
+                    setSubnetCidr(`${parts[0]}.${parts[1]}.${parts[2]}.0/24`);
+                  }
+                }
+              };
+
+              return (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-medium">Host LAN Interface</label>
+                      <button
+                        type="button"
+                        onClick={() => detectLocalNetwork(true)}
+                        disabled={isDetectingLocal}
+                        className="inline-flex items-center gap-1 text-[11px] text-[#0050F5] dark:text-[#C7B9FF] hover:underline cursor-pointer"
+                        title="Deteksi Wi-Fi / LAN lokal langsung dari browser atau Edge Agent lokal"
+                      >
+                        <Wifi className={`w-3 h-3 ${isDetectingLocal ? 'animate-pulse text-[#0050F5]' : ''}`} />
+                        <span>{isDetectingLocal ? 'Mendeteksi...' : 'Deteksi Wi-Fi'}</span>
+                      </button>
+                    </div>
+                    <select
+                      value={selectedInterface}
+                      onChange={(e) => handleInterfaceChange(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs font-mono-tabular"
+                    >
+                      {!availableInterfaceOptions.some((opt) => opt.value === selectedInterface) && selectedInterface && (
+                        <option value={selectedInterface}>{selectedInterface}</option>
+                      )}
+                      {availableInterfaceOptions.map((opt, i) => (
+                        <option key={i} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-medium">Bounded RFC1918 CIDR (Max /24)</label>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Auto-Synced</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={subnetCidr}
+                      onChange={(e) => setSubnetCidr(e.target.value)}
+                      placeholder="192.168.10.0/24"
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--cms-input)] border border-[var(--cms-control-border)] text-xs font-mono-tabular"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {localDetectFeedback && (
+              <div className="p-2.5 rounded-xl bg-[#0050F5]/10 border border-[#0050F5]/25 text-[#0050F5] dark:text-[#C7B9FF] text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 flex-shrink-0" />
+                <span>{localDetectFeedback}</span>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block font-medium mb-1">Candidate ADB / Pairing Ports to Probe</label>

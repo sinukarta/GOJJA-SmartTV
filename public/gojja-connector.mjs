@@ -17,6 +17,7 @@
 
 import os from 'node:os';
 import net from 'node:net';
+import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -198,7 +199,9 @@ function getLocalInterfaces() {
     if (!addrs) continue;
     for (const addr of addrs) {
       if (addr.family === 'IPv4' && !addr.internal) {
-        list.push({ name, address: addr.address, netmask: addr.netmask, cidr: addr.cidr || `${addr.address}/24` });
+        const parts = addr.address.split('.');
+        const cidr = parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.0/24` : `${addr.address}/24`;
+        list.push({ name, address: addr.address, netmask: addr.netmask, cidr });
       }
     }
   }
@@ -690,6 +693,7 @@ async function runDaemonMode(adbInfo, primaryIface, selectedCidr) {
         hostPlatform: `${os.platform()} ${os.release()} (${os.arch()})`,
         interfaceName: primaryIface.name,
         subnetCidr: selectedCidr,
+        interfaces: getLocalInterfaces(),
         adbAvailable: adbInfo.available,
         adbVersion: adbInfo.version,
         rsaFingerprint: getOrReadRsaFingerprint(),
@@ -714,6 +718,44 @@ async function runDaemonMode(adbInfo, primaryIface, selectedCidr) {
     process.exit(1);
   }
 
+  // Local loopback status server on 127.0.0.1:3939 for instant browser local detection
+  try {
+    const loopback = http.createServer((req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', '*');
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      if (req.url === '/status' || req.url === '/interfaces') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            ok: true,
+            agentId,
+            serverUrl: SERVER_URL,
+            interfaces: getLocalInterfaces(),
+            adbAvailable: adbInfo.available,
+            adbVersion: adbInfo.version,
+          })
+        );
+        return;
+      }
+      res.writeHead(404);
+      res.end('Not found');
+    });
+    loopback.on('error', () => {
+      // port in use or restricted, non-fatal
+    });
+    loopback.listen(3939, '127.0.0.1', () => {
+      console.log('✓ Local loopback status ready on http://127.0.0.1:3939/interfaces');
+    });
+  } catch {
+    // ignore
+  }
+
   // Periodic heartbeat every 30s
   setInterval(async () => {
     try {
@@ -725,6 +767,7 @@ async function runDaemonMode(adbInfo, primaryIface, selectedCidr) {
           adbVersion: adbInfo.version,
           subnetCidr: selectedCidr,
           interfaceName: primaryIface.name,
+          interfaces: getLocalInterfaces(),
           rsaFingerprint: getOrReadRsaFingerprint(),
         }),
       });

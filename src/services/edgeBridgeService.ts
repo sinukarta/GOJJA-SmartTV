@@ -30,6 +30,13 @@ export interface EdgePairingToken {
   redeemedByAgentId?: string;
 }
 
+export interface EdgeAgentInterface {
+  name: string;
+  address: string;
+  netmask?: string;
+  cidr: string;
+}
+
 export interface EdgeAgentSession {
   agentId: string;
   agentToken: string;
@@ -39,6 +46,7 @@ export interface EdgeAgentSession {
   hostPlatform: string;
   interfaceName: string;
   subnetCidr: string;
+  interfaces?: EdgeAgentInterface[];
   adbAvailable: boolean;
   adbVersion: string;
   rsaFingerprint?: string;
@@ -106,6 +114,7 @@ export class EdgeBridgeManager {
       adbAvailable?: boolean;
       adbVersion?: string;
       rsaFingerprint?: string;
+      interfaces?: EdgeAgentInterface[];
     }
   ): RedeemPairingResult {
     const normalized = String(code || '').trim().toUpperCase();
@@ -133,6 +142,7 @@ export class EdgeBridgeManager {
       hostPlatform: agentMeta.hostPlatform || 'unknown',
       interfaceName: agentMeta.interfaceName || 'lan0',
       subnetCidr: agentMeta.subnetCidr || '192.168.1.0/24',
+      interfaces: agentMeta.interfaces || [],
       adbAvailable: Boolean(agentMeta.adbAvailable),
       adbVersion: agentMeta.adbVersion || 'Pending Auto-Install',
       rsaFingerprint: agentMeta.rsaFingerprint,
@@ -177,7 +187,7 @@ export class EdgeBridgeManager {
 
   updateHeartbeat(
     agentId: string,
-    patch: Partial<Pick<EdgeAgentSession, 'adbAvailable' | 'adbVersion' | 'subnetCidr' | 'interfaceName' | 'rsaFingerprint'>>
+    patch: Partial<Pick<EdgeAgentSession, 'adbAvailable' | 'adbVersion' | 'subnetCidr' | 'interfaceName' | 'rsaFingerprint' | 'interfaces'>>
   ): EdgeAgentSession | null {
     const session = this.agentsById.get(agentId);
     if (!session) return null;
