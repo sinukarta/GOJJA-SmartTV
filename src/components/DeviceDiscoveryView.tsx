@@ -30,6 +30,7 @@ import {
   HardDrive,
   Search,
   X,
+  Trash2,
 } from 'lucide-react';
 import {
   EnvironmentId,
@@ -85,6 +86,8 @@ interface DeviceDiscoveryViewProps {
   onAdbScreenshot?: (candidateId: string) => Promise<any>;
   onAdbBackup?: (candidateId: string, propertyId?: string) => Promise<any>;
   onAdbRestore?: (candidateId: string, backupId?: string) => Promise<any>;
+  onDeleteCandidate?: (candidateId: string) => Promise<void>;
+  onClearOfflineCandidates?: (propertyId: string) => Promise<void>;
   deviceBackups?: TvDeviceBackup[];
   statusBanner: { type: 'success' | 'error' | 'info'; text: string } | null;
 }
@@ -110,6 +113,8 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
   onAdbScreenshot,
   onAdbBackup,
   onAdbRestore,
+  onDeleteCandidate,
+  onClearOfflineCandidates,
   deviceBackups = [],
   statusBanner,
 }) => {
@@ -915,9 +920,24 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                   Discovered LAN Candidates ({propertyCandidates.length})
                 </h3>
               </div>
-              <span className="text-xs text-[var(--cms-text-secondary)]">
-                Found ≠ Reachable ≠ ADBVerified ≠ Enrolled
-              </span>
+              <div className="flex items-center gap-2">
+                {propertyCandidates.some((c) => c.reachability === 'Unreachable') && onClearOfflineCandidates && (
+                  <button
+                    onClick={() =>
+                      wrapBusy('clear-offline', () => onClearOfflineCandidates(selectedPropertyId))
+                    }
+                    disabled={busyAction !== null}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors"
+                    title="Hapus semua candidate yang saat ini berstatus offline/unreachable"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Bersihkan Offline</span>
+                  </button>
+                )}
+                <span className="text-xs text-[var(--cms-text-secondary)]">
+                  Found ≠ Reachable ≠ ADBVerified ≠ Enrolled
+                </span>
+              </div>
             </div>
 
             {propertyCandidates.length === 0 ? (
@@ -1008,15 +1028,24 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                             {cand.discoverySource} · {cand.executionMode}
                           </td>
                           <td className="py-3 px-3">
-                            <span
-                              className={`font-medium ${
-                                cand.reachability === 'Reachable'
-                                   ? 'text-emerald-700 dark:text-emerald-300'
-                                   : 'text-rose-700 dark:text-rose-300'
-                              }`}
-                            >
-                              {cand.reachability}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  cand.reachability === 'Reachable'
+                                    ? 'bg-emerald-500 animate-pulse'
+                                    : 'bg-rose-500'
+                                }`}
+                              />
+                              <span
+                                className={`font-medium ${
+                                  cand.reachability === 'Reachable'
+                                    ? 'text-emerald-700 dark:text-emerald-300'
+                                    : 'text-rose-700 dark:text-rose-300'
+                                }`}
+                              >
+                                {cand.reachability}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 px-3 font-semibold">
                             {cand.authState === 'DeviceVerified' || cand.authState === 'Enrolled' ? (
@@ -1029,7 +1058,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {onAdbProbe && cand.port !== 8008 && cand.authState !== 'Unsupported' && (
+                              {onAdbProbe && cand.authState !== 'Unsupported' && (
                                 <button
                                   title="Probe & Kenali TV"
                                   onClick={(e) => {
@@ -1043,7 +1072,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                                   <span>{busyAction === `probe-${cand.id}` ? 'Probing...' : 'Probe'}</span>
                                 </button>
                               )}
-                              {onAdbScreenshot && cand.port !== 8008 && cand.authState !== 'Unsupported' && (
+                              {onAdbScreenshot && cand.authState !== 'Unsupported' && (
                                 <button
                                   title="Ambil Screenshot Realtime"
                                   onClick={(e) => {
@@ -1057,7 +1086,7 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                                   <span>{busyAction === `snap-${cand.id}` ? 'Snap...' : 'Screenshot'}</span>
                                 </button>
                               )}
-                              {onAdbBackup && cand.port !== 8008 && cand.authState !== 'Unsupported' && (
+                              {onAdbBackup && cand.authState !== 'Unsupported' && (
                                 <button
                                   title="Backup Konfigurasi TV (Standar CleanYourTV)"
                                   onClick={(e) => {
@@ -1090,6 +1119,21 @@ export const DeviceDiscoveryView: React.FC<DeviceDiscoveryViewProps> = ({
                               >
                                 {isSel ? 'Selected' : 'Inspect'}
                               </button>
+                              {onDeleteCandidate && (
+                                <button
+                                  title="Hapus Candidate dari Daftar"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Hapus candidate ${cand.friendlyName} (${cand.ip}) dari daftar?`)) {
+                                      wrapBusy(`del-${cand.id}`, () => onDeleteCandidate(cand.id));
+                                    }
+                                  }}
+                                  disabled={busyAction === `del-${cand.id}`}
+                                  className="p-1.5 rounded-lg text-xs text-[var(--cms-text-secondary)] hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

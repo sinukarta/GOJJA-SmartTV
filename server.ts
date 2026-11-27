@@ -3992,6 +3992,23 @@ async function startServer() {
               });
             }
           }
+
+          // Live Lab Pruning: Prune / update candidates for this property in LIVE_LAB
+          const activeIps = new Set(remoteCandidates.map((rc) => rc.ip));
+          workspace.candidates = workspace.candidates.filter((c) => {
+            if (c.propertyId !== propertyId) return true;
+            if (c.assignedRoomId || c.discoverySource === 'MANUAL') {
+              if (!activeIps.has(c.ip)) {
+                c.reachability = 'Unreachable';
+                c.notes = `Offline: Not observed in latest Edge scan on ${targetCidr}`;
+              } else {
+                c.reachability = 'Reachable';
+              }
+              return true;
+            }
+            return activeIps.has(c.ip);
+          });
+
           const run: DiscoveryRun = {
             id: `RUN-EDGE-${Date.now().toString().slice(-5)}`,
             environmentId: 'LIVE_LAB',
@@ -4230,6 +4247,22 @@ async function startServer() {
       }
     }
 
+    // Live Lab Pruning: Devices no longer detected in network are removed (or marked Unreachable if assigned/manual)
+    const activeIps = new Set(discoveredLive.map((item) => item.ip));
+    workspace.candidates = workspace.candidates.filter((c) => {
+      if (c.propertyId !== propertyId) return true;
+      if (c.assignedRoomId || c.discoverySource === 'MANUAL') {
+        if (!activeIps.has(c.ip)) {
+          c.reachability = 'Unreachable';
+          c.notes = `Offline: Not observed in latest scan on ${targetCidr}`;
+        } else {
+          c.reachability = 'Reachable';
+        }
+        return true;
+      }
+      return activeIps.has(c.ip);
+    });
+
     const completedAtUtc = new Date().toISOString();
     const run: DiscoveryRun = {
       id: `RUN-LIVE-${Date.now().toString().slice(-5)}`,
@@ -4383,6 +4416,36 @@ async function startServer() {
     saveStore(store);
     recordAudit(environmentId, user.alias, role.id, 'adb.connect', `${cleanIp}:${numPort}`, propertyId, 'ALLOW', 'MANUAL_TARGET_ADDED', cand.notes);
     return res.json({ ok: true, candidate: cand });
+  });
+
+  // Delete Individual Discovery Candidate
+  app.delete('/api/live-lab/candidate/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const candIndex = workspace.candidates.findIndex((c) => c.id === id);
+    if (candIndex < 0) {
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Candidate not found.' });
+    }
+    const removed = workspace.candidates.splice(candIndex, 1)[0];
+    saveStore(store);
+    recordAudit(environmentId, user.alias, role.id, 'candidate.delete', id, removed.propertyId, 'ALLOW', 'CANDIDATE_REMOVED', `Removed candidate ${removed.friendlyName} (${removed.ip}:${removed.port}).`);
+    return res.json({ ok: true, message: `Candidate ${removed.friendlyName} (${removed.ip}) berhasil dihapus.`, candidate: removed });
+  });
+
+  // Bulk Clear Offline / Unreachable Candidates for Property
+  app.post('/api/live-lab/candidates/clear-offline', async (req: Request, res: Response) => {
+    const { propertyId = 'P-01' } = req.body;
+    const { user, role, environmentId, workspace } = getRequestContext(req);
+    const beforeCount = workspace.candidates.length;
+    workspace.candidates = workspace.candidates.filter((c) => {
+      if (c.propertyId !== propertyId) return true;
+      if (c.assignedRoomId) return true; // preserve assigned endpoints
+      return c.reachability === 'Reachable';
+    });
+    const removedCount = beforeCount - workspace.candidates.length;
+    saveStore(store);
+    recordAudit(environmentId, user.alias, role.id, 'candidates.clear_offline', propertyId, propertyId, 'ALLOW', 'CANDIDATES_CLEARED', `Cleared ${removedCount} offline/unreachable candidate(s).`);
+    return res.json({ ok: true, removedCount, message: `${removedCount} candidate offline berhasil dibersihkan.` });
   });
 
   // ADB Wireless Pairing Route (adb pair IP:pairingPort [code])
@@ -4697,14 +4760,93 @@ async function startServer() {
       }
     }
 
+    let activePort = targetPort;
+    // If targetPort is not 5555, check if port 5555 is open (e.g. TV has ADB enabled)
+    if (activePort !== 5555) {
+      const is5555Open = await probeTcpSocket(targetIp, 5555, 600);
+      if (is5555Open) {
+        activePort = 5555;
+        if (cand) cand.port = 5555;
+      }
+    }
+
     const adbHost = await detectHostAdb();
+    if (adbHost.available && activePort === 5555) {
+      const adbProps = await probeAdbDeviceProperties(targetIp, activePort);
+      if (adbProps.connected) {
+        if (cand) {
+          cand.authState = adbProps.authState;
+          if (adbProps.brand || adbProps.model) {
+            const brand = (adbProps.brand || adbProps.manufacturer || '').trim();
+            const model = (adbProps.model || 'Smart TV').trim();
+            cand.friendlyName = `${brand ? brand.toUpperCase() + ' ' : ''}${model}`.trim();
+            cand.observedBrand = brand;
+            cand.observedModel = model;
+            cand.observedManufacturer = adbProps.manufacturer;
+            cand.observedAndroidVersion = adbProps.androidVersion;
+            cand.observedSdkInt = adbProps.sdkInt;
+            cand.observedBuildFingerprint = adbProps.buildFingerprint;
+            cand.observedSerial = adbProps.serialNo;
+            cand.notes = `Identified: ${cand.friendlyName} (Android ${adbProps.androidVersion || '?'}, SDK ${adbProps.sdkInt || '?'}). Real getprop response verified.`;
+          } else if (adbProps.authState === 'AuthRequired') {
+            cand.notes = adbProps.rawStatus;
+          }
+          cand.reachability = 'Reachable';
+          cand.lastObservedUtc = new Date().toISOString();
+          saveStore(store);
+        }
+        return res.json({
+          ok: true,
+          candidate: cand,
+          properties: adbProps,
+          message: cand?.notes || `Probed ${targetIp}:${activePort}: ${adbProps.rawStatus}`,
+        });
+      }
+    }
+
+    // Fallback: Check if device is Samsung TV (Port 8001)
+    if (cand && (activePort === 8001 || /samsung/i.test(cand.friendlyName))) {
+      try {
+        const sam = await probeSamsungInfo(targetIp);
+        if (sam) {
+          cand.friendlyName = sam.name || cand.friendlyName;
+          cand.observedModel = sam.modelName || cand.observedModel;
+          cand.observedBrand = 'Samsung';
+          cand.observedManufacturer = 'Samsung';
+          cand.notes = `Identified: ${cand.friendlyName} (Model: ${sam.modelName || '?'}, OS: ${sam.os || 'Tizen'}).`;
+          cand.reachability = 'Reachable';
+          cand.lastObservedUtc = new Date().toISOString();
+          saveStore(store);
+          return res.json({ ok: true, candidate: cand, message: cand.notes });
+        }
+      } catch {}
+    }
+
+    // Fallback: Check if device is Google Cast (Port 8008)
+    if (cand && (activePort === 8008 || cand.discoverySource === 'SSDP')) {
+      try {
+        const cast = await probeCastEurekaInfo(targetIp);
+        if (cast) {
+          cand.friendlyName = cast.name || cand.friendlyName;
+          cand.observedBrand = cast.manufacturer || cand.observedBrand;
+          cand.observedModel = cast.modelName || cand.observedModel;
+          cand.observedManufacturer = cast.manufacturer || cand.observedManufacturer;
+          cand.notes = `Identified: ${cand.friendlyName} via Google Cast (Port 8008).`;
+          cand.reachability = 'Reachable';
+          cand.lastObservedUtc = new Date().toISOString();
+          saveStore(store);
+          return res.json({ ok: true, candidate: cand, message: cand.notes });
+        }
+      } catch {}
+    }
+
     if (!adbHost.available) {
       return res.status(503).json({ code: 'CAPABILITY_UNSUPPORTED', message: 'ADB binary unavailable.' });
     }
 
-    const adbProps = await probeAdbDeviceProperties(targetIp, targetPort);
+    const adbProps = await probeAdbDeviceProperties(targetIp, activePort);
     if (!adbProps.connected) {
-      return res.status(422).json({ code: 'DEVICE_UNREACHABLE', message: `Tidak dapat terhubung ke ${targetIp}:${targetPort}: ${adbProps.rawStatus}`, candidate: cand });
+      return res.status(422).json({ code: 'DEVICE_UNREACHABLE', message: `Tidak dapat terhubung ke ${targetIp}:${activePort}: ${adbProps.rawStatus}`, candidate: cand });
     }
 
     if (cand) {
@@ -4732,7 +4874,7 @@ async function startServer() {
       ok: true,
       candidate: cand,
       properties: adbProps,
-      message: cand?.notes || `Probed ${targetIp}:${targetPort}: ${adbProps.rawStatus}`,
+      message: cand?.notes || `Probed ${targetIp}:${activePort}: ${adbProps.rawStatus}`,
     });
   });
 
@@ -4794,11 +4936,24 @@ async function startServer() {
       }
     }
 
-    const captureRes = await captureDeviceScreenshot(targetIp, targetPort);
+    let activePort = targetPort;
+    if (activePort !== 5555) {
+      const is5555Open = await probeTcpSocket(targetIp, 5555, 600);
+      if (is5555Open) {
+        activePort = 5555;
+        if (cand) cand.port = 5555;
+      }
+    }
+
+    const captureRes = await captureDeviceScreenshot(targetIp, activePort);
     if (!captureRes.success || !captureRes.dataUrl) {
+      const isSamsungTizen = cand && (/samsung/i.test(cand.friendlyName) || targetPort === 8001);
+      const hint = isSamsungTizen
+        ? 'TV Samsung Tizen (port 8001) menggunakan OS Tizen, bukan Android ADB. Pastikan TV adalah Android TV / Google TV dengan USB Debugging aktif untuk ADB screencap.'
+        : `TV di ${targetIp}:${activePort} belum terotorisasi atau port 5555 tertutup. Pastikan Developer Options > USB Debugging / Wireless Debugging aktif dan dialog RSA di layar TV sudah disetujui (OK).`;
       return res.status(422).json({
         code: 'SCREENSHOT_FAILED',
-        message: captureRes.error || `Failed to capture screenshot from ${targetIp}:${targetPort}.`,
+        message: `${captureRes.error || 'Gagal mengambil screenshot.'} ${hint}`,
       });
     }
 

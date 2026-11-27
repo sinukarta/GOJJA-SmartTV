@@ -1251,6 +1251,40 @@ export default function App() {
         };
       }
 
+      if (url.includes('/api/live-lab/candidate/') && options.method === 'DELETE') {
+        const id = decodeURIComponent(url.split('/api/live-lab/candidate/')[1]?.split('?')[0] || '');
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              candidates: prev.data.candidates.filter((c) => c.id !== id),
+            },
+          };
+        });
+        return { ok: true, message: 'Candidate berhasil dihapus.' };
+      }
+
+      if (url.includes('/api/live-lab/candidates/clear-offline')) {
+        const propId = body.propertyId || 'P-01';
+        setBootstrap((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              candidates: prev.data.candidates.filter((c) => {
+                if (c.propertyId !== propId) return true;
+                if (c.assignedRoomId) return true;
+                return c.reachability === 'Reachable';
+              }),
+            },
+          };
+        });
+        return { ok: true, message: 'Candidate offline berhasil dibersihkan.' };
+      }
+
       if (url.includes('/api/tv/open-channel')) {
         const epList = bootstrapRef.current?.data?.endpoints || INITIAL_ENDPOINTS;
         const chList = bootstrapRef.current?.data?.channels || INITIAL_CHANNELS;
@@ -5036,6 +5070,29 @@ Headers: Content-Type: application/json, X-Gojja-Secret: <hotel_pms_secret>
                 } catch (err: unknown) {
                   showNotice('error', err instanceof Error ? err.message : 'Gagal memulihkan TV ke setelan pabrik');
                   throw err;
+                }
+              }}
+              onDeleteCandidate={async (candidateId) => {
+                try {
+                  const res = await apiCall(`/api/live-lab/candidate/${encodeURIComponent(candidateId)}`, {
+                    method: 'DELETE',
+                  });
+                  await fetchBootstrap();
+                  showNotice('info', res?.message || 'Candidate berhasil dihapus dari daftar.');
+                } catch (err: unknown) {
+                  showNotice('error', err instanceof Error ? err.message : 'Gagal menghapus candidate');
+                }
+              }}
+              onClearOfflineCandidates={async (propertyId) => {
+                try {
+                  const res = await apiCall('/api/live-lab/candidates/clear-offline', {
+                    method: 'POST',
+                    body: JSON.stringify({ propertyId }),
+                  });
+                  await fetchBootstrap();
+                  showNotice('info', res?.message || 'Candidate offline berhasil dibersihkan.');
+                } catch (err: unknown) {
+                  showNotice('error', err instanceof Error ? err.message : 'Gagal membersihkan candidate offline');
                 }
               }}
             />
